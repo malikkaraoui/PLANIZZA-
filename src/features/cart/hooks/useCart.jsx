@@ -38,7 +38,7 @@ function loadCartFromStorage() {
   };
 }
 
-function saveCartToStorage({ truckId, items }) {
+function saveCartToStorage({ truckId, items, expiresAt }) {
   if (typeof window === 'undefined' || !window.localStorage) return;
 
   if (!Array.isArray(items) || items.length === 0) {
@@ -47,6 +47,8 @@ function saveCartToStorage({ truckId, items }) {
   }
 
   const now = Date.now();
+  const safeExpiresAt =
+    typeof expiresAt === 'number' && Number.isFinite(expiresAt) ? expiresAt : now + CART_TTL_MS;
   const payload = {
     truckId: truckId ?? null,
     items: items.map((it) => ({
@@ -57,7 +59,7 @@ function saveCartToStorage({ truckId, items }) {
       available: it.available !== false,
     })),
     savedAt: now,
-    expiresAt: now + CART_TTL_MS,
+    expiresAt: safeExpiresAt,
   };
 
   window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(payload));
@@ -105,6 +107,9 @@ export function CartProvider({ children }) {
   const [items, setItems] = useState([]);
 
   const applyingRemoteRef = useRef(false);
+  // Empêche les boucles: quand on applique un snapshot RTDB -> React state,
+  // on ne doit pas réécrire ce même state vers RTDB.
+  const suppressRtdbPersistRef = useRef(false);
   const saveTimerRef = useRef(null);
   const storageTimerRef = useRef(null);
   const didHydrateFromStorageRef = useRef(false);
@@ -182,10 +187,19 @@ export function CartProvider({ children }) {
     const cartRef = ref(db, `carts/${uid}/active`);
     const unsub = onValue(cartRef, (snap) => {
       applyingRemoteRef.current = true;
+      suppressRtdbPersistRef.current = true;
       try {
         if (!snap.exists()) {
           setItems([]);
           setTruckId(null);
+
+          // Important: si le panier distant disparaît (logout depuis autre device, purge, etc.)
+          // on reflète immédiatement cet état en localStorage.
+          try {
+            saveCartToStorage({ truckId: null, items: [] });
+          } catch {
+            // ignore
+          }
           return;
         }
 
@@ -198,15 +212,35 @@ export function CartProvider({ children }) {
           remove(cartRef).catch(() => {});
           setItems([]);
           setTruckId(null);
+
+          // Refléter aussi l'expiration côté storage navigateur
+          try {
+            saveCartToStorage({ truckId: null, items: [] });
+          } catch {
+            // ignore
+          }
           return;
         }
 
-        setTruckId(v.truckId ?? null);
-        setItems(deserializeItems(v.items));
+        const nextTruckId = v.truckId ?? null;
+        const nextItems = deserializeItems(v.items);
+
+        setTruckId(nextTruckId);
+        setItems(nextItems);
+
+        // Crucial: synchroniser le panier distant vers localStorage.
+        // Sinon, si l'utilisateur se déconnecte juste après un refresh (panier uniquement chargé depuis RTDB),
+        // il peut perdre le panier en mode invité.
+        try {
+          saveCartToStorage({ truckId: nextTruckId, items: nextItems, expiresAt: expiresAt ?? undefined });
+        } catch {
+          // localStorage peut échouer (quota, mode privé, etc.)
+        }
       } finally {
         // Relâcher après la synchro React
         queueMicrotask(() => {
           applyingRemoteRef.current = false;
+          suppressRtdbPersistRef.current = false;
         });
       }
     });
@@ -277,7 +311,7 @@ export function CartProvider({ children }) {
   // Persist: dès qu'on a un uid, on sauvegarde le panier actif avec TTL 30min.
   useEffect(() => {
     if (!uid || !isFirebaseConfigured || !db) return;
-    if (applyingRemoteRef.current) return;
+    if (suppressRtdbPersistRef.current) return;
 
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current);
@@ -310,6 +344,16 @@ export function CartProvider({ children }) {
       }).catch((err) => {
         console.warn('[PLANIZZA] Impossible de sauvegarder le panier:', err);
       });
+
+      if (import.meta.env.DEV) {
+        // Aide debug: permet de vérifier en console que l'écriture RTDB a bien été tentée.
+        console.debug('[PLANIZZA] Cart saved to RTDB', {
+          path: `carts/${uid}/active`,
+          truckId: truckIdRef.current ?? null,
+          itemsCount: itemsRef.current.length,
+          expiresAt: safeExpiresAt,
+        });
+      }
     }, CART_SAVE_DEBOUNCE_MS);
 
     return () => {
@@ -322,8 +366,16 @@ export function CartProvider({ children }) {
     [items]
   );
 
+  const flushToStorage = () => {
+    try {
+      saveCartToStorage({ truckId: truckIdRef.current, items: itemsRef.current });
+    } catch (err) {
+      console.warn('[PLANIZZA] Impossible de flusher le panier en storage navigateur:', err);
+    }
+  };
+
   const value = useMemo(
-    () => ({ truckId, setTruckId, items, addItem, removeItem, clear, totalCents }),
+    () => ({ truckId, setTruckId, items, addItem, removeItem, clear, totalCents, flushToStorage }),
     [truckId, items, totalCents]
   );
 

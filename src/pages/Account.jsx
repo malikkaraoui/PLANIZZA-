@@ -1,16 +1,19 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { signOut } from 'firebase/auth';
+import { ref, remove } from 'firebase/database';
 import { useAuth } from '../app/providers/AuthProvider';
 import { ROUTES } from '../app/routes';
 import Button from '../components/ui/Button';
-import { auth, isFirebaseConfigured } from '../lib/firebase';
+import { auth, db, isFirebaseConfigured } from '../lib/firebase';
+import { useCart } from '../features/cart/hooks/useCart.jsx';
 
 export default function Account() {
   const { isAuthenticated, user, loading } = useAuth();
   const navigate = useNavigate();
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState(null);
+  const { flushToStorage } = useCart();
 
   if (loading) {
     return (
@@ -45,6 +48,20 @@ export default function Account() {
 
     setSigningOut(true);
     try {
+      // 1) On s'assure que le panier est bien présent côté navigateur (mode invité) avant de perdre l'auth.
+      // Important: si le panier vient d'être hydraté depuis RTDB (après refresh), on veut quand même le garder local.
+      flushToStorage?.();
+
+      // 2) On nettoie le panier RTDB tant qu'on est encore connecté, pour éviter qu'il reste 30min côté serveur.
+      // Best-effort: si ça échoue, l'expiration serveur + les rules owner-only protègent quand même.
+      if (isFirebaseConfigured && db && user?.uid) {
+        try {
+          await remove(ref(db, `carts/${user.uid}/active`));
+        } catch (e) {
+          console.warn('[PLANIZZA] Impossible de supprimer le panier RTDB avant logout:', e);
+        }
+      }
+
       await signOut(auth);
       navigate(ROUTES.explore, { replace: true });
     } catch (err) {

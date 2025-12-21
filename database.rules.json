@@ -63,7 +63,7 @@
         ".read": "auth != null && auth.uid === $uid",
         ".write": "auth != null && auth.uid === $uid",
         "active": {
-          ".validate": "!newData.exists() || (newData.hasChildren(['items', 'expiresAt']) && newData.child('expiresAt').isNumber() && newData.child('expiresAt').val() <= now + 35 * 60 * 1000 && (newData.child('truckId').val() === null || newData.child('truckId').isString()))"
+          ".validate": "!newData.exists() || (newData.hasChildren(['items', 'expiresAt']) && newData.child('expiresAt').isNumber() && newData.child('expiresAt').val() <= now + 24 * 60 * 60 * 1000 && (newData.child('truckId').val() === null || newData.child('truckId').isString()))"
         }
       }
     },

@@ -1,6 +1,7 @@
 {
   "projects": {
-    "default": "planizza-ac827"
+    "default": "planizza-ac827",
+    "Planizza": "planizza-ac827"
   },
   "targets": {},
   "etags": {}
