@@ -1,0 +1,60 @@
+# ===========================
+# .gitignore - PLANIZZA
+# ===========================
+
+# ============ Environnement & Secrets ============
+.env
+.env.*
+!.env.example
+
+# ============ Logs ============
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ============ Dépendances ============
+node_modules
+
+# ============ Build & Cache ============
+dist
+dist-ssr
+*.local
+.cache/
+*.tsbuildinfo
+
+# ============ Firebase ============
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+functions/.runtimeconfig.json
+**/serviceAccountKey.json
+
+# ============ IDE ============
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ============ OS ============
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# ============ Testing ============
+coverage/
+.nyc_output/
+
+# ============ Misc ============
+*.pem
+.vercel
+
