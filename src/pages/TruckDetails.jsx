@@ -1,14 +1,16 @@
 import { useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import TruckHeader from '../features/trucks/TruckHeader';
 import { useTruck } from '../features/trucks/hooks/useTruck';
 import { useMenu } from '../features/menu/hooks/useMenu';
 import MenuItemCard from '../features/menu/MenuItemCard';
 import CartDrawer from '../features/cart/CartDrawer';
 import { useCart } from '../features/cart/hooks/useCart.jsx';
+import { ROUTES } from '../app/routes';
 
 export default function TruckDetails() {
   const { truckId } = useParams();
+  const navigate = useNavigate();
   const { truck, loading: loadingTruck } = useTruck(truckId);
   const { items: menuItems, loading: loadingMenu } = useMenu(truckId);
   const { addItem, items } = useCart();
@@ -18,15 +20,14 @@ export default function TruckDetails() {
   const hasMenu = useMemo(() => (menuItems?.length ?? 0) > 0, [menuItems]);
 
   const handleCheckout = async () => {
-    // MVP: on redirige vers /pricing (où Stripe est déjà câblé) en attendant l’ordre réel.
-    // TODO: créer une commande + appeler Function createCheckoutSession avec line_items
-    window.location.href = '/pricing';
+    // Navigation MVP: passage par /cart puis /checkout
+    navigate(ROUTES.cart, { state: { truckId } });
   };
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="mb-6">
-        <Link to="/trucks" className="text-sm text-gray-600 hover:underline">
+        <Link to={ROUTES.explore} className="text-sm text-gray-600 hover:underline">
           ← Retour à la liste
         </Link>
       </div>
@@ -65,7 +66,11 @@ export default function TruckDetails() {
               ) : (
                 <div className="grid gap-3">
                   {menuItems.map((it) => (
-                    <MenuItemCard key={it.id} item={it} onAdd={addItem} />
+                    <MenuItemCard
+                      key={it.id}
+                      item={it}
+                      onAdd={(item) => addItem(item, { truckId })}
+                    />
                   ))}
                 </div>
               )}
@@ -76,7 +81,7 @@ export default function TruckDetails() {
             <CartDrawer onCheckout={handleCheckout} />
             {items.length > 0 && (
               <p className="mt-3 text-xs text-gray-500">
-                MVP : le checkout réel sera déclenché via Firebase Functions.
+                MVP : passez par le panier puis le checkout.
               </p>
             )}
           </aside>

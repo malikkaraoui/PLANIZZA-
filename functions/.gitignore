@@ -1,1 +1,12 @@
 node_modules/
+
+# Secrets (NEVER COMMIT)
+.env
+.env.*
+!.env.example
+
+# Build output (selon config)
+lib/
+dist/
+.eslintcache
+.cache/

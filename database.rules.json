@@ -4,7 +4,40 @@
     "users": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid"
+        ".write": "auth != null && auth.uid === $uid",
+
+        "uid": {
+          ".validate": "newData.isString() && newData.val() === auth.uid"
+        },
+        "email": {
+          ".validate": "newData.isString() || newData.val() === null"
+        },
+        "displayName": {
+          ".validate": "newData.isString() || newData.val() === null"
+        },
+        "photoURL": {
+          ".validate": "newData.isString() || newData.val() === null"
+        },
+        "providerId": {
+          ".validate": "newData.isString() || newData.val() === null"
+        },
+
+        "phoneNumber": {
+          ".validate": "newData.isString() || newData.val() === null"
+        },
+        "phoneVerified": {
+          ".validate": "newData.isBoolean() && newData.val() === false"
+        },
+        "role": {
+          ".validate": "newData.isString() && (newData.val() === 'user')"
+        },
+
+        "createdAt": {
+          ".validate": "(!data.exists() && (newData.isNumber() || newData.child('.sv').val() === 'timestamp')) || (data.exists() && newData.val() === data.val())"
+        },
+        "updatedAt": {
+          ".validate": "newData.isNumber() || newData.child('.sv').val() === 'timestamp'"
+        }
       }
     },
     "trucks": {
@@ -22,10 +55,22 @@
     "orders": {
       ".read": "auth != null",
       "$orderId": {
-        ".write": "auth != null && (!data.exists() ? newData.child('userUid').val() === auth.uid : data.child('userUid').val() === auth.uid)",
-        "status": {
-          ".write": false
+        ".write": "auth != null && !data.exists() && newData.child('userUid').val() === auth.uid && newData.child('status').val() === 'created'"
+      }
+    },
+    "carts": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid",
+        "active": {
+          ".validate": "!newData.exists() || (newData.hasChildren(['items', 'expiresAt']) && newData.child('expiresAt').isNumber() && newData.child('expiresAt').val() <= now + 35 * 60 * 1000 && (newData.child('truckId').val() === null || newData.child('truckId').isString()))"
         }
+      }
+    },
+    "cartsArchive": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": false
       }
     },
     "truckOrders": {

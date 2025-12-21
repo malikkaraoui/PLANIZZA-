@@ -11,10 +11,7 @@ const stripePromise = publishableKey ? loadStripe(publishableKey) : Promise.reso
  * Créer une session Stripe Checkout et rediriger l'utilisateur
  * 
  * @param {Object} options - Options pour la session Checkout
- * @param {string} options.priceId - ID du prix Stripe (ex: price_xxxxx)
- * @param {number} options.quantity - Quantité à acheter (défaut: 1)
- * @param {string} options.successUrl - URL de redirection en cas de succès
- * @param {string} options.cancelUrl - URL de redirection en cas d'annulation
+ * @param {string} options.orderId - ID de commande RTDB (orders/{orderId})
  * @returns {Promise<void>}
  * 
  * @example
@@ -23,10 +20,7 @@ const stripePromise = publishableKey ? loadStripe(publishableKey) : Promise.reso
  * const handleCheckout = async () => {
  *   try {
  *     await createCheckoutSession({
- *       priceId: 'price_1234567890',
- *       quantity: 1,
- *       successUrl: `${window.location.origin}/success`,
- *       cancelUrl: `${window.location.origin}/cancel`
+ *       orderId: 'order_abc123',
  *     });
  *   } catch (error) {
  *     console.error('Erreur lors du checkout:', error);
@@ -34,17 +28,16 @@ const stripePromise = publishableKey ? loadStripe(publishableKey) : Promise.reso
  *   }
  * };
  */
-export async function createCheckoutSession({ 
-  priceId, 
-  quantity = 1, 
-  successUrl, 
-  cancelUrl 
-}) {
+export async function createCheckoutSession({ orderId }) {
   try {
     if (!functions) {
       throw new Error(
         'Firebase Functions n\'est pas configuré. Configurez .env.local (Firebase) et démarrez les émulateurs ou déployez les functions.'
       );
+    }
+
+    if (!orderId) {
+      throw new Error("Paramètre requis: orderId");
     }
 
     // Charger Stripe
@@ -56,24 +49,31 @@ export async function createCheckoutSession({
       );
     }
 
-    // Appeler la Cloud Function pour créer une session
+    // Appeler la Cloud Function pour créer une session (MVP: orderId uniquement)
     const createSession = httpsCallable(functions, 'createCheckoutSession');
     
     const { data } = await createSession({
-      priceId,
-      quantity,
-      successUrl: successUrl || `${window.location.origin}/success`,
-      cancelUrl: cancelUrl || `${window.location.origin}/cancel`,
+      orderId,
     });
 
     // Rediriger vers Stripe Checkout
-    const { error } = await stripe.redirectToCheckout({
-      sessionId: data.sessionId,
-    });
+    // - Priorité: redirectToCheckout(sessionId)
+    // - Fallback: redirection directe vers l'URL fournie
+    if (data?.sessionId) {
+      const { error } = await stripe.redirectToCheckout({
+        sessionId: data.sessionId,
+      });
 
-    if (error) {
-      throw error;
+      if (error) throw error;
+      return;
     }
+
+    if (data?.url) {
+      window.location.assign(data.url);
+      return;
+    }
+
+    throw new Error("Réponse inattendue de createCheckoutSession");
   } catch (error) {
     console.error('Erreur lors de la création de la session Stripe:', error);
     throw error;
@@ -86,15 +86,14 @@ export async function createCheckoutSession({
  * ```jsx
  * import { createCheckoutSession } from '@/lib/stripe';
  * 
- * function ProductCard({ product }) {
+ * function CheckoutButton({ orderId }) {
  *   const [loading, setLoading] = useState(false);
  * 
  *   const handleBuyNow = async () => {
  *     setLoading(true);
  *     try {
  *       await createCheckoutSession({
- *         priceId: product.stripePriceId,
- *         quantity: 1,
+ *         orderId,
  *       });
  *     } catch (error) {
  *       alert('Erreur lors du paiement');

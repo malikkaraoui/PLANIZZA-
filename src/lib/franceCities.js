@@ -44,6 +44,50 @@ export async function searchFrenchCities({ query, limit = 8 }) {
     .filter((c) => c.name);
 }
 
+/**
+ * Déduit la commune la plus probable depuis une position GPS (reverse geocoding).
+ * API gratuite (France) : https://geo.api.gouv.fr
+ */
+export async function reverseGeocodeCommune({ lat, lng }) {
+  const la = Number(lat);
+  const lo = Number(lng);
+  if ([la, lo].some((v) => Number.isNaN(v))) return null;
+
+  // `lat`/`lon` sur geo.api.gouv.fr
+  const url = new URL('https://geo.api.gouv.fr/communes');
+  url.searchParams.set('lat', String(la));
+  url.searchParams.set('lon', String(lo));
+  url.searchParams.set('fields', 'nom,code,centre,codesPostaux,departement');
+  url.searchParams.set('format', 'json');
+  url.searchParams.set('geometry', 'centre');
+
+  const res = await fetch(url.toString(), {
+    headers: { Accept: 'application/json' },
+  });
+
+  if (!res.ok) {
+    throw new Error(`geo.api.gouv.fr reverse error (${res.status})`);
+  }
+
+  const data = await res.json();
+  const first = Array.isArray(data) && data.length ? data[0] : null;
+  if (!first?.nom) return null;
+
+  const coords = first?.centre?.coordinates;
+  const rLng = Array.isArray(coords) ? coords[0] : null;
+  const rLat = Array.isArray(coords) ? coords[1] : null;
+
+  return {
+    name: first.nom,
+    code: first.code ?? null,
+    departmentName: first?.departement?.nom ?? null,
+    departmentCode: first?.departement?.code ?? null,
+    postcodes: Array.isArray(first?.codesPostaux) ? first.codesPostaux : [],
+    lat: typeof rLat === 'number' ? rLat : null,
+    lng: typeof rLng === 'number' ? rLng : null,
+  };
+}
+
 export function sortCitiesByProximity(cities, position) {
   if (!position) return cities;
   const withKm = cities.map((c) => {

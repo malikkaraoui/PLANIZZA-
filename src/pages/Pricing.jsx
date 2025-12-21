@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { CreditCard, Check, X } from 'lucide-react';
-import { createCheckoutSession } from '../lib/stripe';
 
 export default function Pricing() {
   const [loading, setLoading] = useState(null);
@@ -58,12 +57,11 @@ export default function Pricing() {
   const handleSubscribe = async (plan) => {
     setLoading(plan.id);
     try {
-      await createCheckoutSession({
-        priceId: plan.stripePriceId,
-        quantity: 1,
-        successUrl: `${window.location.origin}/success?plan=${plan.id}`,
-        cancelUrl: `${window.location.origin}/pricing`,
-      });
+      // MVP PLANIZZA: le paiement se fait via commande (RTDB) -> Cloud Function createCheckoutSession(orderId)
+      // Cette page "Pricing" reste une démo UI et ne déclenche pas de paiement.
+      alert(
+        "MVP: les abonnements ne sont pas activés. Le paiement se fait lors d'une commande (panier) sur la fiche camion."
+      );
     } catch (error) {
       console.error('Erreur lors du checkout:', error);
       alert('Erreur lors du paiement. Veuillez réessayer.');
