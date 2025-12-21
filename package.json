@@ -8,6 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "emulators": "firebase emulators:start",
+    "deploy": "firebase deploy",
     "firebase:emulators": "firebase emulators:start",
     "firebase:deploy": "npm run build && firebase deploy",
     "firebase:functions": "firebase deploy --only functions",
@@ -16,6 +18,7 @@
   "dependencies": {
     "@stripe/stripe-js": "^8.6.0",
     "firebase": "^12.7.0",
+    "lodash.debounce": "^4.0.8",
     "lucide-react": "^0.562.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
@@ -23,6 +26,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@tailwindcss/postcss": "^4.1.18",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",

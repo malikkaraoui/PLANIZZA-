@@ -1,0 +1,38 @@
+
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "trucks": {
+      ".read": true,
+      "$truckId": {
+        ".write": "auth != null && ((data.exists() && data.child('ownerUid').val() === auth.uid) || (!data.exists() && newData.child('ownerUid').val() === auth.uid))"
+      }
+    },
+    "menus": {
+      ".read": true,
+      "$truckId": {
+        ".write": "auth != null && root.child('trucks').child($truckId).child('ownerUid').val() === auth.uid"
+      }
+    },
+    "orders": {
+      ".read": "auth != null",
+      "$orderId": {
+        ".write": "auth != null && (!data.exists() ? newData.child('userUid').val() === auth.uid : data.child('userUid').val() === auth.uid)",
+        "status": {
+          ".write": false
+        }
+      }
+    },
+    "truckOrders": {
+      "$truckId": {
+        ".read": "auth != null && root.child('trucks').child($truckId).child('ownerUid').val() === auth.uid",
+        ".write": false
+      }
+    }
+  }
+}

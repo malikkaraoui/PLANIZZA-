@@ -7,27 +7,29 @@ admin.initializeApp();
 
 // Initialiser Stripe avec la clé secrète depuis les variables d'environnement
 // Configuration via: firebase functions:config:set stripe.secret_key="YOUR_STRIPE_SECRET_KEY"
-const stripeClient = stripe(functions.config().stripe?.secret_key || process.env.STRIPE_SECRET_KEY);
+const _stripeSecretKey =
+  functions.config().stripe?.secret_key || process.env.STRIPE_SECRET_KEY;
+const stripeClient = stripe(_stripeSecretKey);
 
 /**
  * Cloud Function HTTPS pour créer une session Stripe Checkout
- * 
+ *
  * TODO:
  * 1. Configurer la clé secrète Stripe:
  *    firebase functions:config:set stripe.secret_key="YOUR_STRIPE_SECRET_KEY"
- * 
+ *
  * 2. Adapter les paramètres de la session selon vos besoins:
  *    - line_items (produits/services)
  *    - success_url / cancel_url
  *    - mode (payment, subscription, setup)
- * 
+ *
  * 3. Ajouter la logique métier:
  *    - Vérifier l'authentification de l'utilisateur
  *    - Valider les données d'entrée
  *    - Enregistrer la transaction dans Firestore
- * 
+ *
  * 4. Gérer les webhooks Stripe pour les confirmations de paiement
- * 
+ *
  * @example
  * // Appel depuis le front:
  * const response = await fetch('https://YOUR_REGION-YOUR_PROJECT.cloudfunctions.net/createCheckoutSession', {
@@ -38,7 +40,7 @@ const stripeClient = stripe(functions.config().stripe?.secret_key || process.env
  * const { sessionId, url } = await response.json();
  * // Rediriger vers Stripe Checkout avec la sessionId
  */
-exports.createCheckoutSession = functions.https.onCall(async (data, context) => {
+exports.createCheckoutSession = functions.https.onCall(async (data, _context) => {
   try {
     // TODO: Vérifier que l'utilisateur est authentifié
     // if (!context.auth) {
@@ -56,6 +58,9 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
       );
     }
 
+    const successUrl = data.successUrl || "https://votre-domaine.fr/success";
+    const cancelUrl = data.cancelUrl || "https://votre-domaine.fr/cancel";
+
     // Créer la session Stripe Checkout
     const session = await stripeClient.checkout.sessions.create({
       mode: "payment", // ou 'subscription' pour un abonnement
@@ -65,8 +70,8 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
           quantity: quantity,
         },
       ],
-      success_url: `${data.successUrl || "https://votre-domaine.fr/success"}?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: data.cancelUrl || "https://votre-domaine.fr/cancel",
+      success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: cancelUrl,
       // TODO: Ajouter customer_email ou customer si l'utilisateur est connu
       // customer_email: context.auth.token.email,
       // metadata: { userId: context.auth.uid },
@@ -97,7 +102,7 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
 
 /**
  * Cloud Function pour gérer les webhooks Stripe
- * 
+ *
  * TODO:
  * 1. Configurer le webhook endpoint dans Stripe Dashboard
  * 2. Récupérer le webhook signing secret (depuis Stripe Dashboard)
@@ -105,8 +110,10 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
  * 4. Implémenter la logique pour chaque événement (payment_intent.succeeded, etc.)
  */
 exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
-  const sig = req.headers["stripe-signature"];
-  const webhookSecret = functions.config().stripe?.webhook_secret || process.env.STRIPE_WEBHOOK_SECRET;
+  const _sig = req.headers["stripe-signature"];
+  const _webhookSecret =
+      functions.config().stripe?.webhook_secret ||
+      process.env.STRIPE_WEBHOOK_SECRET;
 
   try {
     // TODO: Vérifier la signature du webhook

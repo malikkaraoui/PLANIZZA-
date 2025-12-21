@@ -1,8 +1,11 @@
 import { loadStripe } from '@stripe/stripe-js';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from './firebase';
 
 // Initialiser Stripe avec la clé publique depuis l'environnement
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+// (ne pas planter si la clé n'est pas encore renseignée en DEV)
+const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = publishableKey ? loadStripe(publishableKey) : Promise.resolve(null);
 
 /**
  * Créer une session Stripe Checkout et rediriger l'utilisateur
@@ -38,15 +41,22 @@ export async function createCheckoutSession({
   cancelUrl 
 }) {
   try {
+    if (!functions) {
+      throw new Error(
+        'Firebase Functions n\'est pas configuré. Configurez .env.local (Firebase) et démarrez les émulateurs ou déployez les functions.'
+      );
+    }
+
     // Charger Stripe
     const stripe = await stripePromise;
     
     if (!stripe) {
-      throw new Error('Stripe n\'a pas pu être chargé');
+      throw new Error(
+        "Stripe n'est pas configuré. Renseignez VITE_STRIPE_PUBLISHABLE_KEY dans .env.local"
+      );
     }
 
     // Appeler la Cloud Function pour créer une session
-    const functions = getFunctions();
     const createSession = httpsCallable(functions, 'createCheckoutSession');
     
     const { data } = await createSession({

@@ -52,7 +52,7 @@ cd functions && npm install && cd ..
 #### a) Créer un projet Firebase
 1. Aller sur [Firebase Console](https://console.firebase.google.com/)
 2. Créer un nouveau projet
-3. Activer **Authentication**, **Firestore** et **Hosting**
+3. Activer **Authentication**, **Realtime Database** et **Hosting**
 
 #### b) Configurer les variables d'environnement
 ```bash
@@ -99,6 +99,8 @@ npm run lint                   # Linter le code
 
 ### Firebase
 ```bash
+npm run emulators              # Alias: démarrer les émulateurs locaux
+npm run deploy                 # Alias: deploy Firebase
 npm run firebase:emulators     # Démarrer les émulateurs locaux
 npm run firebase:deploy        # Build + deploy complet (hosting + functions)
 npm run firebase:functions     # Deploy uniquement les functions
@@ -116,6 +118,7 @@ npm run firebase:emulators
 
 Émulateurs disponibles :
 - **Auth** : http://localhost:9099
+- **Realtime Database** : http://localhost:9000
 - **Functions** : http://localhost:5001
 - **Firestore** : http://localhost:8080
 - **Hosting** : http://localhost:5000
@@ -149,7 +152,7 @@ npm run firebase:emulators
 ### Backend
 - **Firebase Functions** : Serverless backend
 - **Firebase Auth** : Authentification
-- **Firestore** : Base de données NoSQL
+- **Realtime Database (RTDB)** : Base de données temps réel (MVP)
 - **Stripe API** : Paiements sécurisés
 
 ## 🔄 Workflow Git
