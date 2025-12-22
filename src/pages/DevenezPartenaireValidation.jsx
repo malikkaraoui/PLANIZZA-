@@ -1,5 +1,5 @@
 import { Link, useSearchParams } from 'react-router-dom';
-import { Button } from '../components/ui/button';
+import { Button } from '../components/ui/Button';
 import { ROUTES } from '../app/routes';
 import PartnerTapbar from '../components/partner/PartnerTapbar';
 

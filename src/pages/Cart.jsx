@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { ShoppingBag, ArrowLeft, Trash2, Minus, Plus } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/Button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/Card';
 import { Separator } from '../components/ui/separator';
 import { useCart } from '../features/cart/hooks/useCart.jsx';
 import { useAuth } from '../app/providers/AuthProvider';

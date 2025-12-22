@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Button } from '../components/ui/button';
+import { Button } from '../components/ui/Button';
 import { useAuth } from '../app/providers/AuthProvider';
 import { useCart } from '../features/cart/hooks/useCart.jsx';
 import { useCreateOrder } from '../features/orders/hooks/useCreateOrder';

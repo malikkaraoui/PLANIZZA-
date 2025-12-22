@@ -8,8 +8,8 @@ import MenuItemCard from '../features/menu/MenuItemCard';
 import CartDrawer from '../features/cart/CartDrawer';
 import { useCart } from '../features/cart/hooks/useCart.jsx';
 import { ROUTES } from '../app/routes';
-import { Button } from '../components/ui/button';
-import { Card, CardContent } from '../components/ui/card';
+import { Button } from '../components/ui/Button';
+import { Card, CardContent } from '../components/ui/Card';
 
 export default function TruckDetails() {
   const { truckId } = useParams();
