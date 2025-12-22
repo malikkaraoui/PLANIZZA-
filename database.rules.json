@@ -53,10 +53,11 @@
       }
     },
     "orders": {
-      ".read": "auth != null",
       "$orderId": {
-        ".write": "auth != null && !data.exists() && newData.child('userUid').val() === auth.uid && newData.child('status').val() === 'created'"
-      }
+        ".read": "data.exists()",
+        ".write": "!data.exists() && newData.child('status').val() === 'created'"
+      },
+      ".indexOn": ["userUid", "status", "nextStepAt"]
     },
     "carts": {
       "$uid": {

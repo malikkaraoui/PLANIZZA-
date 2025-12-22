@@ -17,7 +17,7 @@ export const ROUTES = {
 
   // Client (privé)
   account: '/account',
-  myOrders: '/orders',
+  myOrders: '/commandes',
 
   // Pizzaiolo
   pizzaioloStart: '/pizzaiolo/start',

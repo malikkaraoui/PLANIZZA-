@@ -61,7 +61,7 @@ export const router = createBrowserRouter([
 
       // Client (privé plus tard; navigation en place)
       { path: 'account', element: <Account /> },
-      { path: 'orders', element: <Orders /> },
+      { path: 'commandes', element: <Orders /> },
 
       // Pizzaiolo start
       { path: 'pizzaiolo/start', element: <PizzaioloStart /> },

@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { get, onValue, ref, remove, serverTimestamp, set } from 'firebase/database';
 import { db, isFirebaseConfigured } from '../../../lib/firebase';
 import { useAuth } from '../../../app/providers/AuthProvider';
@@ -364,17 +364,17 @@ export function CartProvider({ children }) {
     [items]
   );
 
-  const flushToStorage = () => {
+  const flushToStorage = useCallback(() => {
     try {
       saveCartToStorage({ truckId: truckIdRef.current, items: itemsRef.current });
     } catch (err) {
       console.warn('[PLANIZZA] Impossible de flusher le panier en storage navigateur:', err);
     }
-  };
+  }, []);
 
   const value = useMemo(
     () => ({ truckId, setTruckId, items, addItem, removeItem, clear, totalCents, flushToStorage }),
-    [truckId, items, totalCents]
+    [truckId, items, totalCents, flushToStorage]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

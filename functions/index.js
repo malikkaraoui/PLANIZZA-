@@ -237,13 +237,16 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
               }
             }
 
+            const now = Date.now();
             await orderRef.update({
-              status: "paid",
-              paidAt: admin.database.ServerValue.TIMESTAMP,
-              stripeCheckoutSessionId: session.id,
-              stripePaymentIntentId: session.payment_intent || null,
-              stripePaymentStatus: session.payment_status || null,
-              updatedAt: admin.database.ServerValue.TIMESTAMP,
+              "status": "received",
+              "paidAt": admin.database.ServerValue.TIMESTAMP,
+              "stripeCheckoutSessionId": session.id,
+              "stripePaymentIntentId": session.payment_intent || null,
+              "stripePaymentStatus": session.payment_status || null,
+              "updatedAt": admin.database.ServerValue.TIMESTAMP,
+              "timeline/receivedAt": now,
+              "nextStepAt": now + 60 * 1000,
             });
 
             if (current.truckId) {
@@ -298,5 +301,68 @@ exports.purgeExpiredCarts = functions.pubsub
 
       await admin.database().ref().update(updates);
       console.log(`[PLANIZZA] purgeExpiredCarts: ${keys.length} panier(s) supprimé(s).`);
+      return null;
+    });
+
+/**
+ * Avance automatiquement les commandes received → prep → cooking → ready
+ * Séquence totale: 5 minutes (1 min + 2 min + 2 min)
+ *
+ * - received → prep: 1 minute
+ * - prep → cooking: 2 minutes
+ * - cooking → ready: 2 minutes
+ */
+exports.advanceOrders = functions.pubsub
+    .schedule("every 1 minutes")
+    .timeZone("Europe/Paris")
+    .onRun(async () => {
+      const now = Date.now();
+
+      const ordersRef = admin.database().ref("orders");
+      const snap = await ordersRef
+          .orderByChild("nextStepAt")
+          .startAt(1)
+          .endAt(now)
+          .limitToFirst(100)
+          .get();
+
+      if (!snap.exists()) return null;
+
+      const updates = {};
+      let count = 0;
+
+      snap.forEach((child) => {
+        const orderId = child.key;
+        const order = child.val();
+
+        if (!order.nextStepAt || order.nextStepAt > now) return;
+
+        const status = order.status;
+
+        if (status === "received") {
+          updates[`orders/${orderId}/status`] = "prep";
+          updates[`orders/${orderId}/timeline/prepAt`] = now;
+          updates[`orders/${orderId}/nextStepAt`] = now + 2 * 60 * 1000; // +2 min
+          updates[`orders/${orderId}/updatedAt`] = now;
+          count++;
+        } else if (status === "prep") {
+          updates[`orders/${orderId}/status`] = "cooking";
+          updates[`orders/${orderId}/timeline/cookingAt`] = now;
+          updates[`orders/${orderId}/nextStepAt`] = now + 2 * 60 * 1000; // +2 min
+          updates[`orders/${orderId}/updatedAt`] = now;
+          count++;
+        } else if (status === "cooking") {
+          updates[`orders/${orderId}/status`] = "ready";
+          updates[`orders/${orderId}/timeline/readyAt`] = now;
+          updates[`orders/${orderId}/nextStepAt`] = null; // terminé
+          updates[`orders/${orderId}/updatedAt`] = now;
+          count++;
+        }
+      });
+
+      if (count === 0) return null;
+
+      await admin.database().ref().update(updates);
+      console.log(`[PLANIZZA] advanceOrders: ${count} commande(s) avancée(s).`);
       return null;
     });
