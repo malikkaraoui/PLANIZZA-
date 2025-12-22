@@ -210,7 +210,7 @@ export function CartProvider({ children }) {
 
         // Si expiré, on supprime (best-effort) et on vide côté UI
         if (expiresAt != null && expiresAt <= now) {
-          remove(cartRef).catch(() => {});
+          remove(cartRef).catch(() => { });
           setItems([]);
           setTruckId(null);
 
@@ -278,6 +278,17 @@ export function CartProvider({ children }) {
   const removeItem = useCallback((itemId) => {
     setItems((prev) => prev.filter((p) => p.id !== itemId));
   }, []);
+
+  const updateItemQty = useCallback((itemId, newQty) => {
+    const q = Math.floor(newQty);
+    if (q <= 0) {
+      removeItem(itemId);
+      return;
+    }
+    setItems((prev) =>
+      prev.map((it) => (it.id === itemId ? { ...it, qty: Math.min(99, q) } : it))
+    );
+  }, [removeItem]);
 
   const clear = useCallback(() => {
     setItems([]);
@@ -391,8 +402,8 @@ export function CartProvider({ children }) {
   }, []);
 
   const value = useMemo(
-    () => ({ truckId, setTruckId, items, addItem, removeItem, clear, totalCents, flushToStorage }),
-    [truckId, items, totalCents, addItem, removeItem, clear, flushToStorage]
+    () => ({ truckId, setTruckId, items, addItem, removeItem, updateItemQty, clear, totalCents, flushToStorage }),
+    [truckId, items, totalCents, addItem, removeItem, updateItemQty, clear, flushToStorage]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

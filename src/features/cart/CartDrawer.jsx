@@ -1,7 +1,7 @@
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
-import { ShoppingBag, Trash2, Pizza } from 'lucide-react';
+import { ShoppingBag, Trash2, Pizza, Minus, Plus } from 'lucide-react';
 import { useCart } from './hooks/useCart.jsx';
 
 function formatEUR(cents) {
@@ -9,7 +9,7 @@ function formatEUR(cents) {
 }
 
 export default function CartDrawer({ onCheckout }) {
-  const { items, removeItem, totalCents } = useCart();
+  const { items, removeItem, updateItemQty, totalCents } = useCart();
 
   return (
     <Card className="glass-premium glass-glossy p-8 rounded-[40px] border-white/30 space-y-8 shadow-2xl relative overflow-hidden">
@@ -36,24 +36,36 @@ export default function CartDrawer({ onCheckout }) {
       ) : (
         <div className="space-y-4 max-h-[440px] overflow-y-auto pr-2 custom-scrollbar">
           {items.map((it) => (
-            <div key={it.id} className="group flex items-center justify-between gap-5 p-4 rounded-[24px] glass-premium hover:bg-white/10 transition-all border-white/10 shadow-sm">
+            <div key={it.id} className="group flex items-center justify-between gap-4 p-4 rounded-[28px] glass-premium hover:bg-white/10 transition-all border-white/10 shadow-sm relative overflow-hidden">
               <div className="flex-1 min-w-0">
-                <div className="font-black text-sm tracking-tight truncate group-hover:text-primary transition-colors">
+                <div className="font-black text-sm tracking-tight truncate group-hover:text-primary transition-colors pr-8">
                   {it.name}
                 </div>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <Badge variant="outline" className="h-5 px-1.5 rounded-md border-white/10 bg-white/5 text-[9px] font-black text-primary/80">
-                    ×{it.qty}
-                  </Badge>
-                  <span className="text-xs font-bold text-muted-foreground/60">{formatEUR(it.priceCents * it.qty)}</span>
+                <div className="flex items-center justify-between mt-3">
+                  <div className="flex items-center gap-1.5 p-1 rounded-xl glass-deep border-white/10">
+                    <button
+                      className="p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground/60 transition-colors disabled:opacity-20"
+                      onClick={() => updateItemQty(it.id, it.qty - 1)}
+                    >
+                      <Minus className="h-3 w-3" />
+                    </button>
+                    <span className="w-6 text-center text-xs font-black">{it.qty}</span>
+                    <button
+                      className="p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground/60 transition-colors"
+                      onClick={() => updateItemQty(it.id, it.qty + 1)}
+                    >
+                      <Plus className="h-3 w-3" />
+                    </button>
+                  </div>
+                  <span className="text-xs font-black text-primary/80 tracking-tight">{formatEUR(it.priceCents * it.qty)}</span>
                 </div>
               </div>
               <button
-                className="p-2.5 rounded-xl text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-all transform scale-90 group-hover:scale-100"
+                className="absolute top-3 right-3 p-1.5 rounded-lg text-muted-foreground/20 hover:text-destructive hover:bg-destructive/10 transition-all opacity-0 group-hover:opacity-100"
                 onClick={() => removeItem(it.id)}
                 title="Retirer"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-3.5 w-3.5" />
               </button>
             </div>
           ))}
