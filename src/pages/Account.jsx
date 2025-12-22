@@ -86,13 +86,20 @@ export default function Account() {
         {signOutError && <p className="mt-2 text-sm text-red-600">{signOutError}</p>}
       </div>
 
-      <div className="mt-6 flex gap-3">
+      <div className="mt-6 space-y-4">
         <Link to={ROUTES.myOrders} className="underline text-sm">
           Mes commandes
         </Link>
-        <Link to={ROUTES.pizzaioloStart} className="underline text-sm">
-          Espace pizzaiolo
-        </Link>
+        
+        <div className="mt-4">
+          <Button 
+            variant="outline" 
+            onClick={() => navigate('/devenez_partenaire/inscription')}
+            className="w-full sm:w-auto"
+          >
+            Devenir partenaire
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -28,7 +28,7 @@ export default function Orders() {
             data.push({ id: child.key, ...child.val() });
           });
           data.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-          setOrders(data);
+          setOrders(data.slice(0, 5));
         }
         setLoading(false);
       },

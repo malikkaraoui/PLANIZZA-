@@ -30,7 +30,7 @@ export default function Login() {
       provider.setCustomParameters({ prompt: 'select_account' });
       const cred = await signInWithPopup(auth, provider);
       await upsertUserProfile(cred.user);
-      navigate('/pizzaiolo');
+      navigate('/explore');
     } catch (err) {
       setError(err?.message || 'Connexion Google impossible');
     } finally {
@@ -51,7 +51,7 @@ export default function Login() {
     try {
       const cred = await signInWithEmailAndPassword(auth, email, password);
       await upsertUserProfile(cred.user);
-      navigate('/pizzaiolo');
+      navigate('/explore');
     } catch (err) {
       setError(err?.message || 'Connexion impossible');
     } finally {

@@ -29,6 +29,35 @@ function buildLineItems(order) {
       }));
 }
 
+// Garde-fou : ne conserver que les N derniers paniers archivés
+async function pruneCartArchive(uid, max = 5) {
+  try {
+    const archiveRoot = admin.database().ref(`cartsArchive/${uid}`);
+    const snap = await archiveRoot.orderByChild("archivedAt").get();
+    if (!snap.exists()) return;
+
+    const entries = [];
+    snap.forEach((child) => {
+      entries.push({key: child.key, ts: child.child("archivedAt").val() || 0});
+    });
+
+    if (entries.length <= max) return;
+
+    entries.sort((a, b) => a.ts - b.ts);
+    const toRemove = entries.slice(0, entries.length - max);
+
+    const updates = {};
+    toRemove.forEach((entry) => {
+      updates[entry.key] = null;
+    });
+
+    await archiveRoot.update(updates);
+  } catch (err) {
+    // Ne pas bloquer le webhook si l'archivage échoue
+    console.warn("[PLANIZZA] pruneCartArchive failed (non-blocking):", err.message);
+  }
+}
+
 exports.createCheckoutSession = onRequest(
     {
       region: "us-central1",
@@ -96,9 +125,11 @@ exports.createCheckoutSession = onRequest(
           0,
       );
 
+      // Utiliser l'origine de la requête pour les redirections (support localhost + production)
+      const frontendOrigin = req.headers.origin || FRONTEND_URL;
       const successUrl =
-        `${FRONTEND_URL}/checkout/success?orderId=${orderId}&session_id={CHECKOUT_SESSION_ID}`;
-      const cancelUrl = `${FRONTEND_URL}/cancel?orderId=${orderId}`;
+        `${frontendOrigin}/checkout/success?orderId=${orderId}&session_id={CHECKOUT_SESSION_ID}`;
+      const cancelUrl = `${frontendOrigin}/cancel?orderId=${orderId}`;
 
       try {
         const session = await stripeClient.checkout.sessions.create({
@@ -210,6 +241,9 @@ exports.stripeWebhook = onRequest(
                       stripePaymentIntentId: session.payment_intent || null,
                       stripePaymentStatus: session.payment_status || null,
                     });
+
+                    // Ne garder que les 5 derniers paniers archivés
+                    await pruneCartArchive(userUid, 5);
                   }
 
                   await activeCartRef.remove();
