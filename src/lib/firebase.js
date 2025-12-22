@@ -48,7 +48,7 @@ if (!isFirebaseConfigured) {
   db = getDatabase(app);
   functions = getFunctions(
     app,
-    import.meta.env.VITE_FUNCTIONS_REGION || 'europe-west1'
+    import.meta.env.VITE_FUNCTIONS_REGION || 'us-central1'
   );
 }
 

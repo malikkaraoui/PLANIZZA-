@@ -1,268 +1,254 @@
+/* eslint-disable require-jsdoc */
 const functions = require("firebase-functions");
+const {onRequest} = require("firebase-functions/v2/https");
+const {defineSecret} = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const stripe = require("stripe");
 
 // Initialiser Firebase Admin
 admin.initializeApp();
 
-// Initialiser Stripe avec la clé secrète depuis les variables d'environnement
-// Configuration via: firebase functions:config:set stripe.secret_key="YOUR_STRIPE_SECRET_KEY"
-const _stripeSecretKey =
-  functions.config().stripe?.secret_key || process.env.STRIPE_SECRET_KEY;
-if (!_stripeSecretKey) {
-  console.warn("[PLANIZZA] STRIPE_SECRET_KEY manquante. Configurez functions:config:set stripe.secret_key=... ou définissez STRIPE_SECRET_KEY dans functions/.env");
-}
-const stripeClient = _stripeSecretKey ? stripe(_stripeSecretKey) : null;
+// Secrets Stripe (Firebase Secrets Manager)
+const STRIPE_SECRET_KEY = defineSecret("STRIPE_SECRET_KEY");
+const STRIPE_WEBHOOK_SECRET = defineSecret("STRIPE_WEBHOOK_SECRET");
 
-/**
- * Cloud Function HTTPS pour créer une session Stripe Checkout
- *
- * TODO:
- * 1. Configurer la clé secrète Stripe:
- *    firebase functions:config:set stripe.secret_key="YOUR_STRIPE_SECRET_KEY"
- *
- * 2. Adapter les paramètres de la session selon vos besoins:
- *    - line_items (produits/services)
- *    - success_url / cancel_url
- *    - mode (payment, subscription, setup)
- *
- * 3. Ajouter la logique métier:
- *    - Vérifier l'authentification de l'utilisateur
- *    - Valider les données d'entrée
- *    - Enregistrer la transaction dans Firestore
- *
- * 4. Gérer les webhooks Stripe pour les confirmations de paiement
- *
- * @example
- * // Appel depuis le front:
- * const fn = httpsCallable(functions, 'createCheckoutSession');
- * const { data } = await fn({ orderId: '...' });
- * // Rediriger vers Stripe Checkout via sessionId ou url
- */
-exports.createCheckoutSession = functions.https.onCall(async (data, _context) => {
-  try {
-    if (!stripeClient) {
-      throw new functions.https.HttpsError("failed-precondition", "Stripe n'est pas configuré côté backend (STRIPE_SECRET_KEY manquante).");
-    }
+// URL front utilisée pour success/cancel
+const FRONTEND_URL = process.env.FRONTEND_URL || "https://planizza-ac827.web.app";
 
-    const {orderId} = data || {};
-    if (!orderId || typeof orderId !== "string") {
-      throw new functions.https.HttpsError("invalid-argument", "Le paramètre 'orderId' est requis");
-    }
-
-    const appUrl =
-      functions.config().app?.url ||
-      process.env.APP_URL ||
-      functions.config().stripe?.app_url ||
-      null;
-
-    if (!appUrl) {
-      throw new functions.https.HttpsError("failed-precondition", "APP_URL manquante côté Functions. Définissez APP_URL dans functions/.env ou via functions:config:set app.url=...");
-    }
-
-    // Lire la commande depuis RTDB
-    const orderRef = admin.database().ref(`orders/${orderId}`);
-    const snap = await orderRef.get();
-
-    if (!snap.exists()) {
-      throw new functions.https.HttpsError("not-found", "Commande introuvable");
-    }
-
-    const order = snap.val();
-
-    if (order.status !== "created") {
-      throw new functions.https.HttpsError("failed-precondition", `Statut de commande invalide: ${order.status}`);
-    }
-
-    if (!Array.isArray(order.items) || order.items.length === 0) {
-      throw new functions.https.HttpsError("failed-precondition", "Commande vide (items manquants)");
-    }
-
-    const currency = (order.currency || "eur").toLowerCase();
-    const lineItems = order.items.map((it) => {
-      const name = String(it.name || "Article");
-      const unitAmount = Number(it.priceCents);
-      const quantity = Number(it.qty || it.quantity || 1);
-
-      if (!Number.isFinite(unitAmount) || unitAmount <= 0) {
-        throw new functions.https.HttpsError("failed-precondition", "priceCents invalide dans la commande");
-      }
-      if (!Number.isFinite(quantity) || quantity <= 0) {
-        throw new functions.https.HttpsError("failed-precondition", "qty invalide dans la commande");
-      }
-
-      return {
+function buildLineItems(order) {
+  if (!order?.items || !Array.isArray(order.items)) return [];
+  return order.items
+      .filter((it) => typeof it.priceCents === "number" && it.priceCents > 0)
+      .map((item) => ({
         price_data: {
-          currency,
-          product_data: {name},
-          unit_amount: unitAmount,
+          currency: order.currency || "eur",
+          product_data: {name: item.name || "Article"},
+          unit_amount: Number(item.priceCents),
         },
-        quantity,
-      };
-    });
+        quantity: Number(item.qty) || 1,
+      }));
+}
 
-    const truckId = order.truckId || null;
+exports.createCheckoutSession = onRequest(
+    {
+      region: "us-central1",
+      secrets: [STRIPE_SECRET_KEY],
+    },
+    async (req, res) => {
+      // CORS permissif pour dev/localhost/production hosting
+      const origin = req.headers.origin || "*";
+      res.set("Access-Control-Allow-Origin", origin);
+      res.set("Vary", "Origin");
+      res.set("Access-Control-Allow-Credentials", "true");
+      res.set("Access-Control-Allow-Headers", "authorization, content-type");
+      res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+      if (req.method === "OPTIONS") {
+        return res.status(204).send("");
+      }
 
-    const baseUrl = appUrl.replace(/\/$/, "");
-    const encOrderId = encodeURIComponent(orderId);
-    const successUrl = `${baseUrl}/checkout/success?orderId=${encOrderId}&session_id={CHECKOUT_SESSION_ID}`;
-    let cancelUrl = `${baseUrl}/trucks?canceled=1&orderId=${encOrderId}`;
-    if (truckId) {
-      cancelUrl = `${baseUrl}/t/${encodeURIComponent(truckId)}?canceled=1&orderId=${encOrderId}`;
-    }
+      if (req.method !== "POST") {
+        return res.status(405).send("Method Not Allowed");
+      }
 
-    // Créer la session Stripe Checkout
-    const session = await stripeClient.checkout.sessions.create({
-      mode: "payment",
-      line_items: lineItems,
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-      metadata: {
-        orderId,
-        truckId: truckId || "",
-        userUid: order.userUid || "",
-      },
-      client_reference_id: orderId,
-    });
+      const stripeSecret = (STRIPE_SECRET_KEY.value() || "").trim();
+      const stripeClient = stripe(stripeSecret);
 
-    // Sauvegarder les infos checkout sur la commande (pas le statut paid)
-    await orderRef.update({
-      stripeCheckoutSessionId: session.id,
-      stripeCheckoutUrl: session.url || null,
-      updatedAt: admin.database.ServerValue.TIMESTAMP,
-    });
+      // Auth: jeton Firebase ID dans Authorization: Bearer <token>
+      const authHeader = req.headers.authorization || "";
+      const idToken = authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
+      if (!idToken) {
+        return res.status(401).json({error: "unauthenticated"});
+      }
 
-    // Index côté pizzaiolo (lecture ownerUid via règles)
-    if (truckId) {
-      await admin.database().ref(`truckOrders/${truckId}/${orderId}`).set(true);
-    }
+      let decoded;
+      try {
+        decoded = await admin.auth().verifyIdToken(idToken);
+      } catch (err) {
+        console.error("ID token invalide:", err);
+        return res.status(401).json({error: "unauthenticated"});
+      }
 
-    return {
-      sessionId: session.id,
-      url: session.url,
-    };
-  } catch (error) {
-    console.error("Erreur lors de la création de la session Stripe:", error);
-    throw new functions.https.HttpsError("internal", "Impossible de créer la session de paiement", error.message);
-  }
-});
+      const uid = decoded.uid;
+      const orderId = req.body?.orderId;
+      if (!orderId) {
+        return res.status(400).json({error: "orderId requis"});
+      }
 
-/**
- * Cloud Function pour gérer les webhooks Stripe
- *
- * TODO:
- * 1. Configurer le webhook endpoint dans Stripe Dashboard
- * 2. Récupérer le webhook signing secret (depuis Stripe Dashboard)
- * 3. Configurer: firebase functions:config:set stripe.webhook_secret="YOUR_STRIPE_WEBHOOK_SECRET"
- * 4. Implémenter la logique pour chaque événement (payment_intent.succeeded, etc.)
- */
-exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
-  if (!stripeClient) {
-    res.status(500).send("Stripe n'est pas configuré côté backend (STRIPE_SECRET_KEY manquante).");
-    return;
-  }
+      const orderRef = admin.database().ref(`orders/${orderId}`);
+      const snap = await orderRef.get();
+      if (!snap.exists()) {
+        return res.status(404).json({error: "Commande introuvable"});
+      }
 
-  const _sig = req.headers["stripe-signature"];
-  const _webhookSecret =
-      functions.config().stripe?.webhook_secret ||
-      process.env.STRIPE_WEBHOOK_SECRET;
+      const order = snap.val();
 
-  try {
-    if (!_sig) {
-      throw new Error("En-tête Stripe-Signature manquant");
-    }
-    if (!_webhookSecret) {
-      throw new Error("Webhook secret manquant. Configurez functions:config:set stripe.webhook_secret=... ou STRIPE_WEBHOOK_SECRET dans functions/.env");
-    }
+      if (order.userUid && order.userUid !== uid) {
+        return res.status(403).json({error: "forbidden"});
+      }
 
-    // Vérifier la signature du webhook (obligatoire en PROD)
-    const event = stripeClient.webhooks.constructEvent(req.rawBody, _sig, _webhookSecret);
+      const lineItems = buildLineItems(order);
+      if (lineItems.length === 0) {
+        return res.status(400).json({error: "Aucun article valide"});
+      }
 
-    // TODO: Traiter les différents types d'événements
-    // switch (event.type) {
-    //   case 'checkout.session.completed':
-    //     // Paiement réussi
-    //     break;
-    //   case 'payment_intent.succeeded':
-    //     // Mettre à jour le statut dans Firestore
-    //     break;
-    //   default:
-    //     console.log(`Événement non géré: ${event.type}`);
-    // }
+      const totalCentsServer = lineItems.reduce(
+          (sum, li) => sum + li.price_data.unit_amount * li.quantity,
+          0,
+      );
 
-    // Logique métier MVP: marquer la commande paid uniquement depuis le webhook
-    if (event.type === "checkout.session.completed") {
-      const session = event.data.object;
-      const orderId = session?.metadata?.orderId;
+      const successUrl =
+        `${FRONTEND_URL}/checkout/success?orderId=${orderId}&session_id={CHECKOUT_SESSION_ID}`;
+      const cancelUrl = `${FRONTEND_URL}/cancel?orderId=${orderId}`;
 
-      if (orderId) {
-        const orderRef = admin.database().ref(`orders/${orderId}`);
-        const snap = await orderRef.get();
+      try {
+        const session = await stripeClient.checkout.sessions.create({
+          mode: "payment",
+          payment_method_types: ["card"],
+          metadata: {
+            orderId,
+            userUid: uid,
+          },
+          line_items: lineItems,
+          success_url: successUrl,
+          cancel_url: cancelUrl,
+          customer_email: order.email || undefined,
+        });
 
-        if (snap.exists()) {
-          const current = snap.val();
+        await orderRef.update({
+          totalCents: totalCentsServer,
+          status: order.status === "paid" ? order.status : "pending",
+          payment: {
+            provider: "stripe",
+            sessionId: session.id,
+            paymentStatus: "pending",
+          },
+          stripeCheckoutSessionId: session.id,
+          updatedAt: Date.now(),
+        });
 
-          // Archive panier (best-effort) au moment du paiement
-          const userUid = current.userUid || session?.metadata?.userUid || null;
+        return res.json({sessionId: session.id, url: session.url});
+      } catch (error) {
+        console.error("Erreur lors de la création de la session Stripe:", error);
+        return res.status(500).json({error: "internal"});
+      }
+    },
+);
 
-          // Idempotence: ne pas ré-écrire si déjà paid
-          if (current.status !== "paid") {
-            if (userUid) {
-              try {
-                const activeCartRef = admin.database().ref(`carts/${userUid}/active`);
-                const archiveRef = admin.database().ref(`cartsArchive/${userUid}/${orderId}`);
+exports.stripeWebhook = onRequest(
+    {
+      region: "us-central1",
+      secrets: [STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET],
+    },
+    async (req, res) => {
+      const stripeSecret = (STRIPE_SECRET_KEY.value() || "").trim();
+      const webhookSecret = (STRIPE_WEBHOOK_SECRET.value() || "").trim();
+      const stripeClient = stripe(stripeSecret);
 
-                const [cartSnap, archiveSnap] = await Promise.all([
-                  activeCartRef.get(),
-                  archiveRef.get(),
-                ]);
+      if (req.method !== "POST") {
+        return res.status(405).send("Method Not Allowed");
+      }
 
-                if (cartSnap.exists() && !archiveSnap.exists()) {
-                  const cart = cartSnap.val();
-                  await archiveRef.set({
-                    ...cart,
-                    orderId,
-                    archivedAt: admin.database.ServerValue.TIMESTAMP,
-                    archivedReason: "paid",
-                    stripeCheckoutSessionId: session.id,
-                    stripePaymentIntentId: session.payment_intent || null,
-                    stripePaymentStatus: session.payment_status || null,
-                  });
+      // Diagnostic: log basic request meta (sans body)
+      console.log("[PLANIZZA][stripeWebhook] incoming request", {
+        contentType: req.headers["content-type"],
+        len: req.headers["content-length"],
+        sigPresent: Boolean(req.headers["stripe-signature"]),
+      });
+
+      const sig = req.headers["stripe-signature"];
+      if (!sig || typeof sig !== "string") {
+        console.warn("[PLANIZZA] Missing Stripe-Signature header");
+        return res.status(400).send("Missing Stripe-Signature header");
+      }
+
+      if (!req.rawBody || !req.rawBody.length) {
+        console.error("[PLANIZZA] rawBody manquant pour le webhook (constructEvent nécessite le corps brut)" );
+        return res.status(400).send("Missing raw body");
+      }
+
+      let event;
+      try {
+        event = stripeClient.webhooks.constructEvent(req.rawBody, sig, webhookSecret);
+      } catch (err) {
+        console.error("[PLANIZZA] Webhook signature verification failed:", err);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+      }
+
+      console.log("[PLANIZZA][stripeWebhook] event reçu", {type: event.type, id: event.id});
+
+      if (event.type === "checkout.session.completed") {
+        const session = event.data.object;
+        const orderId = session?.metadata?.orderId;
+        const userUid = session?.metadata?.userUid || null;
+
+        if (orderId) {
+          const orderRef = admin.database().ref(`orders/${orderId}`);
+          const snap = await orderRef.get();
+
+          if (snap.exists()) {
+            const current = snap.val();
+
+            if (current.status !== "paid" && current.payment?.paymentStatus !== "paid") {
+              if (userUid) {
+                try {
+                  const activeCartRef = admin.database().ref(`carts/${userUid}/active`);
+                  const archiveRef = admin.database().ref(`cartsArchive/${userUid}/${orderId}`);
+
+                  const [cartSnap, archiveSnap] = await Promise.all([
+                    activeCartRef.get(),
+                    archiveRef.get(),
+                  ]);
+
+                  if (cartSnap.exists() && !archiveSnap.exists()) {
+                    const cart = cartSnap.val();
+                    await archiveRef.set({
+                      ...cart,
+                      orderId,
+                      archivedAt: admin.database.ServerValue.TIMESTAMP,
+                      archivedReason: "paid",
+                      stripeCheckoutSessionId: session.id,
+                      stripePaymentIntentId: session.payment_intent || null,
+                      stripePaymentStatus: session.payment_status || null,
+                    });
+                  }
+
+                  await activeCartRef.remove();
+                } catch (err) {
+                  console.warn("[PLANIZZA] Archive panier impossible (best-effort):", err);
                 }
-
-                // On supprime le panier actif après paiement (même si déjà archivé)
-                await activeCartRef.remove();
-              } catch (err) {
-                console.warn("[PLANIZZA] Archive panier impossible (best-effort):", err);
               }
-            }
 
-            const now = Date.now();
-            await orderRef.update({
-              "status": "received",
-              "paidAt": admin.database.ServerValue.TIMESTAMP,
-              "stripeCheckoutSessionId": session.id,
-              "stripePaymentIntentId": session.payment_intent || null,
-              "stripePaymentStatus": session.payment_status || null,
-              "updatedAt": admin.database.ServerValue.TIMESTAMP,
-              "timeline/receivedAt": now,
-              "nextStepAt": now + 60 * 1000,
-            });
+              const now = Date.now();
+              await orderRef.update({
+                status: "received",
+                paidAt: now,
+                stripeCheckoutSessionId: session.id,
+                stripePaymentIntentId: session.payment_intent || null,
+                stripePaymentStatus: session.payment_status || null,
+                payment: {
+                  provider: "stripe",
+                  sessionId: session.id,
+                  paymentStatus: "paid",
+                },
+                updatedAt: admin.database.ServerValue.TIMESTAMP,
+                timeline: {
+                  ...(current.timeline || {}),
+                  receivedAt: now,
+                },
+                nextStepAt: now + 60 * 1000,
+              });
 
-            if (current.truckId) {
-              await admin.database().ref(`truckOrders/${current.truckId}/${orderId}`).set(true);
+              if (current.truckId) {
+                await admin.database().ref(`truckOrders/${current.truckId}/${orderId}`).set(true);
+              }
             }
           }
         }
       }
-    }
 
-    res.json({received: true, type: event.type});
-  } catch (error) {
-    console.error("Erreur webhook Stripe:", error);
-    res.status(400).send(`Webhook Error: ${error.message}`);
-  }
-});
+      return res.json({received: true, type: event.type});
+    },
+);
 
 /**
  * Purge automatique des paniers expirés (TTL 30 min)

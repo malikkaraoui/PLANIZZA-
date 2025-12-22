@@ -5,6 +5,7 @@ import { db } from '../lib/firebase';
 import { useAuth } from '../app/providers/AuthProvider';
 
 const STEPS = [
+  { key: 'created', label: 'Confirmée', icon: '✅' },
   { key: 'received', label: 'Réception', icon: '📋' },
   { key: 'prep', label: 'Préparation', icon: '👨‍🍳' },
   { key: 'cooking', label: 'Cuisson', icon: '🔥' },
@@ -119,8 +120,22 @@ export default function OrderTracking() {
             </div>
             <div>
               <span className="text-gray-400">Statut paiement</span>
-              <p className="text-emerald-400 font-semibold text-lg">
-                {order.paidAt ? '✓ Payé' : 'En attente'}
+              <p className={
+                order.paidAt 
+                  ? "text-emerald-400 font-semibold text-lg flex items-center gap-2"
+                  : "text-amber-400 font-semibold text-lg flex items-center gap-2"
+              }>
+                {order.paidAt ? (
+                  <>
+                    <span className="inline-block w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                    Payé
+                  </>
+                ) : (
+                  <>
+                    <span className="inline-block w-2 h-2 bg-amber-400 rounded-full animate-pulse"></span>
+                    En attente
+                  </>
+                )}
               </p>
             </div>
           </div>
@@ -128,7 +143,20 @@ export default function OrderTracking() {
 
         {/* Timeline */}
         <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-8">
-          <h2 className="text-2xl font-bold text-white mb-8">Progression</h2>
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl font-bold text-white">Progression</h2>
+            <div className="text-right">
+              <p className="text-sm text-gray-400">Statut actuel</p>
+              <p className="text-emerald-400 font-bold text-lg capitalize">
+                {currentStatus === 'created' && '✅ Confirmée'}
+                {currentStatus === 'received' && '📋 Réception'}
+                {currentStatus === 'prep' && '👨‍🍳 Préparation'}
+                {currentStatus === 'cooking' && '🔥 Cuisson'}
+                {currentStatus === 'ready' && '🍕 Prête !'}
+                {!['created', 'received', 'prep', 'cooking', 'ready'].includes(currentStatus) && '⏳ En attente...'}
+              </p>
+            </div>
+          </div>
 
           <div className="relative">
             {/* Barre de progression */}

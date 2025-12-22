@@ -115,6 +115,7 @@ export function CartProvider({ children }) {
   const didHydrateFromStorageRef = useRef(false);
   const itemsRef = useRef(items);
   const truckIdRef = useRef(truckId);
+  const lastSavedSignatureRef = useRef(null);
 
   useEffect(() => {
     itemsRef.current = items;
@@ -237,9 +238,12 @@ export function CartProvider({ children }) {
           // localStorage peut échouer (quota, mode privé, etc.)
         }
       } finally {
-        // Relâcher IMMÉDIATEMENT (synchro) pour empêcher boucle infinie
-        applyingRemoteRef.current = false;
-        suppressRtdbPersistRef.current = false;
+        // Important: on relâche au tick suivant pour que le useEffect de persistance
+        // voie bien suppressRtdbPersistRef=true et ne réécrive pas immédiatement en boucle.
+        setTimeout(() => {
+          applyingRemoteRef.current = false;
+          suppressRtdbPersistRef.current = false;
+        }, 0);
       }
     });
 
@@ -248,7 +252,7 @@ export function CartProvider({ children }) {
     };
   }, [uid]);
 
-  const addItem = (item, options = {}) => {
+  const addItem = useCallback((item, options = {}) => {
     setItems((prev) => {
       const nextTruckId = options.truckId ?? truckIdRef.current ?? null;
 
@@ -269,19 +273,19 @@ export function CartProvider({ children }) {
       }
       return [...prev, { ...item, qty: 1 }];
     });
-  };
+  }, []);
 
-  const removeItem = (itemId) => {
+  const removeItem = useCallback((itemId) => {
     setItems((prev) => prev.filter((p) => p.id !== itemId));
-  };
+  }, []);
 
-  const clear = () => {
+  const clear = useCallback(() => {
     setItems([]);
     setTruckId(null);
     if (typeof window !== 'undefined' && window.localStorage) {
       window.localStorage.removeItem(CART_STORAGE_KEY);
     }
-  };
+  }, []);
 
   // Persist localStorage: toujours (connecté ou non) pour conserver une UX robuste.
   useEffect(() => {
@@ -319,6 +323,8 @@ export function CartProvider({ children }) {
     const cartRef = ref(db, `carts/${uid}/active`);
 
     saveTimerRef.current = setTimeout(() => {
+      if (suppressRtdbPersistRef.current) return;
+
       const now = Date.now();
 
       // Si panier vide, on supprime côté RTDB
@@ -326,6 +332,7 @@ export function CartProvider({ children }) {
         remove(cartRef).catch((err) => {
           console.warn('[PLANIZZA] Impossible de supprimer le panier:', err);
         });
+        lastSavedSignatureRef.current = null;
         return;
       }
 
@@ -334,6 +341,15 @@ export function CartProvider({ children }) {
       // Anti-prise de tête: si une clock client est bizarre, on garde une valeur raisonnable.
       const safeExpiresAt = Math.min(expiresAt, now + CART_EXPIRES_MAX_AHEAD_MS);
 
+      // Éviter les réécritures identiques (boucle inutile)
+      const signature = JSON.stringify({
+        truckId: truckIdRef.current ?? null,
+        items: serializeItems(itemsRef.current),
+      });
+      if (signature === lastSavedSignatureRef.current) {
+        return;
+      }
+
       set(cartRef, {
         truckId: truckIdRef.current ?? null,
         items: serializeItems(itemsRef.current),
@@ -341,6 +357,8 @@ export function CartProvider({ children }) {
         expiresAt: safeExpiresAt,
       }).catch((err) => {
         console.warn('[PLANIZZA] Impossible de sauvegarder le panier:', err);
+      }).then(() => {
+        lastSavedSignatureRef.current = signature;
       });
 
       if (import.meta.env.DEV) {
@@ -374,7 +392,7 @@ export function CartProvider({ children }) {
 
   const value = useMemo(
     () => ({ truckId, setTruckId, items, addItem, removeItem, clear, totalCents, flushToStorage }),
-    [truckId, items, totalCents, flushToStorage]
+    [truckId, items, totalCents, addItem, removeItem, clear, flushToStorage]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

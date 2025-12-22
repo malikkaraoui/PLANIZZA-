@@ -27,6 +27,9 @@ export async function upsertUserProfile(firebaseUser) {
   if (!snap.exists()) {
     await set(userRef, {
       ...payload,
+      phoneNumber: null,
+      phoneVerified: false,
+      role: 'user',
       createdAt: serverTimestamp(),
     });
     return;

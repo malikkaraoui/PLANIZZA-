@@ -16,7 +16,7 @@ export const ROUTES = {
   register: '/register',
 
   // Client (privé)
-  account: '/account',
+  account: '/mon-compte',
   myOrders: '/commandes',
 
   // Pizzaiolo

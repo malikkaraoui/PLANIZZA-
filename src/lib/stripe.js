@@ -1,6 +1,10 @@
 import { loadStripe } from '@stripe/stripe-js';
-import { httpsCallable } from 'firebase/functions';
+import { getAuth } from 'firebase/auth';
 import { functions } from './firebase';
+
+const FUNCTIONS_BASE =
+  import.meta.env.VITE_FUNCTIONS_ORIGIN ||
+  `https://us-central1-${import.meta.env.VITE_FIREBASE_PROJECT_ID}.cloudfunctions.net`;
 
 // Initialiser Stripe avec la clé publique depuis l'environnement
 // (ne pas planter si la clé n'est pas encore renseignée en DEV)
@@ -49,12 +53,28 @@ export async function createCheckoutSession({ orderId }) {
       );
     }
 
-    // Appeler la Cloud Function pour créer une session (MVP: orderId uniquement)
-    const createSession = httpsCallable(functions, 'createCheckoutSession');
-    
-    const { data } = await createSession({
-      orderId,
+    // Appeler l'endpoint HTTP v2 (onRequest) avec Auth Bearer
+    const auth = getAuth();
+    const token = await auth.currentUser?.getIdToken?.();
+    if (!token) {
+      throw new Error('Vous devez être connecté pour payer.');
+    }
+
+    const res = await fetch(`${FUNCTIONS_BASE}/createCheckoutSession`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ orderId }),
     });
+
+    if (!res.ok) {
+      const msg = await res.text();
+      throw new Error(`createCheckoutSession HTTP ${res.status} ${msg}`);
+    }
+
+    const data = await res.json();
 
     // Rediriger vers Stripe Checkout via URL (méthode moderne)
     if (data?.url) {

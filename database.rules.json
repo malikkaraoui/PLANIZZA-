@@ -29,7 +29,7 @@
           ".validate": "newData.isBoolean() && newData.val() === false"
         },
         "role": {
-          ".validate": "newData.isString() && (newData.val() === 'user')"
+          ".validate": "newData.isString() && (newData.val() === 'user' || newData.val() === 'pizzaiolo')"
         },
 
         "createdAt": {
@@ -53,6 +53,7 @@
       }
     },
     "orders": {
+      ".read": "auth != null",
       "$orderId": {
         ".read": "data.exists()",
         ".write": "!data.exists() && newData.child('status').val() === 'created'"

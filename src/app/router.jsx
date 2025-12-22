@@ -60,17 +60,17 @@ export const router = createBrowserRouter([
       { path: 'register', element: <Register /> },
 
       // Client (privé plus tard; navigation en place)
-      { path: 'account', element: <Account /> },
-      { path: 'commandes', element: <Orders /> },
+      { path: 'mon-compte', element: <ProtectedRoute><Account /></ProtectedRoute> },
+      { path: 'commandes', element: <ProtectedRoute><Orders /></ProtectedRoute> },
 
-      // Pizzaiolo start
+      // Pizzaiolo start (public pour découverte)
       { path: 'pizzaiolo/start', element: <PizzaioloStart /> },
 
-      // Pizzaiolo (dashboard)
+      // Pizzaiolo (dashboard) - RÉSERVÉ AUX PIZZAIOLOS
       {
         path: 'pizzaiolo',
         element: (
-          <ProtectedRoute>
+          <ProtectedRoute requirePizzaiolo={true}>
             <PizzaioloDashboard />
           </ProtectedRoute>
         ),
