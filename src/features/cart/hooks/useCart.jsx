@@ -237,11 +237,9 @@ export function CartProvider({ children }) {
           // localStorage peut échouer (quota, mode privé, etc.)
         }
       } finally {
-        // Relâcher après la synchro React
-        queueMicrotask(() => {
-          applyingRemoteRef.current = false;
-          suppressRtdbPersistRef.current = false;
-        });
+        // Relâcher IMMÉDIATEMENT (synchro) pour empêcher boucle infinie
+        applyingRemoteRef.current = false;
+        suppressRtdbPersistRef.current = false;
       }
     });
 

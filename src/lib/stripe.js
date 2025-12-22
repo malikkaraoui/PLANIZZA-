@@ -56,18 +56,7 @@ export async function createCheckoutSession({ orderId }) {
       orderId,
     });
 
-    // Rediriger vers Stripe Checkout
-    // - Priorité: redirectToCheckout(sessionId)
-    // - Fallback: redirection directe vers l'URL fournie
-    if (data?.sessionId) {
-      const { error } = await stripe.redirectToCheckout({
-        sessionId: data.sessionId,
-      });
-
-      if (error) throw error;
-      return;
-    }
-
+    // Rediriger vers Stripe Checkout via URL (méthode moderne)
     if (data?.url) {
       window.location.assign(data.url);
       return;
