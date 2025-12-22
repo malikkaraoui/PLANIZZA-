@@ -4,7 +4,7 @@ import { signOut } from 'firebase/auth';
 import { ref, remove } from 'firebase/database';
 import { useAuth } from '../app/providers/AuthProvider';
 import { ROUTES } from '../app/routes';
-import Button from '../components/ui/Button';
+import { Button } from '../components/ui/button';
 import { auth, db, isFirebaseConfigured } from '../lib/firebase';
 import { useCart } from '../features/cart/hooks/useCart.jsx';
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import Button from '../components/ui/Button';
+import { Button } from '../components/ui/button';
 import CityAutocomplete from '../components/ui/CityAutocomplete';
 import TruckCard from '../features/trucks/TruckCard';
 import { useTrucks } from '../features/trucks/hooks/useTrucks';

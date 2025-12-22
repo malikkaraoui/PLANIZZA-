@@ -1,15 +1,22 @@
-import TruckCard from '../features/trucks/TruckCard';
-import { useTrucks } from '../features/trucks/hooks/useTrucks';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import Button from '../components/ui/Button';
-import { getBrowserPosition } from '../lib/geo';
+import { MapPin, SlidersHorizontal, X } from 'lucide-react';
+import TruckCard from '../features/trucks/TruckCard';
+import { useTrucks } from '../features/trucks/hooks/useTrucks';
+import { Button } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
+import { Input } from '../components/ui/input';
+import { Card, CardContent } from '../components/ui/card';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '../components/ui/sheet';
+import { Separator } from '../components/ui/separator';
+import { Skeleton } from '../components/ui/skeleton';
 import CityAutocomplete from '../components/ui/CityAutocomplete';
+import { getBrowserPosition } from '../lib/geo';
 import { reverseGeocodeCommune } from '../lib/franceCities';
 
 const ALL_BADGES = ['Bio', 'Terroir', 'Sans gluten', 'Halal', 'Kasher', 'Sucré'];
 
-export default function Trucks() {
+export default function TrucksNew() {
   const [searchParams, setSearchParams] = useSearchParams();
   const q = useMemo(() => (searchParams.get('q') || '').trim(), [searchParams]);
   const where = useMemo(() => (searchParams.get('where') || '').trim(), [searchParams]);
@@ -21,12 +28,11 @@ export default function Trucks() {
   }, [searchParams]);
 
   const [whereInput, setWhereInput] = useState(where);
-
   const [position, setPosition] = useState(null);
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState(null);
 
-  // Filtres / tri
+  // Filtres
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [maxDistanceKm, setMaxDistanceKm] = useState('');
   const [openNowOnly, setOpenNowOnly] = useState(false);
@@ -78,15 +84,12 @@ export default function Trucks() {
     try {
       const pos = await getBrowserPosition();
       if (!pos) {
-        setGeoError(
-          'Impossible d’accéder à votre localisation. Autorisez la permission de localisation dans votre navigateur, puis réessayez.'
-        );
+        setGeoError('Impossible d\'accéder à votre localisation.');
         return;
       }
 
       setPosition(pos);
 
-      // Déduire la commune depuis la position (API gratuite) et la refléter dans l'URL.
       try {
         const commune = await reverseGeocodeCommune(pos);
         const name = String(commune?.name || '').trim();
@@ -104,9 +107,6 @@ export default function Trucks() {
             return next;
           });
           setWhereInput('Autour de moi');
-          setGeoError(
-            'Localisation obtenue, mais impossible de déterminer votre commune. Les camions seront affichés par proximité.'
-          );
         }
       } catch (e) {
         console.warn('[PLANIZZA] reverseGeocodeCommune error:', e);
@@ -116,9 +116,6 @@ export default function Trucks() {
           return next;
         });
         setWhereInput('Autour de moi');
-        setGeoError(
-          'Localisation obtenue, mais impossible de déterminer votre commune. Les camions seront affichés par proximité.'
-        );
       }
     } finally {
       setGeoLoading(false);
@@ -140,221 +137,235 @@ export default function Trucks() {
     });
   };
 
-  return (
-    <div className="mx-auto max-w-6xl px-4 py-10 space-y-6">
-      {!hasBaseLocation ? (
-        <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
-          <h1 className="text-2xl font-bold text-gray-900">Où êtes-vous ?</h1>
-          <div className="w-full max-w-xl">
-            <CityAutocomplete
-              value={whereInput}
-              onChange={setWhereInput}
-              onSelect={selectCity}
-              placeholder="Ville, code postal…"
-              ariaLabel="Rechercher une localisation"
-              position={position}
-              inputClassName="text-base"
-            />
+  const activeFiltersCount = [
+    maxDistanceKm,
+    openNowOnly,
+    minRating,
+    selectedBadges.length > 0,
+  ].filter(Boolean).length;
+
+  // Vue sans localisation
+  if (!hasBaseLocation) {
+    return (
+      <div className="container mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="flex min-h-[60vh] flex-col items-center justify-center gap-8">
+          <div className="text-center space-y-4">
+            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
+              Où êtes-vous ?
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-md mx-auto">
+              Trouvez les meilleurs camions à pizza autour de vous
+            </p>
           </div>
 
-          <Button variant="outline" onClick={enableNearMe} disabled={geoLoading}>
-            {geoLoading ? 'Localisation…' : 'Près de moi'}
-          </Button>
+          <Card className="w-full max-w-2xl">
+            <CardContent className="pt-6 space-y-4">
+              <CityAutocomplete
+                value={whereInput}
+                onChange={setWhereInput}
+                onSelect={selectCity}
+                placeholder="Ville, code postal..."
+                ariaLabel="Rechercher une localisation"
+                position={position}
+              />
 
-          {geoError && <p className="text-sm text-red-600 text-center max-w-xl">{geoError}</p>}
+              <div className="flex items-center gap-4">
+                <Separator className="flex-1" />
+                <span className="text-xs text-muted-foreground">OU</span>
+                <Separator className="flex-1" />
+              </div>
 
-          <p className="text-sm text-gray-600">
-            Choisissez une localisation pour voir les camions disponibles.
-          </p>
+              <Button 
+                variant="outline" 
+                onClick={enableNearMe} 
+                disabled={geoLoading}
+                className="w-full"
+                size="lg"
+              >
+                <MapPin className="mr-2 h-4 w-4" />
+                {geoLoading ? 'Localisation...' : 'Utiliser ma position'}
+              </Button>
+
+              {geoError && (
+                <p className="text-sm text-destructive text-center">{geoError}</p>
+              )}
+            </CardContent>
+          </Card>
         </div>
-      ) : (
-        <>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h1 className="text-3xl font-extrabold text-gray-900">Camions</h1>
-              <p className="text-gray-600">Trouvez un pizzaiolo, consultez le menu, commandez en retrait.</p>
-              {q && (
-                <p className="mt-1 text-sm text-gray-500">
-                  Résultats pour <span className="font-semibold text-gray-700">“{q}”</span>
-                </p>
-              )}
-              {where && (
-                <p className="mt-1 text-sm text-gray-500">
-                  Localisation : <span className="font-semibold text-gray-700">“{where}”</span>
-                </p>
-              )}
-            </div>
+      </div>
+    );
+  }
 
-            <div className="flex flex-col gap-2 sm:items-end">
-              <div className="w-full sm:w-[360px]">
-                <CityAutocomplete
-                  value={whereInput}
-                  onChange={setWhereInput}
-                  onSelect={selectCity}
-                  placeholder="Changer de localisation…"
-                  ariaLabel="Changer de localisation"
-                  position={position}
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={enableNearMe} disabled={geoLoading}>
-                  {position ? 'Position activée' : geoLoading ? 'Localisation…' : 'Près de moi'}
-                </Button>
-
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setPosition(null);
-                    setWhereInput('');
-                    setGeoError(null);
-                    setSearchParams((prev) => {
-                      const next = new URLSearchParams(prev);
-                      next.delete('where');
-                      return next;
-                    });
-                  }}
-                >
-                  Réinitialiser
-                </Button>
-              </div>
-
-              {geoError && <p className="text-sm text-red-600">{geoError}</p>}
-            </div>
-          </div>
-
-          <div className="sticky top-[56px] z-10 rounded-xl border border-gray-200 bg-white/90 backdrop-blur p-3">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-wrap items-center gap-2">
-                <Button variant="outline" onClick={() => setFiltersOpen((v) => !v)}>
-                  Filtres
-                </Button>
-
-                <div className="text-sm text-gray-600">
-                  {loading ? 'Chargement…' : `${trucks.length} camions`}
-                  {mockCount ? <span className="text-gray-400"> {`(mock: ${mockCount})`}</span> : null}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-700">Trier :</label>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
-                  aria-label="Tri"
-                >
-                  <option value="distance">Distance</option>
-                  <option value="note">Note</option>
-                  <option value="popularite">Popularité</option>
-                </select>
-              </div>
-            </div>
-
-            {filtersOpen && (
-              <div className="mt-3 grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900">Distance</label>
-                  <select
-                    value={maxDistanceKm}
-                    onChange={(e) => setMaxDistanceKm(e.target.value)}
-                    className="mt-2 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
-                  >
-                    <option value="">Toutes</option>
-                    <option value="1">&lt; 1 km</option>
-                    <option value="5">&lt; 5 km</option>
-                    <option value="10">&lt; 10 km</option>
-                  </select>
-
-                  <label className="mt-4 inline-flex items-center gap-2 text-sm text-gray-900">
-                    <input
-                      type="checkbox"
-                      checked={openNowOnly}
-                      onChange={(e) => setOpenNowOnly(e.target.checked)}
-                    />
-                    Ouvert maintenant
-                  </label>
-
-                  <div className="mt-4">
-                    <label className="block text-sm font-semibold text-gray-900">Note minimum</label>
-                    <select
-                      value={minRating}
-                      onChange={(e) => setMinRating(e.target.value)}
-                      className="mt-2 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
-                    >
-                      <option value="">Aucune</option>
-                      <option value="4.0">≥ 4.0</option>
-                      <option value="4.5">≥ 4.5</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between">
-                    <label className="block text-sm font-semibold text-gray-900">Badges</label>
-                    <button
-                      type="button"
-                      className="text-xs underline text-gray-600"
-                      onClick={() => setSelectedBadges([])}
-                    >
-                      Effacer
-                    </button>
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {ALL_BADGES.map((b) => {
-                      const active = selectedBadges.includes(b);
-                      return (
-                        <button
-                          key={b}
-                          type="button"
-                          onClick={() => toggleBadge(b)}
-                          className={`px-3 py-1 rounded-full text-xs font-semibold border transition ${
-                            active
-                              ? 'bg-gray-900 text-white border-gray-900'
-                              : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-50'
-                          }`}
-                        >
-                          {b}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className="mt-4 flex gap-2">
-                    <Button variant="outline" onClick={resetFilters}>
-                      Réinitialiser filtres
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setSearchParams((prev) => {
-                          const next = new URLSearchParams(prev);
-                          next.set('mock', String(mockCount === 10 ? 100 : 10));
-                          return next;
-                        });
-                      }}
-                    >
-                      {mockCount === 10 ? 'Tester 100 camions' : 'Revenir à 10'}
-                    </Button>
-                  </div>
-                </div>
-              </div>
+  // Vue avec localisation
+  return (
+    <div className="container mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      {/* Header */}
+      <div className="mb-8 space-y-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              Camions à pizza
+            </h1>
+            {where && (
+              <p className="mt-2 text-muted-foreground flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                {where}
+              </p>
             )}
           </div>
 
-          {loading ? (
-            <div className="text-gray-600">Chargement…</div>
-          ) : trucks.length === 0 ? (
-            <div className="text-gray-600">Aucun camion trouvé.</div>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              {trucks.map((t) => (
-                <TruckCard key={t.id} truck={t} />
-              ))}
-            </div>
-          )}
-        </>
+          <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <SheetTrigger asChild>
+              <Button variant="outline" className="gap-2 relative">
+                <SlidersHorizontal className="h-4 w-4" />
+                Filtres
+                {activeFiltersCount > 0 && (
+                  <Badge variant="destructive" className="ml-1 h-5 w-5 rounded-full p-0 text-xs">
+                    {activeFiltersCount}
+                  </Badge>
+                )}
+              </Button>
+            </SheetTrigger>
+            <SheetContent>
+              <SheetHeader>
+                <SheetTitle>Filtres et tri</SheetTitle>
+              </SheetHeader>
+
+              <div className="mt-6 space-y-6">
+                {/* Distance */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Distance max (km)</label>
+                  <Input
+                    type="number"
+                    min="1"
+                    placeholder="Ex: 10"
+                    value={maxDistanceKm}
+                    onChange={(e) => setMaxDistanceKm(e.target.value)}
+                  />
+                </div>
+
+                {/* Note minimale */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Note minimale</label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="5"
+                    step="0.5"
+                    placeholder="Ex: 4"
+                    value={minRating}
+                    onChange={(e) => setMinRating(e.target.value)}
+                  />
+                </div>
+
+                {/* Ouvert maintenant */}
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="openNow"
+                    checked={openNowOnly}
+                    onChange={(e) => setOpenNowOnly(e.target.checked)}
+                    className="h-4 w-4 rounded border-input"
+                  />
+                  <label htmlFor="openNow" className="text-sm font-medium cursor-pointer">
+                    Ouvert maintenant
+                  </label>
+                </div>
+
+                <Separator />
+
+                {/* Badges */}
+                <div className="space-y-3">
+                  <label className="text-sm font-medium">Spécialités</label>
+                  <div className="flex flex-wrap gap-2">
+                    {ALL_BADGES.map((badge) => (
+                      <Badge
+                        key={badge}
+                        variant={selectedBadges.includes(badge) ? 'default' : 'outline'}
+                        className="cursor-pointer"
+                        onClick={() => toggleBadge(badge)}
+                      >
+                        {badge}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Tri */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Trier par</label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  >
+                    <option value="distance">Distance</option>
+                    <option value="rating">Note</option>
+                    <option value="popularity">Popularité</option>
+                  </select>
+                </div>
+
+                {/* Reset */}
+                {activeFiltersCount > 0 && (
+                  <Button
+                    variant="outline"
+                    onClick={resetFilters}
+                    className="w-full"
+                  >
+                    <X className="mr-2 h-4 w-4" />
+                    Réinitialiser les filtres
+                  </Button>
+                )}
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+
+        {/* Barre de recherche localisation */}
+        <div className="max-w-md">
+          <CityAutocomplete
+            value={whereInput}
+            onChange={setWhereInput}
+            onSelect={selectCity}
+            placeholder="Changer de localisation..."
+            ariaLabel="Changer de localisation"
+            position={position}
+          />
+        </div>
+      </div>
+
+      {/* Liste des camions */}
+      {loading ? (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {[...Array(6)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-6 space-y-4">
+                <Skeleton className="h-48 w-full rounded-lg" />
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : trucks.length === 0 ? (
+        <Card>
+          <CardContent className="py-16 text-center">
+            <p className="text-lg text-muted-foreground">
+              Aucun camion trouvé pour cette localisation
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Essayez d'élargir vos critères de recherche
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {trucks.map((truck) => (
+            <TruckCard key={truck.id} truck={truck} />
+          ))}
+        </div>
       )}
     </div>
   );

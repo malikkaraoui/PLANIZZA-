@@ -1,5 +1,5 @@
 import PartnerTapbar from '../components/partner/PartnerTapbar';
-import Button from '../components/ui/Button';
+import { Button } from '../components/ui/button';
 
 function Card({ title, subtitle, tagline, cta, bullets }) {
   return (

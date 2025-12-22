@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
-import Card from '../components/ui/Card';
-import Input from '../components/ui/Input';
-import Button from '../components/ui/Button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Button } from '../components/ui/button';
 import { auth, isFirebaseConfigured } from '../lib/firebase';
 import { upsertUserProfile } from '../lib/userProfile';
+import { LogIn, Chrome } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -60,58 +61,84 @@ export default function Login() {
   };
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-12">
-      <Card className="p-6">
-        <h1 className="text-2xl font-extrabold text-gray-900">Connexion pizzaiolo</h1>
-        <p className="text-sm text-gray-600 mt-1">
-          Pas de compte ?{' '}
-          <Link to="/register" className="underline">
-            Créer un compte
-          </Link>
-        </p>
+    <div className="container mx-auto max-w-lg px-4 py-12">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl">Connexion</CardTitle>
+          <CardDescription>
+            Pas de compte ?{' '}
+            <Link to="/register" className="font-medium text-primary underline-offset-4 hover:underline">
+              Créer un compte
+            </Link>
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <form className="space-y-4" onSubmit={onSubmit}>
+            <div className="space-y-2">
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Email
+              </label>
+              <Input 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                type="email" 
+                placeholder="votre@email.com"
+                required 
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Mot de passe
+              </label>
+              <Input 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                type="password" 
+                placeholder="••••••••"
+                required 
+              />
+            </div>
 
-        <form className="mt-6 space-y-3" onSubmit={onSubmit}>
-          <div>
-            <label className="text-sm font-medium text-gray-700">Email</label>
-            <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700">Mot de passe</label>
-            <Input value={password} onChange={(e) => setPassword(e.target.value)} type="password" required />
-          </div>
-
-          {error && <div className="text-sm text-red-600">{error}</div>}
+            {error && (
+              <div className="rounded-lg bg-destructive/15 p-3 text-sm text-destructive">
+                {error}
+              </div>
+            )}
 
             {!isFirebaseConfigured && (
-              <div className="text-sm text-amber-700">
-                Firebase n’est pas configuré. Pour tester la connexion, remplis
-                <code className="mx-1 rounded bg-amber-50 px-1 py-0.5">.env.local</code>
-                (voir <code className="rounded bg-amber-50 px-1 py-0.5">.env.example</code>).
+              <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-700">
+                Firebase n'est pas configuré. Pour tester la connexion, remplis
+                <code className="mx-1 rounded bg-amber-100 px-1 py-0.5">.env.local</code>
+                (voir <code className="rounded bg-amber-100 px-1 py-0.5">.env.example</code>).
               </div>
             )}
 
             <Button className="w-full" type="submit" disabled={loading || !isFirebaseConfigured}>
-            {loading ? 'Connexion…' : 'Se connecter'}
-          </Button>
-        </form>
+              <LogIn className="mr-2 h-4 w-4" />
+              {loading ? 'Connexion…' : 'Se connecter'}
+            </Button>
+          </form>
 
-        <div className="mt-4">
-          <div className="flex items-center gap-3">
-            <div className="h-px flex-1 bg-gray-200" />
-            <div className="text-xs text-gray-500">ou</div>
-            <div className="h-px flex-1 bg-gray-200" />
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">ou</span>
+            </div>
           </div>
 
           <Button
-            className="w-full mt-4"
+            className="w-full"
             variant="outline"
             type="button"
             onClick={onGoogleLogin}
             disabled={loading || !isFirebaseConfigured}
           >
+            <Chrome className="mr-2 h-4 w-4" />
             Continuer avec Google
           </Button>
-        </div>
+        </CardContent>
       </Card>
     </div>
   );
