@@ -105,6 +105,7 @@ function genTrucks({ count = 10, seed = 1337 } = {}) {
     const openingToday = isOpenNow ? 'Ouvert maintenant' : 'Service ce soir';
 
     const badges = pickMany(rng, BADGES, 1, 4);
+    const ovenType = pick(rng, ['Bois', 'Gaz', 'Électrique']);
 
     const name = `Pizza ${pick(rng, brandWords)} ${pick(rng, brandWords)}`.replace(/\s+/g, ' ').trim();
 
@@ -122,6 +123,7 @@ function genTrucks({ count = 10, seed = 1337 } = {}) {
       photos: [pick(rng, heroPhotos)],
       ratingAvg,
       ratingCount,
+      ovenType,
       capacity: { minPerPizza, pizzaPerHour },
       estimatedPrepMin,
     });
@@ -179,17 +181,19 @@ export function useTrucks(options = {}) {
       return hay.includes(query);
     })
     .filter((t) => {
-      // Filtre "Où" (ville/adresse) : MVP => on matche la ville ou via position
-      // Si position existe, on utilise maxDistanceKm pour filtrer
-      // Sinon on cherche dans le nom de ville
-      if (!locationText) return true;
-
-      // Si on a une position GPS, on ne filtre pas par texte de ville
-      // (le filtre de distance s'en charge)
-      if (position) return true;
-
-      // Sinon on cherche le texte dans le nom de ville (tolérant)
-      return String(t.city || '').toLowerCase().includes(locationText);
+      // Filtre "Où" (ville/adresse)
+      // Pas de filtre si ni locationText ni position
+      if (!locationText && !position) return true;
+      
+      // Si on a locationText, filtrer par nom de ville
+      if (locationText) {
+        const truckCity = String(t.city || '').toLowerCase();
+        return truckCity.includes(locationText);
+      }
+      
+      // Si on a seulement position (GPS), on laisse passer
+      // Le filtre de distance maxDistanceKm s'en chargera plus bas
+      return true;
     })
     .filter((t) => {
       if (!openNowOnly) return true;
@@ -208,6 +212,11 @@ export function useTrucks(options = {}) {
       if (!selectedBadges.length) return true;
       const set = new Set(t.badges || t.tags || []);
       return selectedBadges.every((b) => set.has(b));
+    })
+    .filter((t) => {
+      const selectedOvenTypes = Array.isArray(filters.ovenTypes) ? filters.ovenTypes : [];
+      if (!selectedOvenTypes.length) return true;
+      return selectedOvenTypes.includes(t.ovenType);
     })
     .sort((a, b) => {
       if (sortBy === 'note') {

@@ -21,8 +21,8 @@ export default function TrucksNew() {
   const where = useMemo(() => (searchParams.get('where') || '').trim(), [searchParams]);
   const mockCount = useMemo(() => {
     const raw = searchParams.get('mock');
-    const n = raw ? Number(raw) : 10;
-    if (!Number.isFinite(n) || n <= 0) return 10;
+    const n = raw ? Number(raw) : 50; // Augmenté de 10 à 50 pour couvrir plus de villes
+    if (!Number.isFinite(n) || n <= 0) return 50;
     return Math.min(500, Math.max(10, Math.floor(n)));
   }, [searchParams]);
 
@@ -31,18 +31,57 @@ export default function TrucksNew() {
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState(null);
 
-  // Filtres
+  // Filtres - Restaurer depuis localStorage au montage
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [maxDistanceKm, setMaxDistanceKm] = useState('');
-  const [openNowOnly, setOpenNowOnly] = useState(false);
-  const [minRating, setMinRating] = useState('');
-  const [sortBy, setSortBy] = useState('distance');
-  const [selectedBadges, setSelectedBadges] = useState([]);
+  const [maxDistanceKm, setMaxDistanceKm] = useState(() => {
+    return localStorage.getItem('planizza_filter_distance') || '';
+  });
+  const [openNowOnly, setOpenNowOnly] = useState(() => {
+    return localStorage.getItem('planizza_filter_openNow') === 'true';
+  });
+  const [minRating, setMinRating] = useState(() => {
+    return localStorage.getItem('planizza_filter_rating') || '';
+  });
+  const [sortBy, setSortBy] = useState(() => {
+    return localStorage.getItem('planizza_filter_sort') || 'distance';
+  });
+  const [selectedBadges, setSelectedBadges] = useState(() => {
+    const saved = localStorage.getItem('planizza_filter_badges');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [selectedOvenTypes, setSelectedOvenTypes] = useState(() => {
+    const saved = localStorage.getItem('planizza_filter_ovens');
+    return saved ? JSON.parse(saved) : [];
+  });
 
-  const locationTextForFilter = position ? '' : where;
+  // Sauvegarder les filtres dans localStorage à chaque changement
+  useEffect(() => {
+    localStorage.setItem('planizza_filter_distance', maxDistanceKm);
+  }, [maxDistanceKm]);
+
+  useEffect(() => {
+    localStorage.setItem('planizza_filter_openNow', openNowOnly);
+  }, [openNowOnly]);
+
+  useEffect(() => {
+    localStorage.setItem('planizza_filter_rating', minRating);
+  }, [minRating]);
+
+  useEffect(() => {
+    localStorage.setItem('planizza_filter_sort', sortBy);
+  }, [sortBy]);
+
+  useEffect(() => {
+    localStorage.setItem('planizza_filter_badges', JSON.stringify(selectedBadges));
+  }, [selectedBadges]);
+
+  useEffect(() => {
+    localStorage.setItem('planizza_filter_ovens', JSON.stringify(selectedOvenTypes));
+  }, [selectedOvenTypes]);
+
   const { trucks, loading } = useTrucks({
     query: q,
-    locationText: locationTextForFilter,
+    locationText: where,
     position,
     mockCount,
     filters: {
@@ -51,10 +90,11 @@ export default function TrucksNew() {
       minRating,
       sortBy,
       badges: selectedBadges,
+      ovenTypes: selectedOvenTypes,
     },
   });
 
-  // Synchroniser whereInput avec l'URL lors du retour arrière
+  // Synchroniser whereInput avec l'URL
   useEffect(() => {
     setWhereInput(where);
   }, [where]);
@@ -70,12 +110,29 @@ export default function TrucksNew() {
     });
   };
 
+  const toggleOvenType = (type) => {
+    setSelectedOvenTypes((prev) => {
+      const set = new Set(prev);
+      if (set.has(type)) set.delete(type);
+      else set.add(type);
+      return Array.from(set);
+    });
+  };
+
   const resetFilters = () => {
     setMaxDistanceKm('');
     setOpenNowOnly(false);
     setMinRating('');
     setSortBy('distance');
     setSelectedBadges([]);
+    setSelectedOvenTypes([]);
+    // Nettoyer également le localStorage
+    localStorage.removeItem('planizza_filter_distance');
+    localStorage.removeItem('planizza_filter_openNow');
+    localStorage.removeItem('planizza_filter_rating');
+    localStorage.removeItem('planizza_filter_sort');
+    localStorage.removeItem('planizza_filter_badges');
+    localStorage.removeItem('planizza_filter_ovens');
   };
 
   const enableNearMe = async () => {
@@ -88,6 +145,7 @@ export default function TrucksNew() {
         return;
       }
       setPosition(pos);
+      
       try {
         const commune = await reverseGeocodeCommune(pos);
         const name = String(commune?.name || '').trim();
@@ -130,6 +188,7 @@ export default function TrucksNew() {
     openNowOnly,
     minRating,
     selectedBadges.length > 0,
+    selectedOvenTypes.length > 0,
   ].filter(Boolean).length;
 
   if (!hasBaseLocation) {
@@ -251,13 +310,13 @@ export default function TrucksNew() {
               </SheetTrigger>
               <SheetContent className="glass-premium border-l-white/20 sm:max-w-md p-0 overflow-hidden">
                 <div className="h-full flex flex-col">
-                  <div className="p-8 space-y-1 border-b border-white/10">
-                    <SheetTitle className="text-3xl font-black tracking-tighter">Filtres</SheetTitle>
-                    <p className="text-muted-foreground font-medium">Personnalisez votre expérience</p>
+                  <div className="p-6 space-y-1 border-b border-white/10">
+                    <SheetTitle className="text-2xl font-black tracking-tighter">Filtres</SheetTitle>
+                    <p className="text-sm text-muted-foreground font-medium">Personnalisez votre expérience</p>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto p-8 space-y-10">
-                    <div className="space-y-4">
+                  <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                    <div className="space-y-3">
                       <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Note Minimum</label>
                       <div className="glass-deep rounded-2xl p-2 px-1">
                         <select
@@ -286,16 +345,16 @@ export default function TrucksNew() {
                       />
                     </div>
 
-                    <Separator className="bg-white/10" />
+                    <Separator className="bg-white/10 my-4" />
 
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Préférences</label>
                       <div className="flex flex-wrap gap-2">
                         {ALL_BADGES.map((badge) => (
                           <Badge
                             key={badge}
                             variant={selectedBadges.includes(badge) ? 'default' : 'outline'}
-                            className={`cursor-pointer px-4 py-2 rounded-xl border-white/40 transition-all ${selectedBadges.includes(badge)
+                            className={`cursor-pointer px-3 py-1.5 rounded-xl border-white/40 transition-all text-sm ${selectedBadges.includes(badge)
                               ? 'bg-primary text-white scale-105 shadow-md shadow-primary/20'
                               : 'glass hover:bg-white/40'
                               }`}
@@ -307,9 +366,30 @@ export default function TrucksNew() {
                       </div>
                     </div>
 
-                    <Separator className="bg-white/10" />
+                    <Separator className="bg-white/10 my-4" />
 
-                    <div className="space-y-4">
+                    <div className="space-y-3">
+                      <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Type de four</label>
+                      <div className="flex flex-wrap gap-2">
+                        {['Bois', 'Gaz', 'Électrique'].map((type) => (
+                          <Badge
+                            key={type}
+                            variant={selectedOvenTypes.includes(type) ? 'default' : 'outline'}
+                            className={`cursor-pointer px-3 py-1.5 rounded-xl border-white/40 transition-all text-sm ${selectedOvenTypes.includes(type)
+                              ? 'bg-primary text-white scale-105 shadow-md shadow-primary/20'
+                              : 'glass hover:bg-white/40'
+                              }`}
+                            onClick={() => toggleOvenType(type)}
+                          >
+                            {type}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+
+                    <Separator className="bg-white/10 my-4" />
+
+                    <div className="space-y-3">
                       <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Organiser par</label>
                       <div className="glass-deep rounded-2xl p-2 px-1">
                         <select
@@ -324,18 +404,25 @@ export default function TrucksNew() {
                     </div>
                   </div>
 
-                  {activeFiltersCount > 0 && (
-                    <div className="p-8 border-t border-white/10">
+                  <div className="p-6 border-t border-white/10 space-y-3">
+                    {activeFiltersCount > 0 && (
                       <Button
                         variant="ghost"
                         onClick={resetFilters}
-                        className="w-full h-14 rounded-2xl glass text-destructive hover:bg-destructive/10 font-bold border-destructive/20"
+                        className="w-full h-12 rounded-2xl glass text-destructive hover:bg-destructive/10 font-bold border-destructive/20 text-sm"
                       >
                         <X className="mr-2 h-4 w-4" />
                         Tout réinitialiser
                       </Button>
-                    </div>
-                  )}
+                    )}
+                    <Button
+                      onClick={() => setFiltersOpen(false)}
+                      className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-base shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95"
+                    >
+                      <Search className="mr-2 h-5 w-5" />
+                      Rechercher ({trucks.length})
+                    </Button>
+                  </div>
                 </div>
               </SheetContent>
             </Sheet>
