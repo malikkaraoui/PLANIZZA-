@@ -54,6 +54,7 @@ export default function TrucksNew() {
     },
   });
 
+  // Synchroniser whereInput avec l'URL lors du retour arrière
   useEffect(() => {
     setWhereInput(where);
   }, [where]);

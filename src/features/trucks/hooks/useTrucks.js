@@ -37,14 +37,32 @@ function genTrucks({ count = 10, seed = 1337 } = {}) {
   const rng = mulberry32(seed);
 
   const cities = [
+    // Lyon et environs
     { name: 'Lyon', lat: 45.764, lng: 4.8357 },
     { name: 'Villeurbanne', lat: 45.7719, lng: 4.8902 },
     { name: 'Bron', lat: 45.739, lng: 4.913 },
     { name: 'Vénissieux', lat: 45.697, lng: 4.885 },
     { name: 'Caluire-et-Cuire', lat: 45.795, lng: 4.846 },
     { name: 'Oullins', lat: 45.714, lng: 4.807 },
-    { name: 'Tassin-la-Demi-Lune', lat: 45.757, lng: 4.783 },
-    { name: 'Écully', lat: 45.774, lng: 4.777 },
+    // Paris et environs
+    { name: 'Paris', lat: 48.8566, lng: 2.3522 },
+    { name: 'Boulogne-Billancourt', lat: 48.8333, lng: 2.25 },
+    { name: 'Montreuil', lat: 48.8611, lng: 2.4419 },
+    { name: 'Saint-Denis', lat: 48.9356, lng: 2.3539 },
+    // Marseille et environs
+    { name: 'Marseille', lat: 43.2965, lng: 5.3698 },
+    { name: 'Aix-en-Provence', lat: 43.5297, lng: 5.4474 },
+    // Annecy et environs
+    { name: 'Annecy', lat: 45.8992, lng: 6.1294 },
+    { name: 'Annecy-le-Vieux', lat: 45.9186, lng: 6.1447 },
+    // Autres grandes villes
+    { name: 'Toulouse', lat: 43.6047, lng: 1.4442 },
+    { name: 'Nice', lat: 43.7102, lng: 7.262 },
+    { name: 'Nantes', lat: 47.2184, lng: -1.5536 },
+    { name: 'Bordeaux', lat: 44.8378, lng: -0.5792 },
+    { name: 'Lille', lat: 50.6292, lng: 3.0573 },
+    { name: 'Rennes', lat: 48.1173, lng: -1.6778 },
+    { name: 'Strasbourg', lat: 48.5734, lng: 7.7521 },
   ];
 
   const brandWords = [
