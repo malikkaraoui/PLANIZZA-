@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { ShoppingBag, ArrowLeft, Trash2, Minus, Plus } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
 import { Separator } from '../components/ui/separator';
 import { useCart } from '../features/cart/hooks/useCart.jsx';
+import { useAuth } from '../app/providers/AuthProvider';
+import { useCreateOrder } from '../features/orders/hooks/useCreateOrder';
 import { ROUTES } from '../app/routes';
 
 function formatEUR(cents) {
@@ -14,12 +17,39 @@ export default function Cart() {
   const navigate = useNavigate();
   const location = useLocation();
   const { items, truckId: cartTruckId, updateItemQty, removeItem, totalCents } = useCart();
+  const { isAuthenticated, user } = useAuth();
+  const { createOrder, loading: creatingOrder } = useCreateOrder();
+  const [error, setError] = useState(null);
 
   const truckId = location.state?.truckId ?? cartTruckId ?? null;
 
-  const handleCheckout = () => {
-    const qs = truckId ? `?truckId=${encodeURIComponent(truckId)}` : '';
-    navigate(`${ROUTES.checkout}${qs}`, { state: { truckId } });
+  const handleCheckout = async () => {
+    // Vérifier l'authentification
+    if (!isAuthenticated || !user) {
+      navigate(ROUTES.login);
+      return;
+    }
+
+    // Vérifier qu'on a un truckId
+    if (!truckId) {
+      setError('Impossible de créer la commande : camion non identifié. Veuillez retourner à la fiche du camion.');
+      return;
+    }
+
+    setError(null);
+    
+    try {
+      // Créer la commande et lancer directement le paiement Stripe
+      await createOrder({
+        truckId,
+        items,
+        userUid: user.uid,
+      });
+      // La fonction createOrder redirige automatiquement vers Stripe Checkout
+    } catch (err) {
+      console.error('Erreur lors de la création de la commande:', err);
+      setError(err?.message || 'Erreur lors de la création de la commande. Veuillez réessayer.');
+    }
   };
 
   if (items.length === 0) {
@@ -147,6 +177,12 @@ export default function Cart() {
             </CardHeader>
 
             <CardContent className="space-y-4">
+              {error && (
+                <div className="rounded-lg bg-destructive/15 p-3 text-sm text-destructive">
+                  {error}
+                </div>
+              )}
+              
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Sous-total</span>
@@ -165,15 +201,16 @@ export default function Cart() {
                 className="w-full" 
                 size="lg" 
                 onClick={handleCheckout}
+                disabled={creatingOrder || !truckId}
               >
-                Commander
+                {creatingOrder ? 'Préparation du paiement...' : 'Commander'}
               </Button>
             </CardFooter>
 
             {!truckId && (
               <CardFooter className="pt-0">
-                <p className="text-xs text-muted-foreground text-center w-full">
-                  💡 Astuce : passez par la fiche camion pour un meilleur suivi
+                <p className="text-xs text-destructive text-center w-full">
+                  ⚠️ Veuillez retourner à la fiche camion pour finaliser votre commande
                 </p>
               </CardFooter>
             )}

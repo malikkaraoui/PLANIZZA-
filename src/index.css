@@ -1,8 +1,5 @@
-@import "tailwindcss/preflight";
-@import "tailwindcss/utilities";
-
+@import "tailwindcss";
 @plugin "tailwindcss-animate";
-
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -117,11 +114,156 @@
   --sidebar-ring: oklch(0.551 0.027 264.364);
 }
 
+@utility glass {
+  background-color: var(--color-white-40, rgba(255, 255, 255, 0.4));
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+@utility glass-dark {
+  background-color: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.5);
+}
+
+@utility glass-card {
+  background-color: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  }
+}
+
+@utility glass-border {
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+@utility text-gradient {
+  background-image: linear-gradient(to right, var(--color-primary), var(--color-orange-400));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility bg-vibrant-gradient {
+  background-image: linear-gradient(to bottom right, color-mix(in srgb, var(--color-orange-500) 20%, transparent), var(--color-background), color-mix(in srgb, var(--color-blue-500) 10%, transparent));
+}
+
+@utility glass-premium {
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow:
+    0 8px 32px 0 rgba(31, 38, 135, 0.15),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+  border-radius: 24px;
+}
+
+@utility glass-deep {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(25px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.1),
+    inset 0 1px 1px rgba(255, 255, 255, 0.5),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.05);
+}
+
+@utility glass-glossy {
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 1;
+  }
+}
+
+@utility floating-island {
+  margin-top: 1.5rem;
+  margin-left: 1.5rem;
+  margin-right: 1.5rem;
+  border-radius: 32px;
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow:
+    0 8px 32px 0 rgba(31, 38, 135, 0.15),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+    0 30px 60px -12px rgba(0, 0, 0, 0.15),
+    0 18px 36px -18px rgba(0, 0, 0, 0.2);
+}
+
+@utility text-premium-gradient {
+  background: linear-gradient(135deg, var(--color-primary) 0%, #ff8e53 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 4px rgba(255, 107, 0, 0.2));
+}
+
+@utility bg-liquid-motion {
+  background: var(--color-background);
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background:
+      radial-gradient(circle at 10% 20%, color-mix(in srgb, var(--color-orange-500) 15%, transparent) 0%, transparent 40%),
+      radial-gradient(circle at 90% 80%, color-mix(in srgb, var(--color-blue-500) 10%, transparent) 0%, transparent 40%),
+      radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--color-primary) 5%, transparent) 0%, transparent 50%);
+    filter: blur(80px);
+    animation: liquid-drift 20s infinite alternate ease-in-out;
+    z-index: -1;
+  }
+}
+
+@keyframes liquid-drift {
+  from {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+
+  to {
+    transform: translate(5%, 5%) rotate(5deg) scale(1.1);
+  }
+}
+
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    border-color: rgba(255, 255, 255, 0.15);
+    outline-color: color-mix(in srgb, var(--color-ring) 50%, transparent);
   }
+
   body {
-    @apply bg-background text-foreground;
+    background: var(--background);
+    color: var(--foreground);
+    min-height: 100vh;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  ::selection {
+    background-color: var(--color-primary);
+    color: white;
   }
 }

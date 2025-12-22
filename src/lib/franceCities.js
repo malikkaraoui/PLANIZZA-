@@ -9,9 +9,20 @@ export async function searchFrenchCities({ query, limit = 8 }) {
   if (q.length < 2) return [];
 
   const url = new URL('https://geo.api.gouv.fr/communes');
-  url.searchParams.set('nom', q);
+  
+  // Déterminer si c'est un code postal (que des chiffres) ou un nom de ville
+  const isPostalCode = /^\d+$/.test(q);
+  
+  if (isPostalCode) {
+    // Recherche par code postal
+    url.searchParams.set('codePostal', q);
+  } else {
+    // Recherche par nom de ville
+    url.searchParams.set('nom', q);
+    url.searchParams.set('boost', 'population');
+  }
+  
   url.searchParams.set('fields', 'nom,code,centre,population,codesPostaux,departement');
-  url.searchParams.set('boost', 'population');
   url.searchParams.set('limit', String(limit));
 
   const res = await fetch(url.toString(), {

@@ -128,8 +128,8 @@ exports.createCheckoutSession = onRequest(
       // Utiliser l'origine de la requête pour les redirections (support localhost + production)
       const frontendOrigin = req.headers.origin || FRONTEND_URL;
       const successUrl =
-        `${frontendOrigin}/checkout/success?orderId=${orderId}&session_id={CHECKOUT_SESSION_ID}`;
-      const cancelUrl = `${frontendOrigin}/cancel?orderId=${orderId}`;
+        `${frontendOrigin}/order/${orderId}?session_id={CHECKOUT_SESSION_ID}`;
+      const cancelUrl = `${frontendOrigin}/panier?orderId=${orderId}`;
 
       try {
         const session = await stripeClient.checkout.sessions.create({

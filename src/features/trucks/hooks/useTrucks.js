@@ -63,12 +63,9 @@ function genTrucks({ count = 10, seed = 1337 } = {}) {
   ];
 
   const heroPhotos = [
-    'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=1200&q=60',
-    'https://images.unsplash.com/photo-1542281286-9e0a16bb7366?auto=format&fit=crop&w=1200&q=60',
-    'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?auto=format&fit=crop&w=1200&q=60',
-    'https://images.unsplash.com/photo-1604908554007-2d1bd3c8b536?auto=format&fit=crop&w=1200&q=60',
-    'https://images.unsplash.com/photo-1590947132387-155cc02f3212?auto=format&fit=crop&w=1200&q=60',
-    'https://images.unsplash.com/photo-1601924582970-9238bcb495d9?auto=format&fit=crop&w=1200&q=60',
+    'file:///Users/malik/.gemini/antigravity/brain/4667bdcc-f6c3-4a13-a6c5-008352cbb39e/modern_glass_pizza_truck_1_1766418239603.png',
+    'file:///Users/malik/.gemini/antigravity/brain/4667bdcc-f6c3-4a13-a6c5-008352cbb39e/modern_glass_pizza_truck_2_1766418252608.png',
+    'file:///Users/malik/.gemini/antigravity/brain/4667bdcc-f6c3-4a13-a6c5-008352cbb39e/modern_glass_pizza_truck_3_1766418271033.png',
   ];
 
   const trucks = [];
@@ -164,8 +161,16 @@ export function useTrucks(options = {}) {
       return hay.includes(query);
     })
     .filter((t) => {
-      // Filtre "Où" (ville/adresse) : MVP => on matche uniquement la ville
+      // Filtre "Où" (ville/adresse) : MVP => on matche la ville ou via position
+      // Si position existe, on utilise maxDistanceKm pour filtrer
+      // Sinon on cherche dans le nom de ville
       if (!locationText) return true;
+
+      // Si on a une position GPS, on ne filtre pas par texte de ville
+      // (le filtre de distance s'en charge)
+      if (position) return true;
+
+      // Sinon on cherche le texte dans le nom de ville (tolérant)
       return String(t.city || '').toLowerCase().includes(locationText);
     })
     .filter((t) => {

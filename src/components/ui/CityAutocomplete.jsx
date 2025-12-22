@@ -23,7 +23,7 @@ function highlightMatch(text, query) {
   return (
     <>
       {before}
-      <mark className="rounded bg-amber-100 px-1 text-gray-900">{mid}</mark>
+      <span className="text-primary font-black">{mid}</span>
       {after}
     </>
   );
@@ -154,37 +154,40 @@ export default function CityAutocomplete({
         onKeyDown={onKeyDown}
         placeholder={placeholder}
         aria-label={ariaLabel}
-        className={`w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-900/20 ${inputClassName}`}
+        className={`w-full bg-transparent outline-none transition-all placeholder:text-muted-foreground/40 ${inputClassName}`}
         autoComplete="off"
       />
 
       {loading && (
-        <div className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-500">
-          …
+        <div className="absolute right-4 top-1/2 -translate-y-1/2">
+          <div className="h-4 w-4 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
         </div>
       )}
 
       {open && sortedItems.length > 0 && (
-        <div className="absolute left-0 right-0 mt-2 rounded-xl border bg-white shadow-lg overflow-hidden z-50">
-          <ul className="max-h-72 overflow-auto py-1">
+        <div className="absolute left-0 right-0 mt-4 rounded-3xl glass-premium glass-glossy shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] border-white/40 overflow-hidden z-50 animate-in fade-in slide-in-from-top-4 duration-300">
+          <ul className="max-h-80 overflow-auto py-3 custom-scrollbar">
             {sortedItems.map((c, idx) => {
               const active = idx === activeIndex;
               const hint = formatHint(c);
               return (
-                <li key={`${c.code || c.name}-${idx}`}>
+                <li key={`${c.code || c.name}-${idx}`} className="px-2">
                   <button
                     type="button"
                     onMouseEnter={() => setActiveIndex(idx)}
-                    onMouseDown={(e) => e.preventDefault()} // évite blur avant click
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => pick(c)}
-                    className={`w-full text-left px-3 py-2 transition ${
-                      active ? 'bg-gray-100' : 'hover:bg-gray-50'
-                    }`}
+                    className={`w-full text-left px-5 py-3 rounded-2xl transition-all duration-200 group/item ${active ? 'bg-white/20 translate-x-1' : 'hover:bg-white/10'
+                      }`}
                   >
-                    <div className="text-sm font-semibold text-gray-900">
+                    <div className={`text-base font-black tracking-tight transition-colors ${active ? 'text-primary' : 'text-foreground'}`}>
                       {highlightMatch(c.name, value)}
                     </div>
-                    {hint && <div className="text-xs text-gray-600">{hint}</div>}
+                    {hint && (
+                      <div className={`text-xs font-bold transition-colors ${active ? 'text-primary/60' : 'text-muted-foreground/60'}`}>
+                        {hint}
+                      </div>
+                    )}
                   </button>
                 </li>
               );

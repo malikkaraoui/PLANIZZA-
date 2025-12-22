@@ -6,7 +6,7 @@ export const ROUTES = {
   // Public
   explore: '/explore',
   truck: (truckId = ':truckId') => `/truck/${truckId}`,
-  cart: '/cart',
+  cart: '/panier',
   checkout: '/checkout',
   checkoutSuccess: '/checkout/success',
   order: (orderId = ':orderId') => `/order/${orderId}`,

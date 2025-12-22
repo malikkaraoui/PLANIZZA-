@@ -36,7 +36,7 @@ export const router = createBrowserRouter([
       // Public (navigation canon)
       { path: 'explore', element: <Trucks /> },
       { path: 'truck/:truckId', element: <TruckDetails /> },
-      { path: 'cart', element: <Cart /> },
+      { path: 'panier', element: <Cart /> },
       { path: 'checkout', element: <Checkout /> },
       { path: 'checkout/success', element: <CheckoutSuccess /> },
       { path: 'order/:orderId', element: <OrderTracking /> },
