@@ -1,5 +1,5 @@
 import { MapPin, Clock, ShieldCheck, Heart } from 'lucide-react';
-import { Badge } from '../../components/ui/badge';
+import { Badge } from '../../components/ui/Badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
 
 function initials(name = '') {
