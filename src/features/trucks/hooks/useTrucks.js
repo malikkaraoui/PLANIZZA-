@@ -81,9 +81,9 @@ function genTrucks({ count = 10, seed = 1337 } = {}) {
   ];
 
   const heroPhotos = [
-    'file:///Users/malik/.gemini/antigravity/brain/4667bdcc-f6c3-4a13-a6c5-008352cbb39e/modern_glass_pizza_truck_1_1766418239603.png',
-    'file:///Users/malik/.gemini/antigravity/brain/4667bdcc-f6c3-4a13-a6c5-008352cbb39e/modern_glass_pizza_truck_2_1766418252608.png',
-    'file:///Users/malik/.gemini/antigravity/brain/4667bdcc-f6c3-4a13-a6c5-008352cbb39e/modern_glass_pizza_truck_3_1766418271033.png',
+    '/images/trucks/truck_neon.png',
+    '/images/trucks/truck_vintage.png',
+    '/images/trucks/truck_cyber.png',
   ];
 
   const trucks = [];
@@ -132,24 +132,47 @@ function genTrucks({ count = 10, seed = 1337 } = {}) {
   return trucks;
 }
 
+import { db } from '../../../lib/firebase';
+import { ref, onValue, set } from 'firebase/database';
+
 export function useTrucks(options = {}) {
   const query = (options.query || '').trim().toLowerCase();
   const locationText = (options.locationText || '').trim().toLowerCase();
   const position = options.position || null;
   const filters = options.filters || {};
-  const mockCount = typeof options.mockCount === 'number' ? options.mockCount : 10;
+  const mockCount = typeof options.mockCount === 'number' ? options.mockCount : 50;
 
   const [baseTrucks, setBaseTrucks] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // TODO: brancher Firebase
-    const t = setTimeout(() => {
+    if (!db) {
       setBaseTrucks(genTrucks({ count: mockCount, seed: 1337 }));
       setLoading(false);
-    }, 200);
+      return;
+    }
 
-    return () => clearTimeout(t);
+    const trucksRef = ref(db, 'trucks');
+    const unsub = onValue(trucksRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const list = Object.entries(data).map(([id, val]) => ({ id, ...val }));
+        setBaseTrucks(list);
+        setLoading(false);
+      } else {
+        // Si vide, on seed la DB avec les camions générés
+        const initialTrucks = genTrucks({ count: mockCount, seed: 1337 });
+        const updates = {};
+        initialTrucks.forEach(t => {
+          updates[t.id] = t;
+        });
+        set(trucksRef, updates);
+        setBaseTrucks(initialTrucks);
+        setLoading(false);
+      }
+    });
+
+    return () => unsub();
   }, [mockCount]);
 
   const maxDistanceKm =
@@ -184,13 +207,13 @@ export function useTrucks(options = {}) {
       // Filtre "Où" (ville/adresse)
       // Pas de filtre si ni locationText ni position
       if (!locationText && !position) return true;
-      
+
       // Si on a locationText, filtrer par nom de ville
       if (locationText) {
         const truckCity = String(t.city || '').toLowerCase();
         return truckCity.includes(locationText);
       }
-      
+
       // Si on a seulement position (GPS), on laisse passer
       // Le filtre de distance maxDistanceKm s'en chargera plus bas
       return true;

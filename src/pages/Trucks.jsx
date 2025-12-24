@@ -12,6 +12,7 @@ import { Skeleton } from '../components/ui/skeleton';
 import CityAutocomplete from '../components/ui/CityAutocomplete';
 import { getBrowserPosition } from '../lib/geo';
 import { reverseGeocodeCommune } from '../lib/franceCities';
+import RecommendedTrucks from '../features/trucks/RecommendedTrucks';
 
 const ALL_BADGES = ['Bio', 'Terroir', 'Sans gluten', 'Halal', 'Kasher', 'Sucré'];
 
@@ -145,7 +146,7 @@ export default function TrucksNew() {
         return;
       }
       setPosition(pos);
-      
+
       try {
         const commune = await reverseGeocodeCommune(pos);
         const name = String(commune?.name || '').trim();
@@ -259,17 +260,7 @@ export default function TrucksNew() {
             </div>
           </div>
 
-          <div className="flex justify-center gap-8 opacity-40 hover:opacity-100 transition-opacity duration-700 cursor-default grayscale hover:grayscale-0">
-            <div className="w-24 h-24 glass-premium p-3">
-              <img src="/Users/malik/.gemini/antigravity/brain/4667bdcc-f6c3-4a13-a6c5-008352cbb39e/modern_glass_pizza_truck_1_1766418239603.png" className="w-full h-full object-contain" alt="Camion 1" />
-            </div>
-            <div className="w-24 h-24 glass-premium p-3">
-              <img src="/Users/malik/.gemini/antigravity/brain/4667bdcc-f6c3-4a13-a6c5-008352cbb39e/modern_glass_pizza_truck_2_1766418252608.png" className="w-full h-full object-contain" alt="Camion 2" />
-            </div>
-            <div className="w-24 h-24 glass-premium p-3">
-              <img src="/Users/malik/.gemini/antigravity/brain/4667bdcc-f6c3-4a13-a6c5-008352cbb39e/modern_glass_pizza_truck_3_1766418271033.png" className="w-full h-full object-contain" alt="Camion 3" />
-            </div>
-          </div>
+          <RecommendedTrucks />
         </div>
       </div>
     );

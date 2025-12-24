@@ -40,7 +40,7 @@ export default function OrderTracking() {
           const guestId = localStorage.getItem('planizza:guestUserId');
           const isOwner = user && data.userUid === user.uid;
           const isGuest = !user && guestId && data.userUid === guestId;
-          
+
           if (!isOwner && !isGuest) {
             setError('Accès non autorisé');
             setOrder(null);
@@ -63,21 +63,21 @@ export default function OrderTracking() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
-        <div className="text-white text-xl animate-pulse">Chargement...</div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="text-gray-900 text-xl animate-pulse">Chargement...</div>
       </div>
     );
   }
 
   if (error || !order) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
-        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-8 max-w-md w-full text-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white border border-gray-200 shadow-sm rounded-2xl p-8 max-w-md w-full text-center">
           <div className="text-6xl mb-4">😕</div>
-          <h1 className="text-2xl font-bold text-white mb-4">{error || 'Commande introuvable'}</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">{error || 'Commande introuvable'}</h1>
           <Link
             to="/trucks"
-            className="inline-block px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-semibold transition-colors"
+            className="inline-block px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-semibold transition-colors shadow-sm"
           >
             Retour à l'exploration
           </Link>
@@ -91,48 +91,48 @@ export default function OrderTracking() {
   const currentStepIndex = STEPS.findIndex((s) => s.key === currentStatus);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-12 px-4">
+    <div className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-8 mb-8">
+        <div className="bg-white border border-gray-200 shadow-sm rounded-2xl p-8 mb-8">
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-3xl font-bold text-white">Suivi de commande</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Suivi de commande</h1>
             <button
               onClick={() => navigate('/commandes')}
-              className="px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-white transition-colors"
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-xl text-gray-900 transition-colors font-semibold"
             >
               Mes commandes
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
             <div>
-              <span className="text-gray-400">Commande</span>
-              <p className="text-white font-mono text-lg">#{orderId.slice(0, 8)}</p>
+              <span className="text-gray-500 text-sm font-medium">Commande</span>
+              <p className="text-gray-900 font-mono text-lg font-bold">#{orderId.slice(0, 8)}</p>
             </div>
             <div>
-              <span className="text-gray-400">Articles</span>
-              <p className="text-white font-semibold text-lg">{order.items?.length || 0}</p>
+              <span className="text-gray-500 text-sm font-medium">Articles</span>
+              <p className="text-gray-900 font-bold text-lg">{order.items?.length || 0}</p>
             </div>
             <div>
-              <span className="text-gray-400">Total</span>
-              <p className="text-white font-semibold text-lg">{((order.totalCents || 0) / 100).toFixed(2)} €</p>
+              <span className="text-gray-500 text-sm font-medium">Total</span>
+              <p className="text-gray-900 font-bold text-lg">{((order.totalCents || 0) / 100).toFixed(2)} €</p>
             </div>
             <div>
-              <span className="text-gray-400">Statut paiement</span>
+              <span className="text-gray-500 text-sm font-medium">Statut paiement</span>
               <p className={
-                order.paidAt 
-                  ? "text-emerald-400 font-semibold text-lg flex items-center gap-2"
-                  : "text-amber-400 font-semibold text-lg flex items-center gap-2"
+                order.paidAt
+                  ? "text-emerald-600 font-bold text-lg flex items-center gap-2"
+                  : "text-amber-600 font-bold text-lg flex items-center gap-2"
               }>
                 {order.paidAt ? (
                   <>
-                    <span className="inline-block w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                    <span className="inline-block w-2.5 h-2.5 bg-emerald-500 rounded-full"></span>
                     Payé
                   </>
                 ) : (
                   <>
-                    <span className="inline-block w-2 h-2 bg-amber-400 rounded-full animate-pulse"></span>
+                    <span className="inline-block w-2.5 h-2.5 bg-amber-500 rounded-full animate-pulse"></span>
                     En attente
                   </>
                 )}
@@ -142,12 +142,12 @@ export default function OrderTracking() {
         </div>
 
         {/* Timeline */}
-        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-8">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-bold text-white">Progression</h2>
+        <div className="bg-white border border-gray-200 shadow-sm rounded-2xl p-8">
+          <div className="flex items-center justify-between mb-12">
+            <h2 className="text-2xl font-bold text-gray-900">Progression</h2>
             <div className="text-right">
-              <p className="text-sm text-gray-400">Statut actuel</p>
-              <p className="text-emerald-400 font-bold text-lg capitalize">
+              <p className="text-sm text-gray-500 font-medium">Statut actuel</p>
+              <p className="text-emerald-600 font-bold text-lg capitalize">
                 {currentStatus === 'created' && '✅ Confirmée'}
                 {currentStatus === 'received' && '📋 Réception'}
                 {currentStatus === 'prep' && '👨‍🍳 Préparation'}
@@ -160,9 +160,9 @@ export default function OrderTracking() {
 
           <div className="relative">
             {/* Barre de progression */}
-            <div className="absolute top-8 left-8 right-8 h-1 bg-white/20 rounded-full">
+            <div className="absolute top-8 left-8 right-8 h-1 bg-gray-100 rounded-full overflow-hidden">
               <div
-                className="h-full bg-emerald-500 rounded-full transition-all duration-1000 ease-out"
+                className="h-full bg-emerald-500 rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(16,185,129,0.3)]"
                 style={{
                   width: `${currentStepIndex >= 0 ? ((currentStepIndex + 1) / STEPS.length) * 100 : 0}%`,
                 }}
@@ -182,12 +182,11 @@ export default function OrderTracking() {
                     <div
                       className={`
                         w-16 h-16 rounded-full flex items-center justify-center text-2xl mb-4 transition-all duration-500
-                        ${
-                          isCompleted
-                            ? 'bg-emerald-500 border-4 border-emerald-400 shadow-lg shadow-emerald-500/50'
-                            : 'bg-white/10 border-4 border-white/20'
+                        ${isCompleted
+                          ? 'bg-emerald-500 border-4 border-emerald-100 text-white shadow-md'
+                          : 'bg-white border-4 border-gray-100 text-gray-300'
                         }
-                        ${isCurrent ? 'animate-pulse scale-110' : ''}
+                        ${isCurrent ? 'ring-4 ring-emerald-500/20 scale-110' : ''}
                       `}
                     >
                       {step.icon}
@@ -196,8 +195,8 @@ export default function OrderTracking() {
                     {/* Label */}
                     <p
                       className={`
-                        font-semibold mb-2 transition-colors text-center
-                        ${isCompleted ? 'text-white' : 'text-gray-400'}
+                        font-bold mb-2 transition-colors text-center text-sm
+                        ${isCompleted ? 'text-gray-900' : 'text-gray-400'}
                       `}
                     >
                       {step.label}
@@ -219,24 +218,24 @@ export default function OrderTracking() {
           </div>
 
           {/* Message en fonction du statut */}
-          <div className="mt-12 p-6 bg-white/5 rounded-xl border border-white/10">
+          <div className="mt-12 p-6 bg-emerald-50 rounded-2xl border border-emerald-100">
             {currentStatus === 'received' && (
-              <p className="text-white text-center text-lg">
+              <p className="text-emerald-900 text-center text-lg font-medium">
                 🎉 Votre commande a été reçue ! Le pizzaiolo démarre la préparation...
               </p>
             )}
             {currentStatus === 'prep' && (
-              <p className="text-white text-center text-lg">
+              <p className="text-emerald-900 text-center text-lg font-medium">
                 👨‍🍳 Votre pizza est en cours de préparation avec soin...
               </p>
             )}
             {currentStatus === 'cooking' && (
-              <p className="text-white text-center text-lg">
+              <p className="text-emerald-900 text-center text-lg font-medium">
                 🔥 La magie opère dans le four ! Votre pizza cuit à la perfection...
               </p>
             )}
             {currentStatus === 'ready' && (
-              <p className="text-white text-center text-lg font-bold animate-pulse">
+              <p className="text-emerald-900 text-center text-lg font-bold animate-pulse">
                 🍕 Votre commande est prête ! Bon appétit ! 🎊
               </p>
             )}
@@ -244,16 +243,16 @@ export default function OrderTracking() {
         </div>
 
         {/* Détails articles */}
-        <div className="mt-8 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-8">
-          <h3 className="text-xl font-bold text-white mb-4">Détails de la commande</h3>
-          <div className="space-y-3">
+        <div className="mt-8 bg-white border border-gray-200 shadow-sm rounded-2xl p-8">
+          <h3 className="text-xl font-bold text-gray-900 mb-6">Détails de la commande</h3>
+          <div className="space-y-4">
             {order.items?.map((item, idx) => (
-              <div key={idx} className="flex justify-between items-center py-2 border-b border-white/10 last:border-0">
+              <div key={idx} className="flex justify-between items-center py-3 border-b border-gray-100 last:border-0">
                 <div>
-                  <p className="text-white font-semibold">{item.name}</p>
-                  <p className="text-gray-400 text-sm">Quantité: {item.qty || 1}</p>
+                  <p className="text-gray-900 font-bold">{item.name}</p>
+                  <p className="text-gray-500 text-sm font-medium">Quantité: {item.qty || 1}</p>
                 </div>
-                <p className="text-white font-semibold">{((item.priceCents || 0) / 100).toFixed(2)} €</p>
+                <p className="text-gray-900 font-bold text-lg">{((item.priceCents || 0) / 100).toFixed(2)} €</p>
               </div>
             ))}
           </div>
