@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Star, Truck } from 'lucide-react';
 import { useRecommendedTrucks } from './hooks/useRecommendedTrucks';
-import { Skeleton } from '../../components/ui/skeleton';
+import { ROUTES } from '../../app/routes';
 
 export default function RecommendedTrucks() {
     const { recommended, loading } = useRecommendedTrucks();
@@ -34,9 +34,11 @@ export default function RecommendedTrucks() {
 
             <div className="flex flex-wrap justify-center gap-6 md:gap-8 px-4">
                 {recommended.map((truck) => (
-                    <div
+                    <Link
                         key={truck.id}
-                        className="group relative w-56 glass-premium glass-glossy rounded-[32px] p-4 transition-all duration-500 hover:scale-105 hover:-translate-y-2 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.3)] border-white/20"
+                        to={ROUTES.truck(truck.id)}
+                        aria-label={`Voir le camion ${truck.name}`}
+                        className="group relative block w-56 glass-premium glass-glossy rounded-[32px] p-4 transition-all duration-500 hover:scale-105 hover:-translate-y-2 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.3)] border-white/20 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary/60"
                     >
                         {/* Photo */}
                         <div className="relative aspect-square overflow-hidden rounded-2xl mb-5 shadow-inner">
@@ -67,15 +69,12 @@ export default function RecommendedTrucks() {
                                 <span className="text-[10px] text-muted-foreground/60 font-bold">({truck.ratingCount})</span>
                             </div>
 
-                            <Link
-                                to={`/truck/${truck.id}`}
-                                className="flex items-center justify-center gap-2 w-full py-2.5 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xs"
-                            >
+                            <div className="flex items-center justify-center gap-2 w-full py-2.5 bg-primary/10 group-hover:bg-primary text-primary group-hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xs">
                                 <Truck className="h-3 w-3" />
                                 Commander
-                            </Link>
+                            </div>
                         </div>
-                    </div>
+                    </Link>
                 ))}
             </div>
         </div>

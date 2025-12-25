@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
 import { MapPin, Pizza } from 'lucide-react';
 import TruckHeader from '../features/trucks/TruckHeader';
 import { useTruck } from '../features/trucks/hooks/useTruck';
@@ -13,6 +13,7 @@ import { Card, CardContent } from '../components/ui/Card';
 
 export default function TruckDetails() {
   const { truckId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const { truck, loading: loadingTruck } = useTruck(truckId);
   const { items: menuItems, loading: loadingMenu } = useMenu(truckId);
@@ -22,6 +23,27 @@ export default function TruckDetails() {
 
   const hasMenu = useMemo(() => (menuItems?.length ?? 0) > 0, [menuItems]);
 
+  const handleBack = () => {
+    // Comportement attendu: revenir à la page précédente (ex: /explore avec sa recherche)
+    // Si on arrive directement sur /truck/:id (pas d'historique SPA), on fallback sur la dernière URL /explore mémorisée.
+    if (location.key && location.key !== 'default') {
+      navigate(-1);
+      return;
+    }
+
+    try {
+      const lastExploreUrl = localStorage.getItem('planizza.lastExploreUrl');
+      if (lastExploreUrl) {
+        navigate(lastExploreUrl);
+        return;
+      }
+    } catch {
+      // noop
+    }
+
+    navigate(ROUTES.explore);
+  };
+
   const handleCheckout = async () => {
     // Navigation MVP: passage par /cart puis /checkout
     navigate(ROUTES.cart, { state: { truckId } });
@@ -30,17 +52,18 @@ export default function TruckDetails() {
   return (
     <div className="relative isolate mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-12 overflow-hidden">
       {/* Background decorations - Ultra Dynamic */}
-      <div className="absolute top-0 right-0 -z-10 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px] animate-pulse" />
-      <div className="absolute bottom-1/4 left-0 -z-10 w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-[100px] animate-pulse duration-700" />
+      <div className="absolute top-0 right-0 -z-10 w-150 h-150 bg-primary/10 rounded-full blur-[120px] animate-pulse" />
+      <div className="absolute bottom-1/4 left-0 -z-10 w-100 h-100 bg-blue-500/10 rounded-full blur-[100px] animate-pulse duration-700" />
 
       <div className="relative z-10">
-        <Link
-          to={ROUTES.explore}
+        <button
+          type="button"
+          onClick={handleBack}
           className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl glass-premium border-white/40 text-sm font-black tracking-widest uppercase hover:bg-white/10 transition-all text-muted-foreground hover:text-primary group shadow-lg"
         >
           <span className="translate-x-0 group-hover:-translate-x-1 transition-transform">←</span>
           Retour aux camions
-        </Link>
+        </button>
       </div>
 
       {isLoading ? (
@@ -68,21 +91,21 @@ export default function TruckDetails() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-16 lg:grid-cols-[1fr_400px] items-start">
-          <div className="space-y-16">
-            {/* Truck Info Section */}
+        <div className="grid gap-12 items-start lg:grid-cols-[1fr_400px] lg:grid-rows-[auto_1fr]">
+          {/* Truck Info Section */}
+          <div className="lg:col-start-1 lg:row-start-1">
             <div className="glass-premium glass-glossy p-2 rounded-[40px] shadow-2xl overflow-hidden border-white/20">
               <TruckHeader truck={truck} />
 
               {/* Custom Detail Strip */}
-              <div className="px-10 py-6 border-t border-white/10 grid grid-cols-2 sm:grid-cols-4 gap-6 bg-white/5">
+              <div className="px-6 sm:px-8 py-5 border-t border-white/10 grid grid-cols-2 sm:grid-cols-4 gap-5 bg-white/5">
                 <div className="space-y-1">
                   <span className="text-[10px] font-black text-muted-foreground/50 uppercase tracking-widest">Temps d'attente</span>
-                  <p className="font-black text-sm">~15-20 min</p>
+                  <p className="font-black text-sm">{typeof truck.estimatedPrepMin === 'number' ? `~${Math.round(truck.estimatedPrepMin)} min` : '~15-20 min'}</p>
                 </div>
                 <div className="space-y-1">
                   <span className="text-[10px] font-black text-muted-foreground/50 uppercase tracking-widest">Type</span>
-                  <p className="font-black text-sm">Four à Bois</p>
+                  <p className="font-black text-sm">{truck.ovenType ? `Four ${truck.ovenType}` : 'Four'}</p>
                 </div>
                 <div className="space-y-1">
                   <span className="text-[10px] font-black text-muted-foreground/50 uppercase tracking-widest">Certifié</span>
@@ -93,68 +116,49 @@ export default function TruckDetails() {
                   <p className="font-black text-sm">⭐️ {truck.ratingAvg?.toFixed(1) || 'N/A'}</p>
                 </div>
               </div>
-            </div>
 
-            {/* Gallery Section */}
-            {Array.isArray(truck.photos) && truck.photos.length > 0 && (
-              <section className="space-y-8">
-                <div className="flex items-center gap-4 px-2">
-                  <div className="h-10 w-2 bg-primary/20 rounded-full" />
-                  <h2 className="text-3xl font-black tracking-tighter">GALERIE PHOTO</h2>
-                </div>
-                <div className="grid gap-8 sm:grid-cols-2">
-                  {truck.photos.slice(0, 4).map((src, idx) => (
-                    <div key={src + idx} className="group relative aspect-[16/10] overflow-hidden rounded-[40px] glass-premium border-white/40 shadow-xl cursor-zoom-in transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl">
-                      <img
-                        src={src}
-                        alt={`Photo ${idx + 1} de ${truck.name}`}
-                        className="h-full w-full object-cover transition-transform duration-1000 group-hover:scale-110"
-                        loading="lazy"
-                      />
-                      <div className="absolute inset-0 bg-linear-to-tr from-primary/10 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <div className="w-12 h-12 rounded-full glass-premium border-white/50 flex items-center justify-center text-white font-black">
-                          +
+              {/* Gallery (dans le même encart, sous les infos) */}
+              {Array.isArray(truck.photos) && truck.photos.length > 0 && (
+                <div className="px-6 sm:px-8 py-6 border-t border-white/10 bg-white/5">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-7 w-1.5 bg-primary/20 rounded-full" />
+                      <h2 className="text-sm font-black tracking-widest uppercase">Galerie photo</h2>
+                    </div>
+                    <span className="text-xs font-bold text-muted-foreground/60">
+                      {truck.photos.length} photo{truck.photos.length > 1 ? 's' : ''}
+                    </span>
+                  </div>
+
+                  <div className="mt-5 flex gap-5 overflow-x-auto pb-2 custom-scrollbar snap-x snap-mandatory">
+                    {truck.photos.slice(0, 8).map((src, idx) => (
+                      <div
+                        key={src + idx}
+                        className="group relative snap-start shrink-0 w-60 sm:w-70 aspect-16/10 overflow-hidden rounded-[28px] glass-premium border-white/40 shadow-lg cursor-zoom-in transition-all duration-500 hover:scale-[1.02] hover:shadow-xl"
+                      >
+                        <img
+                          src={src}
+                          alt={`Photo ${idx + 1} de ${truck.name}`}
+                          className="h-full w-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 bg-linear-to-tr from-primary/10 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <div className="w-11 h-11 rounded-full glass-premium border-white/50 flex items-center justify-center text-white font-black">
+                            +
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Menu Section */}
-            <section className="space-y-8 pb-32">
-              <div className="flex items-center gap-4 px-2">
-                <div className="h-10 w-2 bg-orange-500/20 rounded-full" />
-                <h2 className="text-3xl font-black tracking-tighter uppercase">La Carte du Chef</h2>
-              </div>
-              {!hasMenu ? (
-                <div className="p-20 text-center glass-premium border-dashed border-white/20 rounded-[40px]">
-                  <p className="text-muted-foreground font-black italic text-lg tracking-tight">
-                    Le menu de ce camion est en cours de mise à jour... <br />
-                    Revenez dans quelques minutes !
-                  </p>
-                </div>
-              ) : (
-                <div className="grid gap-8">
-                  {menuItems.map((it) => (
-                    <MenuItemCard
-                      key={it.id}
-                      item={it}
-                      onAdd={(item) => addItem(item, { truckId })}
-                    />
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
-            </section>
+            </div>
           </div>
 
           {/* Sidebar / Sidebar "Control Center" */}
-          <aside className="lg:sticky lg:top-32 h-fit space-y-8 animate-in slide-in-from-right-8 duration-700">
-            <div className="glass-premium glass-glossy p-2 rounded-[32px] shadow-2xl border-white/20">
-              <CartDrawer onCheckout={handleCheckout} />
-            </div>
+          <aside className="lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-32 h-fit space-y-8 animate-in slide-in-from-right-8 duration-700">
+            <CartDrawer onCheckout={handleCheckout} />
 
             {items.length > 0 && (
               <div className="glass-premium p-6 rounded-[24px] border-primary/20 text-center space-y-4 shadow-xl">
@@ -173,6 +177,32 @@ export default function TruckDetails() {
               </div>
             )}
           </aside>
+
+          {/* Menu Section */}
+          <section className="lg:col-start-1 lg:row-start-2 space-y-8 pb-32">
+            <div className="flex items-center gap-4 px-2">
+              <div className="h-10 w-2 bg-orange-500/20 rounded-full" />
+              <h2 className="text-3xl font-black tracking-tighter uppercase">La Carte du Chef</h2>
+            </div>
+            {!hasMenu ? (
+              <div className="p-20 text-center glass-premium border-dashed border-white/20 rounded-[40px]">
+                <p className="text-muted-foreground font-black italic text-lg tracking-tight">
+                  Le menu de ce camion est en cours de mise à jour... <br />
+                  Revenez dans quelques minutes !
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-8">
+                {menuItems.map((it) => (
+                  <MenuItemCard
+                    key={it.id}
+                    item={it}
+                    onAdd={(item) => addItem(item, { truckId })}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
         </div>
       )}
     </div>

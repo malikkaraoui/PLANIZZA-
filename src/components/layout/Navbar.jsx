@@ -20,18 +20,20 @@ export default function Navbar() {
   const { items } = useCart();
 
   const cartItemsCount = items.reduce((sum, item) => sum + (item.qty || 0), 0);
+  const cartHasItems = cartItemsCount > 0;
 
   return (
     <header className="sticky top-0 z-50 flex justify-center w-full pointer-events-none">
       <div className="container max-w-7xl w-full px-4 sm:px-6 lg:px-8 pointer-events-auto">
-        <div className="floating-island h-20 items-center justify-between flex px-8 transition-transform duration-500 hover:scale-[1.01]">
+        <div className="floating-island w-full h-20 items-center justify-between flex px-8 transition-transform duration-500 hover:scale-[1.01]">
           {/* Logo */}
           <Link
             to={ROUTES.explore}
             className="flex items-center gap-3 font-black text-2xl tracking-tighter group"
           >
-            <div className="p-2 relative">
-              <div className="absolute inset-0 bg-primary blur-lg opacity-20 group-hover:opacity-40 transition-opacity" />
+            <div className="relative grid place-items-center h-11 w-11 rounded-full">
+              {/* Halo circulaire (évite le carré visible sur Safari/Chrome) */}
+              <div className="absolute inset-0 rounded-full bg-primary blur-lg opacity-20 group-hover:opacity-40 transition-opacity" />
               <Pizza className="relative h-7 w-7 text-primary animate-bounce-subtle" />
             </div>
             <span className="hidden sm:inline text-premium-gradient">PLANIZZA</span>
@@ -41,9 +43,11 @@ export default function Navbar() {
           <nav className="flex items-center gap-2 sm:gap-6">
             {/* Panier */}
             <Link to={ROUTES.cart}>
-              <Button variant="ghost" size="icon" className="relative group/cart h-11 w-11 rounded-full hover:bg-white/10 transition-all">
-                <ShoppingCart className="h-5 w-5 transition-transform group-hover/cart:-rotate-12" />
-                {cartItemsCount > 0 && (
+              <Button variant="ghost" size="icon" className="relative group/cart h-12 w-12 rounded-full hover:bg-white/10 transition-all">
+                <ShoppingCart
+                  className={`h-6 w-6 transition-transform group-hover/cart:-rotate-12 ${cartHasItems ? 'text-primary' : 'text-muted-foreground/70'}`}
+                />
+                {cartHasItems && (
                   <Badge
                     className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 text-[10px] flex items-center justify-center bg-primary text-white border-2 border-white/20 shadow-lg shadow-primary/40 animate-in zoom-in"
                   >

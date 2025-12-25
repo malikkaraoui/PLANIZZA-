@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { MapPin, SlidersHorizontal, X, Search, Crosshair, Pizza } from 'lucide-react';
 import TruckCard from '../features/trucks/TruckCard';
 import { useTrucks } from '../features/trucks/hooks/useTrucks';
@@ -17,6 +17,7 @@ import RecommendedTrucks from '../features/trucks/RecommendedTrucks';
 const ALL_BADGES = ['Bio', 'Terroir', 'Sans gluten', 'Halal', 'Kasher', 'Sucré'];
 
 export default function TrucksNew() {
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const q = useMemo(() => (searchParams.get('q') || '').trim(), [searchParams]);
   const where = useMemo(() => (searchParams.get('where') || '').trim(), [searchParams]);
@@ -101,6 +102,15 @@ export default function TrucksNew() {
       ovenTypes: selectedOvenTypes,
     },
   });
+
+  // Mémorise la dernière URL /explore (avec query params) pour un retour fiable depuis /truck/:id
+  useEffect(() => {
+    try {
+      localStorage.setItem('planizza.lastExploreUrl', `${location.pathname}${location.search}`);
+    } catch {
+      // noop
+    }
+  }, [location.pathname, location.search]);
 
   // Synchroniser whereInput avec l'URL
   useEffect(() => {
@@ -387,7 +397,7 @@ export default function TrucksNew() {
       <div className="glass-premium p-10 sm:p-14 space-y-10 relative overflow-visible group">
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-1000" />
 
-        <div className="flex flex-col gap-10 md:flex-row md:items-end md:justify-between relative">
+        <div className="space-y-8 relative">
           <div className="space-y-4 text-left">
             <div className="inline-flex items-center gap-2 text-primary font-black tracking-widest text-xs uppercase opacity-80">
               <div className="w-8 h-px bg-primary/40" />
@@ -402,10 +412,33 @@ export default function TrucksNew() {
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-4">
+          {/* Barre uniforme: 2 cellules de même largeur */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="relative group text-left">
+              <div className="absolute -inset-1 bg-linear-to-r from-primary to-orange-500 rounded-[28px] blur opacity-5 group-hover:opacity-15 transition duration-1000" />
+              <div className="relative flex items-center h-16 px-5 rounded-[24px] bg-white/80 border border-white/40 focus-within:ring-8 focus-within:ring-primary/15 focus-within:border-primary/50 transition-all duration-500 shadow-lg backdrop-blur-3xl hover:border-primary/30 group/input">
+                <div className="relative z-10 p-1.5 rounded-lg bg-primary/5 group-hover/input:bg-primary/10 transition-colors duration-500">
+                  <MapPin className="h-5 w-5 text-primary shrink-0 group-hover/input:scale-110 transition-transform" />
+                </div>
+                <CityAutocomplete
+                  value={whereInput}
+                  onChange={handleWhereChange}
+                  onSelect={selectCity}
+                  onSearch={handleSearchSubmit}
+                  placeholder="Changer de lieu..."
+                  className="flex-1 ml-3"
+                  inputClassName="h-full text-lg font-bold tracking-tight text-foreground selection:bg-primary/20 selection:text-primary caret-primary bg-transparent"
+                />
+              </div>
+            </div>
+
             <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
               <SheetTrigger asChild>
-                <Button variant="outline" size="lg" className="h-14 px-8 rounded-2xl glass-premium border-white/30 hover:bg-white/10 font-black tracking-tight gap-3 transition-all">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="h-16 w-full px-8 rounded-[24px] glass-premium border-white/30 hover:bg-white/10 font-black tracking-tight gap-3 transition-all justify-center"
+                >
                   <SlidersHorizontal className="h-5 w-5 text-primary" />
                   Affiner ma recherche
                   {activeFiltersCount > 0 && (
@@ -533,24 +566,6 @@ export default function TrucksNew() {
                 </div>
               </SheetContent>
             </Sheet>
-          </div>
-        </div>
-
-        <div className="relative group max-w-2xl text-left">
-          <div className="absolute -inset-1 bg-linear-to-r from-primary to-orange-500 rounded-[28px] blur opacity-5 group-hover:opacity-15 transition duration-1000" />
-          <div className="relative flex items-center h-16 px-5 rounded-[24px] bg-white/80 border border-white/40 focus-within:ring-8 focus-within:ring-primary/15 focus-within:border-primary/50 transition-all duration-500 shadow-lg backdrop-blur-3xl hover:border-primary/30 group/input">
-            <div className="relative z-10 p-1.5 rounded-lg bg-primary/5 group-hover/input:bg-primary/10 transition-colors duration-500">
-              <MapPin className="h-5 w-5 text-primary shrink-0 group-hover/input:scale-110 transition-transform" />
-            </div>
-            <CityAutocomplete
-              value={whereInput}
-              onChange={handleWhereChange}
-              onSelect={selectCity}
-              onSearch={handleSearchSubmit}
-              placeholder="Changer de lieu..."
-              className="flex-1 ml-3"
-              inputClassName="h-full text-lg font-bold tracking-tight text-foreground selection:bg-primary/20 selection:text-primary caret-primary bg-transparent"
-            />
           </div>
         </div>
       </div>

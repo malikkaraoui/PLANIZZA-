@@ -195,8 +195,6 @@
 
 @utility floating-island {
   margin-top: 1.5rem;
-  margin-left: 1.5rem;
-  margin-right: 1.5rem;
   border-radius: 32px;
   background: rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(40px) saturate(180%);
