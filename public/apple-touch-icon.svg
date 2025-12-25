@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180" role="img" aria-label="Planizza">
+  <rect width="180" height="180" rx="36" fill="#FFF7ED"/>
+  <g transform="translate(16,16) scale(2.3)">
+    <defs>
+      <linearGradient id="crust" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#FCD34D"/>
+        <stop offset="1" stop-color="#F59E0B"/>
+      </linearGradient>
+      <linearGradient id="cheese" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#FDE68A"/>
+        <stop offset="1" stop-color="#FBBF24"/>
+      </linearGradient>
+    </defs>
+    <path d="M10 8 L54 20 L28 58 Z" fill="url(#crust)"/>
+    <path d="M16 14 L50 23 L29 52 Z" fill="url(#cheese)"/>
+    <circle cx="34" cy="28" r="4.2" fill="#DC2626"/>
+    <circle cx="40" cy="36" r="3.6" fill="#DC2626"/>
+    <circle cx="28" cy="38" r="3.8" fill="#DC2626"/>
+    <path d="M10 8 L54 20 L28 58 Z" fill="none" stroke="#B45309" stroke-width="2" stroke-linejoin="round"/>
+  </g>
+</svg>
