@@ -147,9 +147,12 @@ export function useTrucks(options = {}) {
 
   useEffect(() => {
     if (!db) {
-      setBaseTrucks(genTrucks({ count: mockCount, seed: 1337 }));
-      setLoading(false);
-      return;
+      // Évite un setState synchrone dans le corps de l'effet (règle ESLint)
+      const t = setTimeout(() => {
+        setBaseTrucks(genTrucks({ count: mockCount, seed: 1337 }));
+        setLoading(false);
+      }, 0);
+      return () => clearTimeout(t);
     }
 
     const trucksRef = ref(db, 'trucks');
@@ -204,19 +207,22 @@ export function useTrucks(options = {}) {
       return hay.includes(query);
     })
     .filter((t) => {
-      // Filtre "Où" (ville/adresse)
-      // Pas de filtre si ni locationText ni position
-      if (!locationText && !position) return true;
+      const locationQuery = String(locationText || '').toLowerCase().trim();
 
-      // Si on a locationText, filtrer par nom de ville
-      if (locationText) {
-        const truckCity = String(t.city || '').toLowerCase();
-        return truckCity.includes(locationText);
+      // Si on n'a rien saisi, on laisse tout passer (le tri par distance fera le reste si position)
+      if (!locationQuery) return true;
+
+      // Si l'utilisateur a explicitement demandé "Autour de moi" (GPS) ou si on a une position
+      // précise (via sélection), on n'exclut pas les camions par nom de ville car la distance est prio.
+      if (locationQuery.includes('autour de moi') || position) {
+        return true;
       }
 
-      // Si on a seulement position (GPS), on laisse passer
-      // Le filtre de distance maxDistanceKm s'en chargera plus bas
-      return true;
+      // Si pas de position (saisie clavier pure), on filtre strictement par ville ou code postal
+      const truckCity = String(t.city || t.description || '').toLowerCase();
+      const truckZip = String(t.zipCode || '').toLowerCase();
+
+      return truckCity.includes(locationQuery) || truckZip.includes(locationQuery);
     })
     .filter((t) => {
       if (!openNowOnly) return true;

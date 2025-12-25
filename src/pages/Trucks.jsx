@@ -11,7 +11,7 @@ import { Separator } from '../components/ui/separator';
 import { Skeleton } from '../components/ui/skeleton';
 import CityAutocomplete from '../components/ui/CityAutocomplete';
 import { getBrowserPosition } from '../lib/geo';
-import { reverseGeocodeCommune } from '../lib/franceCities';
+import { reverseGeocodeCommune, searchFrenchCities } from '../lib/franceCities';
 import RecommendedTrucks from '../features/trucks/RecommendedTrucks';
 
 const ALL_BADGES = ['Bio', 'Terroir', 'Sans gluten', 'Halal', 'Kasher', 'Sucré'];
@@ -20,6 +20,13 @@ export default function TrucksNew() {
   const [searchParams, setSearchParams] = useSearchParams();
   const q = useMemo(() => (searchParams.get('q') || '').trim(), [searchParams]);
   const where = useMemo(() => (searchParams.get('where') || '').trim(), [searchParams]);
+  const urlLat = useMemo(() => searchParams.get('lat'), [searchParams]);
+  const urlLng = useMemo(() => searchParams.get('lng'), [searchParams]);
+  const hasCoordsInUrl = useMemo(() => {
+    const la = urlLat != null ? Number(urlLat) : NaN;
+    const lo = urlLng != null ? Number(urlLng) : NaN;
+    return Number.isFinite(la) && Number.isFinite(lo);
+  }, [urlLat, urlLng]);
   const mockCount = useMemo(() => {
     const raw = searchParams.get('mock');
     const n = raw ? Number(raw) : 50; // Augmenté de 10 à 50 pour couvrir plus de villes
@@ -100,7 +107,25 @@ export default function TrucksNew() {
     setWhereInput(where);
   }, [where]);
 
-  const hasBaseLocation = Boolean(where || position);
+  // Hydrater la position depuis l'URL (liens partageables)
+  useEffect(() => {
+    if (hasCoordsInUrl) {
+      const la = Number(urlLat);
+      const lo = Number(urlLng);
+      setPosition({ lat: la, lng: lo });
+      return;
+    }
+
+    // Important UX: l'URL est la source de vérité.
+    // Si on n'a pas de coords dans l'URL, on efface toute position résiduelle
+    // (sinon on peut afficher une page différente avec la même URL, et le bouton
+    // retour devient déroutant après un refresh).
+    setPosition(null);
+  }, [hasCoordsInUrl, urlLat, urlLng]);
+
+
+  // Déterministe: dépend uniquement de l'URL (pas d'un state résiduel)
+  const hasBaseLocation = Boolean(where || hasCoordsInUrl);
 
   const toggleBadge = (badge) => {
     setSelectedBadges((prev) => {
@@ -136,6 +161,12 @@ export default function TrucksNew() {
     localStorage.removeItem('planizza_filter_ovens');
   };
 
+  const handleWhereChange = (val) => {
+    setWhereInput(val);
+    // On ne touche pas à 'position' ici pour éviter de déclencher 
+    // un re-filtrage immédiat de useTrucks pendant que l'utilisateur tape.
+  };
+
   const enableNearMe = async () => {
     setGeoLoading(true);
     setGeoError(null);
@@ -147,6 +178,14 @@ export default function TrucksNew() {
       }
       setPosition(pos);
 
+      // Toujours mettre les coords dans l'URL pour le partage
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.set('lat', String(pos.lat));
+        next.set('lng', String(pos.lng));
+        return next;
+      }, { replace: false });
+
       try {
         const commune = await reverseGeocodeCommune(pos);
         const name = String(commune?.name || '').trim();
@@ -155,15 +194,19 @@ export default function TrucksNew() {
           setSearchParams((prev) => {
             const next = new URLSearchParams(prev);
             next.set('where', name);
+            // Optionnel: code postal pour affichage / debug
+            if (commune?.postcodes?.[0]) next.set('pc', String(commune.postcodes[0]));
+            else next.delete('pc');
             return next;
-          });
+          }, { replace: false });
         }
-      } catch (e) {
+      } catch {
         setSearchParams((prev) => {
           const next = new URLSearchParams(prev);
           next.set('where', 'Autour de moi');
+          next.delete('pc');
           return next;
-        });
+        }, { replace: false });
         setWhereInput('Autour de moi');
       }
     } finally {
@@ -171,17 +214,87 @@ export default function TrucksNew() {
     }
   };
 
+  const handleSearchSubmit = async (rawValue) => {
+    const queryText = String(rawValue ?? whereInput ?? '').trim();
+
+    if (!queryText) {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('where');
+        next.delete('lat');
+        next.delete('lng');
+        next.delete('pc');
+        return next;
+      }, { replace: false });
+      setPosition(null);
+      return;
+    }
+
+    // Si l'utilisateur tape explicitement "Autour de moi", on déclenche le GPS.
+    if (queryText.toLowerCase().includes('autour de moi')) {
+      await enableNearMe();
+      return;
+    }
+
+    // Résolution API: ville/CP -> centre de commune -> tri distance fiable
+    try {
+      const candidates = await searchFrenchCities({ query: queryText, limit: 6 });
+      const best = Array.isArray(candidates) && candidates.length ? candidates[0] : null;
+
+      if (best?.name && typeof best.lat === 'number' && typeof best.lng === 'number') {
+        setGeoError(null);
+        setWhereInput(best.name);
+        setPosition({ lat: best.lat, lng: best.lng });
+
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('where', best.name);
+          next.set('lat', String(best.lat));
+          next.set('lng', String(best.lng));
+          if (best?.postcodes?.[0]) next.set('pc', String(best.postcodes[0]));
+          else next.delete('pc');
+          return next;
+        }, { replace: false });
+
+        return;
+      }
+    } catch {
+      // On retombe sur un filtrage texte si l'API ne répond pas
+    }
+
+    // Fallback: on conserve le texte, mais pas de position => filtrage par ville/CP
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('where', queryText);
+      next.delete('lat');
+      next.delete('lng');
+      next.delete('pc');
+      return next;
+    }, { replace: false });
+    setPosition(null);
+  };
+
   const selectCity = (city) => {
     const name = String(city?.name || '').trim();
     if (!name) return;
     setGeoError(null);
     setWhereInput(name);
-    setPosition(city?.lat != null && city?.lng != null ? { lat: city.lat, lng: city.lng } : null);
+    const nextPos = city?.lat != null && city?.lng != null ? { lat: city.lat, lng: city.lng } : null;
+    setPosition(nextPos);
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       next.set('where', name);
+      if (nextPos) {
+        next.set('lat', String(nextPos.lat));
+        next.set('lng', String(nextPos.lng));
+      } else {
+        next.delete('lat');
+        next.delete('lng');
+      }
+      if (city?.postcodes?.[0]) next.set('pc', String(city.postcodes[0]));
+      else next.delete('pc');
       return next;
-    });
+    }, { replace: false });
   };
 
   const activeFiltersCount = [
@@ -195,8 +308,8 @@ export default function TrucksNew() {
   if (!hasBaseLocation) {
     return (
       <div className="relative isolate min-h-[calc(100vh-140px)] flex items-center justify-center px-6 overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 -z-10 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 -z-10 w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-[100px] animate-pulse duration-700" />
+        <div className="absolute top-1/4 left-1/4 -z-10 w-125 h-125 bg-primary/20 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 -z-10 w-100 h-100 bg-blue-500/10 rounded-full blur-[100px] animate-pulse duration-700" />
 
         <div className="w-full max-w-4xl space-y-12 py-20 relative">
           <div className="glass-premium glass-glossy p-12 sm:p-20 text-center space-y-10 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.25)] border-white/30 backdrop-blur-3xl">
@@ -220,15 +333,18 @@ export default function TrucksNew() {
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-16 duration-1000 delay-500">
               <div className="relative group max-w-lg mx-auto text-left">
                 <div className="absolute -inset-1 bg-linear-to-r from-primary to-orange-500 rounded-[32px] blur opacity-10 group-hover:opacity-30 transition duration-1000"></div>
-                <div className="relative flex items-center h-20 px-6 rounded-[28px] glass-deep border-white/40 focus-within:border-primary/50 transition-all shadow-xl backdrop-blur-3xl">
-                  <MapPin className="h-6 w-6 text-primary flex-shrink-0" />
+                <div className="relative flex items-center h-20 px-6 rounded-[28px] bg-white/80 border border-white/40 focus-within:ring-8 focus-within:ring-primary/15 focus-within:border-primary/50 transition-all duration-500 shadow-2xl backdrop-blur-3xl hover:border-primary/30 group/input">
+                  <div className="relative z-10 p-2 rounded-xl bg-primary/5 group-hover/input:bg-primary/10 transition-colors duration-500">
+                    <MapPin className="h-6 w-6 text-primary shrink-0 group-hover/input:scale-110 transition-transform" />
+                  </div>
                   <CityAutocomplete
                     value={whereInput}
-                    onChange={setWhereInput}
+                    onChange={handleWhereChange}
                     onSelect={selectCity}
+                    onSearch={handleSearchSubmit}
                     placeholder="Entrez une ville ou un code postal..."
                     className="flex-1 ml-4"
-                    inputClassName="h-full text-xl font-bold tracking-tight text-foreground"
+                    inputClassName="h-full text-xl font-bold tracking-tight text-foreground selection:bg-primary/20 selection:text-primary caret-primary bg-transparent"
                   />
                 </div>
               </div>
@@ -268,7 +384,7 @@ export default function TrucksNew() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-16">
-      <div className="glass-premium p-10 sm:p-14 space-y-10 relative overflow-hidden group">
+      <div className="glass-premium p-10 sm:p-14 space-y-10 relative overflow-visible group">
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-1000" />
 
         <div className="flex flex-col gap-10 md:flex-row md:items-end md:justify-between relative">
@@ -422,15 +538,18 @@ export default function TrucksNew() {
 
         <div className="relative group max-w-2xl text-left">
           <div className="absolute -inset-1 bg-linear-to-r from-primary to-orange-500 rounded-[28px] blur opacity-5 group-hover:opacity-15 transition duration-1000" />
-          <div className="relative flex items-center h-16 px-5 rounded-[24px] glass-deep border-white/30 focus-within:border-primary/40 transition-all shadow-lg">
-            <MapPin className="h-5 w-5 text-primary flex-shrink-0" />
+          <div className="relative flex items-center h-16 px-5 rounded-[24px] bg-white/80 border border-white/40 focus-within:ring-8 focus-within:ring-primary/15 focus-within:border-primary/50 transition-all duration-500 shadow-lg backdrop-blur-3xl hover:border-primary/30 group/input">
+            <div className="relative z-10 p-1.5 rounded-lg bg-primary/5 group-hover/input:bg-primary/10 transition-colors duration-500">
+              <MapPin className="h-5 w-5 text-primary shrink-0 group-hover/input:scale-110 transition-transform" />
+            </div>
             <CityAutocomplete
               value={whereInput}
-              onChange={setWhereInput}
+              onChange={handleWhereChange}
               onSelect={selectCity}
+              onSearch={handleSearchSubmit}
               placeholder="Changer de lieu..."
               className="flex-1 ml-3"
-              inputClassName="h-full text-lg font-bold tracking-tight text-foreground"
+              inputClassName="h-full text-lg font-bold tracking-tight text-foreground selection:bg-primary/20 selection:text-primary caret-primary bg-transparent"
             />
           </div>
         </div>
@@ -448,8 +567,8 @@ export default function TrucksNew() {
         {loading ? (
           <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-[450px] rounded-3xl glass-premium animate-pulse p-6 space-y-6">
-                <div className="w-full aspect-[4/3] rounded-2xl bg-white/10" />
+              <div key={i} className="h-112.5 rounded-3xl glass-premium animate-pulse p-6 space-y-6">
+                <div className="w-full aspect-4/3 rounded-2xl bg-white/10" />
                 <div className="space-y-4">
                   <div className="h-8 w-2/3 bg-white/10 rounded-lg" />
                   <div className="h-4 w-1/3 bg-white/10 rounded-lg" />

@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import CityAutocomplete from '../components/ui/CityAutocomplete';
 import TruckCard from '../features/trucks/TruckCard';
 import { useTrucks } from '../features/trucks/hooks/useTrucks';
+import { searchFrenchCities } from '../lib/franceCities';
 
 const LS_WHERE = 'planizza.where';
 const LS_POSITION = 'planizza.position';
 const LS_CITY = 'planizza.city';
 
 export default function Home() {
+  const navigate = useNavigate();
   const [where, setWhere] = useState(() => {
     // Restaurer la dernière localisation (sans setState dans un effect)
     try {
@@ -64,7 +67,7 @@ export default function Home() {
   const { trucks, loading } = useTrucks({ locationText: where, position });
   const topTrucks = useMemo(() => trucks.slice(0, 2), [trucks]);
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
     // "Valider ma localisation" => on mémorise puis on affiche la liste.
     if (!where.trim()) {
@@ -77,6 +80,57 @@ export default function Home() {
     } catch {
       // noop
     }
+
+    // URL partageable: on préfère une position (centre de commune) si on peut la déduire.
+    const queryText = where.trim();
+    let nextWhere = queryText;
+    let nextPos = position;
+    let nextPc = null;
+
+    if (!nextPos) {
+      try {
+        const candidates = await searchFrenchCities({ query: queryText, limit: 6 });
+        const best = Array.isArray(candidates) && candidates.length ? candidates[0] : null;
+        if (best?.name && typeof best.lat === 'number' && typeof best.lng === 'number') {
+          nextWhere = best.name;
+          nextPos = { lat: best.lat, lng: best.lng };
+          nextPc = best?.postcodes?.[0] ? String(best.postcodes[0]) : null;
+
+          setWhere(best.name);
+          setPosition(nextPos);
+          try {
+            localStorage.setItem(LS_POSITION, JSON.stringify(nextPos));
+            localStorage.setItem(LS_WHERE, best.name);
+            localStorage.setItem(LS_CITY, JSON.stringify(best));
+          } catch {
+            // noop
+          }
+        }
+      } catch {
+        // noop (fallback sur texte)
+      }
+    } else {
+      // On essaie de conserver un code postal si on a un city en cache
+      try {
+        const savedCity = localStorage.getItem(LS_CITY);
+        if (savedCity) {
+          const parsedCity = JSON.parse(savedCity);
+          if (parsedCity?.postcodes?.[0]) nextPc = String(parsedCity.postcodes[0]);
+        }
+      } catch {
+        // noop
+      }
+    }
+
+    const params = new URLSearchParams();
+    if (nextWhere) params.set('where', nextWhere);
+    if (nextPos?.lat != null && nextPos?.lng != null) {
+      params.set('lat', String(nextPos.lat));
+      params.set('lng', String(nextPos.lng));
+    }
+    if (nextPc) params.set('pc', String(nextPc));
+
+    navigate(`/explore?${params.toString()}`);
   };
 
   return (

@@ -23,7 +23,7 @@ function highlightMatch(text, query) {
   return (
     <>
       {before}
-      <span className="text-primary font-black">{mid}</span>
+      <span className="text-primary font-black underline decoration-primary/30 decoration-2 underline-offset-4">{mid}</span>
       {after}
     </>
   );
@@ -33,6 +33,7 @@ export default function CityAutocomplete({
   value,
   onChange,
   onSelect,
+  onSearch,
   placeholder = 'Adresse, ville…',
   ariaLabel = 'Où',
   position = null,
@@ -105,6 +106,17 @@ export default function CityAutocomplete({
   };
 
   const onKeyDown = (e) => {
+    // Validation via Entrée même si le tiroir n'est pas ouvert
+    // (ex: l'utilisateur finit de taper et appuie sur Entrée).
+    if (!open && e.key === 'Enter') {
+      // Dans un <form>, ça éviterait un submit involontaire si le parent gère via onSearch.
+      // Si le parent ne fournit pas onSearch, ça n'a pas d'impact.
+      if (onSearch) e.preventDefault();
+      onSearch?.(value);
+      setOpen(false);
+      return;
+    }
+
     if (!open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
       if (sortedItems.length) setOpen(true);
       return;
@@ -122,6 +134,10 @@ export default function CityAutocomplete({
       if (activeIndex >= 0 && sortedItems[activeIndex]) {
         e.preventDefault();
         pick(sortedItems[activeIndex]);
+      } else {
+        // Si aucun item n'est actif, on déclenche une recherche manuelle immédiate
+        onSearch?.(value);
+        setOpen(false);
       }
     } else if (e.key === 'Escape') {
       setOpen(false);
@@ -182,6 +198,11 @@ export default function CityAutocomplete({
                   >
                     <div className={`text-base font-black tracking-tight transition-colors ${active ? 'text-primary' : 'text-foreground'}`}>
                       {highlightMatch(c.name, value)}
+                      {value && /^\d+$/.test(value.trim()) && c.postcodes?.some(pc => pc.includes(value.trim())) && (
+                        <span className="ml-2 text-xs opacity-50 font-medium">
+                          ({highlightMatch(c.postcodes?.find(pc => pc.includes(value.trim())), value)})
+                        </span>
+                      )}
                     </div>
                     {hint && (
                       <div className={`text-xs font-bold transition-colors ${active ? 'text-primary/60' : 'text-muted-foreground/60'}`}>
@@ -193,6 +214,12 @@ export default function CityAutocomplete({
               );
             })}
           </ul>
+        </div>
+      )}
+
+      {open && value.trim().length >= 2 && !loading && sortedItems.length === 0 && (
+        <div className="absolute left-0 right-0 mt-4 rounded-3xl glass-premium glass-glossy p-6 text-center shadow-2xl border-white/40 z-50 animate-in fade-in slide-in-from-top-4 duration-300">
+          <p className="text-sm font-bold text-muted-foreground/60">Aucun résultat pour cette recherche</p>
         </div>
       )}
 

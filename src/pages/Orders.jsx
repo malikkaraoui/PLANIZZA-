@@ -12,8 +12,11 @@ export default function Orders() {
 
   useEffect(() => {
     if (!user) {
-      setLoading(false);
-      return;
+      // Évite un setState synchrone dans le corps de l'effet (règle ESLint)
+      const t = setTimeout(() => {
+        setLoading(false);
+      }, 0);
+      return () => clearTimeout(t);
     }
 
     const ordersRef = query(ref(db, 'orders'), orderByChild('userUid'), equalTo(user.uid));

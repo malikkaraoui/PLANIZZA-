@@ -9,19 +9,27 @@ export async function searchFrenchCities({ query, limit = 8 }) {
   if (q.length < 2) return [];
 
   const url = new URL('https://geo.api.gouv.fr/communes');
-  
-  // Déterminer si c'est un code postal (que des chiffres) ou un nom de ville
-  const isPostalCode = /^\d+$/.test(q);
-  
-  if (isPostalCode) {
-    // Recherche par code postal
-    url.searchParams.set('codePostal', q);
-  } else {
-    // Recherche par nom de ville
-    url.searchParams.set('nom', q);
+
+  // Tenter d'extraire un code postal (5 chiffres) du texte
+  const pcMatch = q.match(/\d{5}/);
+  const extractedPC = pcMatch ? pcMatch[0] : null;
+  const cleanedName = q.replace(/\d{5}/, '').trim();
+
+  if (extractedPC && !cleanedName) {
+    // Cas où on n'a QUE le code postal
+    url.searchParams.set('codePostal', extractedPC);
+  } else if (cleanedName) {
+    // Recherche par nom, avec optionnellement un filtre par code postal
+    url.searchParams.set('nom', cleanedName);
     url.searchParams.set('boost', 'population');
+    if (extractedPC) {
+      url.searchParams.set('codePostal', extractedPC);
+    }
+  } else {
+    // Fallback si rien de clair
+    url.searchParams.set('nom', q);
   }
-  
+
   url.searchParams.set('fields', 'nom,code,centre,population,codesPostaux,departement');
   url.searchParams.set('limit', String(limit));
 

@@ -22,9 +22,12 @@ export default function OrderTracking() {
 
   useEffect(() => {
     if (!orderId) {
-      setError('ID de commande manquant');
-      setLoading(false);
-      return;
+      // Évite un setState synchrone dans le corps de l'effet (règle ESLint)
+      const t = setTimeout(() => {
+        setError('ID de commande manquant');
+        setLoading(false);
+      }, 0);
+      return () => clearTimeout(t);
     }
 
     const orderRef = ref(db, `orders/${orderId}`);
