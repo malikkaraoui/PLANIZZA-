@@ -157,7 +157,7 @@ export default function TruckDetails() {
           </div>
 
           {/* Sidebar / Sidebar "Control Center" */}
-          <aside className="lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-32 h-fit space-y-8 animate-in slide-in-from-right-8 duration-700">
+          <aside className="lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-24 h-fit space-y-8 animate-in slide-in-from-right-8 duration-700">
             <CartDrawer onCheckout={handleCheckout} />
 
             {items.length > 0 && (

@@ -155,11 +155,41 @@ export function useTrucks(options = {}) {
       return () => clearTimeout(t);
     }
 
-    const trucksRef = ref(db, 'trucks');
+    const trucksRef = ref(db, 'public/trucks');
     const unsub = onValue(trucksRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
-        const list = Object.entries(data).map(([id, val]) => ({ id, ...val }));
+        const list = Object.entries(data).map(([id, val]) => {
+          // Transformer les badges d'objet vers array de strings
+          const badgesArray = val.badges && typeof val.badges === 'object'
+            ? Object.entries(val.badges)
+                .filter(([_, v]) => v === true)
+                .map(([k, _]) => {
+                  const map = {
+                    bio: 'Bio',
+                    terroir: 'Terroir',
+                    sansGluten: 'Sans gluten',
+                    halal: 'Halal',
+                    kasher: 'Kasher',
+                    sucre: 'Sucré'
+                  };
+                  return map[k] || k;
+                })
+            : [];
+
+          return { 
+            id, 
+            ...val,
+            badges: badgesArray,
+            tags: badgesArray, // Compat ancien code
+            isOpenNow: val.isOpenNow ?? true,
+            openingToday: val.openingToday || 'Ouvert maintenant',
+            photos: val.photoUrl ? [val.photoUrl] : [],
+            estimatedPrepMin: val.estimatedPrepMin || 15,
+            capacity: val.capacity || { minPerPizza: 10, pizzaPerHour: 30 },
+            distanceKm: val.distanceKm
+          };
+        });
         setBaseTrucks(list);
         setLoading(false);
       } else {

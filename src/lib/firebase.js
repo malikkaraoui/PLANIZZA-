@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFunctions } from 'firebase/functions';
 import { getDatabase } from 'firebase/database';
+import { getStorage } from 'firebase/storage';
 // import { getAnalytics } from 'firebase/analytics'; // Lazy load si nécessaire
 
 // Configuration Firebase depuis les variables d'environnement Vite
@@ -31,6 +32,7 @@ export let app = null;
 export let auth = null;
 export let db = null;
 export let functions = null;
+export let storage = null;
 
 if (!isFirebaseConfigured) {
   if (import.meta.env.PROD) {
@@ -46,6 +48,7 @@ if (!isFirebaseConfigured) {
   app = initializeApp(firebaseConfig);
   auth = getAuth(app);
   db = getDatabase(app);
+  storage = getStorage(app);
   functions = getFunctions(
     app,
     import.meta.env.VITE_FUNCTIONS_REGION || 'us-central1'

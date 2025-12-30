@@ -1,7 +1,9 @@
+import { useNavigate } from 'react-router-dom';
 import PartnerTapbar from '../components/partner/PartnerTapbar';
 import { Button } from '../components/ui/Button';
+import { ROUTES } from '../app/routes';
 
-function Card({ title, subtitle, tagline, cta, bullets }) {
+function Card({ title, subtitle, tagline, cta, bullets, onCtaClick }) {
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-6">
       <div className="flex items-start justify-between gap-4">
@@ -13,7 +15,7 @@ function Card({ title, subtitle, tagline, cta, bullets }) {
       </div>
 
       <div className="mt-5">
-        <Button className="w-full">{cta}</Button>
+        <Button className="w-full" onClick={onCtaClick}>{cta}</Button>
       </div>
 
       <ul className="mt-6 space-y-2 text-sm text-gray-900">
@@ -29,6 +31,12 @@ function Card({ title, subtitle, tagline, cta, bullets }) {
 }
 
 export default function DevenezPartenaireTarifs() {
+  const navigate = useNavigate();
+
+  const handleStartJourney = () => {
+    navigate(ROUTES.pizzaioloStart);
+  };
+
   return (
     <div>
       <PartnerTapbar />
@@ -50,7 +58,8 @@ export default function DevenezPartenaireTarifs() {
             title="Vitrine"
             subtitle="Sans engagement"
             tagline="Gagnez en visibilité et recevez des clients autour de vous."
-            cta="Échanger avec un conseiller"
+            cta="Démarrer l'aventure"
+            onCtaClick={handleStartJourney}
             bullets={[
               'Page camion publique (photos, logo, badges, horaires)',
               'Menu en ligne (pizzas / calzones / sucré)',
@@ -65,7 +74,8 @@ export default function DevenezPartenaireTarifs() {
             title="Commande + Paiement (Le plus populaire)"
             subtitle="Sans engagement"
             tagline="Encaissez en ligne et pilotez vos commandes depuis une seule interface."
-            cta="Démarrer / Échanger avec un conseiller"
+            cta="Démarrer l'aventure"
+            onCtaClick={handleStartJourney}
             bullets={[
               'Tout le plan Vitrine',
               'Commande en ligne (panier, options, quantités, notes client)',
@@ -82,7 +92,8 @@ export default function DevenezPartenaireTarifs() {
             title="Commande + Caisse + TPE"
             subtitle="Sans engagement"
             tagline="Synchronisez la vente sur place et la vente en ligne, sans doublons."
-            cta="Échanger avec un conseiller"
+            cta="Démarrer l'aventure"
+            onCtaClick={handleStartJourney}
             bullets={[
               'Tout le plan Commande + Paiement',
               'Mode caisse (vente comptoir) + tickets',

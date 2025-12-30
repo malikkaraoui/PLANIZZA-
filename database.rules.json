@@ -40,6 +40,20 @@
         }
       }
     },
+    "public": {
+      "trucks": {
+        ".read": true,
+        "$truckId": {
+          ".write": "auth != null"
+        }
+      }
+    },
+    "pizzaiolos": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
     "trucks": {
       ".read": true,
       "$truckId": {

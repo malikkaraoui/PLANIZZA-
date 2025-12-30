@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -9,6 +10,25 @@ function formatEUR(cents) {
 
 export default function MenuItemCard({ item, onAdd }) {
   const isAvailable = item.available !== false;
+  const hasSizes = item.type === 'pizza' && item.prices?.classic && item.prices?.large;
+  const [selectedSize, setSelectedSize] = useState('classic');
+
+  const displayPrice = hasSizes 
+    ? item.prices[selectedSize] 
+    : (item.priceCents || 0);
+
+  const handleAdd = () => {
+    if (hasSizes) {
+      onAdd({
+        ...item,
+        priceCents: item.prices[selectedSize],
+        size: selectedSize,
+        name: `${item.name} (${selectedSize === 'classic' ? 'Classic' : 'Large'})`
+      });
+    } else {
+      onAdd(item);
+    }
+  };
 
   return (
     <Card className={`group glass-premium glass-glossy overflow-hidden border-white/30 transition-all duration-500 ${!isAvailable ? 'opacity-50 grayscale pointer-events-none' : 'hover:scale-[1.02] hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.2)]'}`}>
@@ -40,10 +60,36 @@ export default function MenuItemCard({ item, onAdd }) {
       </CardHeader>
 
       <CardFooter className="pt-4 px-8 pb-8 flex items-center justify-between gap-4">
-        <div className="space-y-1">
+        <div className="space-y-2">
+          {/* Sélecteur de taille pour les pizzas */}
+          {hasSizes && (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSelectedSize('classic')}
+                className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                  selectedSize === 'classic'
+                    ? 'bg-primary text-white'
+                    : 'bg-white/10 text-gray-700 hover:bg-white/20'
+                }`}
+              >
+                Classic
+              </button>
+              <button
+                onClick={() => setSelectedSize('large')}
+                className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                  selectedSize === 'large'
+                    ? 'bg-primary text-white'
+                    : 'bg-white/10 text-gray-700 hover:bg-white/20'
+                }`}
+              >
+                Large
+              </button>
+            </div>
+          )}
+
           <div className="flex items-center gap-3">
             <span className="text-3xl font-black text-premium-gradient tracking-tighter">
-              {formatEUR(item.priceCents)}
+              {formatEUR(displayPrice)}
             </span>
 
             {!isAvailable && (
@@ -62,7 +108,7 @@ export default function MenuItemCard({ item, onAdd }) {
 
         <Button
           size="lg"
-          onClick={() => onAdd(item)}
+          onClick={handleAdd}
           disabled={!isAvailable}
           className="rounded-[20px] h-14 px-8 bg-linear-to-r from-primary to-orange-500 shadow-xl shadow-primary/10 hover:shadow-primary/30 transition-all font-black text-xs tracking-widest uppercase gap-3"
         >

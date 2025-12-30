@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { signOut } from 'firebase/auth';
-import { ref, remove } from 'firebase/database';
+import { ref, remove, get } from 'firebase/database';
 import { useAuth } from '../app/providers/AuthProvider';
 import { ROUTES } from '../app/routes';
 import { Button } from '../components/ui/Button';
@@ -14,6 +14,26 @@ export default function Account() {
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState(null);
   const { flushToStorage } = useCart();
+
+  // Rediriger vers dashboard pizzaiolo si l'utilisateur a un camion
+  useEffect(() => {
+    if (!user?.uid || !isAuthenticated) return;
+
+    const checkPizzaiolo = async () => {
+      try {
+        const pizzaioloRef = ref(db, `pizzaiolos/${user.uid}`);
+        const snap = await get(pizzaioloRef);
+        
+        if (snap.exists() && snap.val().truckId) {
+          navigate('/pizzaiolo/dashboard', { replace: true });
+        }
+      } catch (err) {
+        console.error('Erreur vérification pizzaiolo:', err);
+      }
+    };
+
+    checkPizzaiolo();
+  }, [user?.uid, isAuthenticated, navigate]);
 
   if (loading) {
     return (

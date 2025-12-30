@@ -1,0 +1,33 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Règles par défaut : lecture publique, écriture authentifiée
+    match /{allPaths=**} {
+      allow read: if true; // Lecture publique pour afficher les images
+      allow write: if request.auth != null; // Écriture uniquement si authentifié
+    }
+
+    // Règles spécifiques pour les dossiers d'images
+    match /logos/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null 
+                   && request.resource.size < 5 * 1024 * 1024 // Max 5MB
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    match /trucks/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null 
+                   && request.resource.size < 5 * 1024 * 1024 // Max 5MB
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    match /uploads/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null 
+                   && request.resource.size < 5 * 1024 * 1024 // Max 5MB
+                   && request.resource.contentType.matches('image/.*');
+    }
+  }
+}
