@@ -1,6 +1,7 @@
 import { MapPin, Clock, Heart, Star } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
+import { isCurrentlyOpen, getOpeningStatusText } from '../../lib/openingHours';
 
 function initials(name = '') {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -14,6 +15,10 @@ export default function TruckHeader({ truck }) {
   const rating = typeof truck.ratingAvg === 'number' ? truck.ratingAvg : null;
   const ratingCount = typeof truck.ratingCount === 'number' ? truck.ratingCount : null;
   const etaMin = typeof truck.estimatedPrepMin === 'number' ? truck.estimatedPrepMin : null;
+  
+  // Calculer dynamiquement si le camion est ouvert
+  const isOpen = isCurrentlyOpen(truck.openingHours);
+  const statusText = getOpeningStatusText(truck.openingHours);
 
   return (
     <div className="relative isolate overflow-hidden rounded-[38px]">
@@ -54,7 +59,7 @@ export default function TruckHeader({ truck }) {
                   >
                     {truck.tags?.[0] || 'ARTISAN'}
                   </Badge>
-                  {truck.isOpenNow && (
+                  {isOpen && (
                     <span className="flex items-center gap-2 text-[10px] font-black text-emerald-300 uppercase tracking-widest">
                       <span className="h-2 w-2 rounded-full bg-emerald-300 animate-pulse" />
                       LIVE
@@ -68,8 +73,8 @@ export default function TruckHeader({ truck }) {
 
                 <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
                   <div className="flex items-center gap-2 font-bold text-white/80">
-                    <MapPin className="h-4 w-4 text-primary" />
-                    <span className="underline decoration-primary/30 underline-offset-4">{truck.city}</span>
+                    <Clock className="h-4 w-4 text-primary" />
+                    <span className="underline decoration-primary/30 underline-offset-4">{statusText}</span>
                   </div>
                   {truck.distanceKm != null && (
                     <span className="text-white/45 font-black tracking-widest">• {truck.distanceKm}KM</span>
@@ -99,11 +104,12 @@ export default function TruckHeader({ truck }) {
 
           <div className="flex items-start justify-start md:justify-end">
             <Badge
-              variant={truck.isOpenNow ? 'default' : 'secondary'}
-              className={`${truck.isOpenNow ? 'bg-emerald-500/85 animate-in zoom-in-50' : 'bg-white/10'} backdrop-blur-3xl border-white/25 text-white rounded-full px-5 py-2.5 font-black text-[11px] tracking-widest uppercase shadow-xl flex gap-2`}
+              variant={isOpen ? 'default' : 'secondary'}
+              className={`${isOpen ? 'bg-emerald-500/85 animate-in zoom-in-50' : 'bg-white/10'} backdrop-blur-3xl border-white/25 text-white rounded-full px-5 py-2.5 font-black text-[11px] tracking-widest uppercase shadow-xl flex gap-2`}
+              title={!isOpen ? statusText : undefined}
             >
               <Clock className="h-4 w-4" />
-              {truck.isOpenNow ? 'Ouvert' : 'Fermé'}
+              {isOpen ? 'Ouvert' : 'Fermé'}
             </Badge>
           </div>
         </div>

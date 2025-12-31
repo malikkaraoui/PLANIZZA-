@@ -106,19 +106,12 @@ export default function Navbar() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-72 glass-deep border-white/20 p-2 mt-4 rounded-3xl shadow-2xl animate-in slide-in-from-top-2">
-                  <DropdownMenuLabel className="px-5 py-4">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-black">{user.displayName || 'Utilisateur'}</p>
-                      <p className="text-xs text-muted-foreground font-medium opacity-60">{user.email}</p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator className="bg-white/10 mx-5" />
                   
                   {/* Espace Client */}
                   <div className="px-3 py-2">
                     <p className="text-xs font-bold text-muted-foreground/60 uppercase tracking-wider px-2 mb-1">Espace Client</p>
                     <DropdownMenuItem asChild>
-                      <Link to={ROUTES.account} className="flex items-center gap-3 px-5 py-3 rounded-2xl hover:bg-primary/10 cursor-pointer transition-colors font-bold">
+                      <Link to={ROUTES.dashboard} className="flex items-center gap-3 px-5 py-3 rounded-2xl hover:bg-primary/10 cursor-pointer transition-colors font-bold">
                         <User className="h-4 w-4 text-primary" />
                         Mon Profil
                       </Link>

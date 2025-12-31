@@ -7,6 +7,7 @@ import Checkout from '../pages/Checkout';
 import CheckoutSuccess from '../pages/CheckoutSuccess';
 import OrderTracking from '../pages/OrderTracking';
 import Account from '../pages/Account';
+import Dashboard from '../pages/Dashboard';
 import Orders from '../pages/Orders';
 import Login from '../pages/Login';
 import Register from '../pages/Register';
@@ -60,6 +61,7 @@ export const router = createBrowserRouter([
       { path: 'register', element: <Register /> },
 
       // Client (privé plus tard; navigation en place)
+      { path: 'mon-profil', element: <ProtectedRoute><Dashboard /></ProtectedRoute> },
       { path: 'mon-compte', element: <ProtectedRoute><Account /></ProtectedRoute> },
       { path: 'commandes', element: <ProtectedRoute><Orders /></ProtectedRoute> },
 

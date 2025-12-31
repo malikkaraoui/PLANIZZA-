@@ -69,10 +69,10 @@
     "orders": {
       ".read": "auth != null",
       "$orderId": {
-        ".read": "data.exists()",
-        ".write": "!data.exists() && newData.child('status').val() === 'created'"
+        ".read": "auth != null && (data.child('userUid').val() === auth.uid || root.child('pizzaiolos').child(auth.uid).child('truckId').val() === data.child('truckId').val())",
+        ".write": "auth != null && ((!data.exists() && newData.child('userUid').val() === auth.uid) || (data.exists() && root.child('pizzaiolos').child(auth.uid).child('truckId').val() === data.child('truckId').val()))"
       },
-      ".indexOn": ["userUid", "status", "nextStepAt"]
+      ".indexOn": ["userUid", "truckId", "status", "nextStepAt"]
     },
     "carts": {
       "$uid": {

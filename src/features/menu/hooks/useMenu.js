@@ -22,8 +22,12 @@ export function useMenu(truckId) {
 
     const menuRef = ref(db, `public/trucks/${truckId}/menu/items`);
     const unsub = onValue(menuRef, (snapshot) => {
+      console.log('[PLANIZZA] useMenu - Snapshot exists:', snapshot.exists(), 'truckId:', truckId);
+      
       if (snapshot.exists()) {
         const data = snapshot.val();
+        console.log('[PLANIZZA] useMenu - Raw data:', data);
+        
         const itemsList = Object.entries(data).map(([id, item]) => ({
           id,
           ...item,
@@ -31,8 +35,11 @@ export function useMenu(truckId) {
           priceCents: item.priceCents || (item.prices?.classic || 0),
           available: item.available !== false
         }));
+        
+        console.log('[PLANIZZA] useMenu - Items list:', itemsList);
         setItems(itemsList);
       } else {
+        console.log('[PLANIZZA] useMenu - Aucun menu trouvé pour:', truckId);
         setItems([]);
       }
       setLoading(false);

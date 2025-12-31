@@ -5,6 +5,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
 import { ROUTES } from '../../app/routes';
+import { isCurrentlyOpen, getOpeningStatusText } from '../../lib/openingHours';
 
 function initials(name = '') {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -25,6 +26,10 @@ export default function TruckCard({ truck }) {
   const ratingAvg = typeof truck.ratingAvg === 'number' ? truck.ratingAvg : 0;
   const ratingCount = typeof truck.ratingCount === 'number' ? truck.ratingCount : 0;
   const badges = truck.badges || truck.tags || [];
+  
+  // Calculer dynamiquement si le camion est ouvert
+  const isOpen = isCurrentlyOpen(truck.openingHours);
+  const statusText = getOpeningStatusText(truck.openingHours);
 
   return (
     <Card className="group glass-premium glass-glossy overflow-hidden border-white/30 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.2)]">
@@ -51,11 +56,11 @@ export default function TruckCard({ truck }) {
         {/* Status Badge */}
         <div className="absolute top-4 right-4">
           <Badge
-            variant={truck.isOpenNow ? 'default' : 'secondary'}
-            className={`${truck.isOpenNow ? 'bg-emerald-500/80 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-white/10'} backdrop-blur-xl border-white/20 text-white font-black tracking-tight`}
+            variant={isOpen ? 'default' : 'secondary'}
+            className={`${isOpen ? 'bg-emerald-500/80 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-white/10'} backdrop-blur-xl border-white/20 text-white font-black tracking-tight`}
           >
-            <div className={`mr-1.5 h-1.5 w-1.5 rounded-full ${truck.isOpenNow ? 'bg-white animate-pulse' : 'bg-white/40'}`} />
-            {truck.isOpenNow ? 'OUVERT' : 'FERMÉ'}
+            <div className={`mr-1.5 h-1.5 w-1.5 rounded-full ${isOpen ? 'bg-white animate-pulse' : 'bg-white/40'}`} />
+            {isOpen ? 'OUVERT' : 'FERMÉ'}
           </Badge>
         </div>
 
@@ -97,8 +102,8 @@ export default function TruckCard({ truck }) {
               </Link>
             </CardTitle>
             <div className="flex items-center gap-1.5 text-muted-foreground/60 font-medium text-sm">
-              <MapPin className="h-3 w-3" />
-              <span className="truncate">{truck.city}</span>
+              <Clock className="h-3 w-3" />
+              <span className="truncate">{statusText}</span>
             </div>
           </div>
         </div>

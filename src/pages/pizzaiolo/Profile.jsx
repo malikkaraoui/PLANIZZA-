@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ref, get, set, push } from 'firebase/database';
+import { ref, get, set, push, update } from 'firebase/database';
 import Card from '../../components/ui/Card';
 import { useAuth } from '../../app/providers/AuthProvider';
 import { useUserProfile } from '../../features/users/hooks/useUserProfile';
@@ -52,6 +52,20 @@ export default function PizzaioloProfile() {
     uber: false
   });
 
+  // Horaires
+  const [openingHours, setOpeningHours] = useState({
+    monday: { enabled: true, open: '11:00', close: '22:00' },
+    tuesday: { enabled: true, open: '11:00', close: '22:00' },
+    wednesday: { enabled: true, open: '11:00', close: '22:00' },
+    thursday: { enabled: true, open: '11:00', close: '22:00' },
+    friday: { enabled: true, open: '11:00', close: '22:00' },
+    saturday: { enabled: true, open: '11:00', close: '23:00' },
+    sunday: { enabled: false, open: '11:00', close: '22:00' }
+  });
+
+  // Cadence de travail
+  const [pizzaPerHour, setPizzaPerHour] = useState(30);
+
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [truckId, setTruckId] = useState(null);
@@ -90,6 +104,8 @@ export default function PizzaioloProfile() {
             setOvenType(truck.ovenType || 'Bois');
             setBadges(truck.badges || {});
             setDeliveryOptions(truck.deliveryOptions || {});
+            setOpeningHours(truck.openingHours || openingHours);
+            setPizzaPerHour(truck.capacity?.pizzaPerHour || 30);
             
             console.log('[PLANIZZA] Données camion chargées:', truck);
           }
@@ -129,6 +145,11 @@ export default function PizzaioloProfile() {
         });
       }
 
+      // Charger le menu existant pour le préserver
+      const existingTruckRef = ref(db, `public/trucks/${finalTruckId}`);
+      const existingTruckSnap = await get(existingTruckRef);
+      const existingMenu = existingTruckSnap.exists() ? existingTruckSnap.val().menu : null;
+
       // Sauvegarder les données du camion
       const truckData = {
         name: truckName.trim(),
@@ -140,14 +161,20 @@ export default function PizzaioloProfile() {
         ovenType,
         badges,
         deliveryOptions,
+        openingHours,
+        capacity: { minPerPizza: 10, pizzaPerHour: parseInt(pizzaPerHour) || 30 },
         ratingAvg: 0,
         ratingCount: 0,
         isOpenNow: true,
         openingToday: 'Ouvert maintenant',
         estimatedPrepMin: 15,
-        capacity: { minPerPizza: 10, pizzaPerHour: 30 },
         updatedAt: Date.now()
       };
+
+      // Préserver le menu existant
+      if (existingMenu) {
+        truckData.menu = existingMenu;
+      }
 
       // Ajouter createdAt uniquement si nouveau camion
       if (!truckId) {
@@ -177,6 +204,8 @@ export default function PizzaioloProfile() {
         setOvenType(truck.ovenType || 'Bois');
         setBadges(truck.badges || {});
         setDeliveryOptions(truck.deliveryOptions || {});
+        setOpeningHours(truck.openingHours || openingHours);
+        setPizzaPerHour(truck.capacity?.pizzaPerHour || 30);
       }
 
       // Basculer en mode visualisation
@@ -333,6 +362,43 @@ export default function PizzaioloProfile() {
                 </div>
               </div>
             )}
+
+            {/* Horaires */}
+            {openingHours && (
+              <div>
+                <p className="text-sm font-semibold text-gray-900 mb-2">🕐 Horaires d'ouverture</p>
+                <div className="space-y-1 text-sm">
+                  {Object.entries(openingHours).map(([day, hours]) => {
+                    const dayLabels = {
+                      monday: 'Lundi',
+                      tuesday: 'Mardi',
+                      wednesday: 'Mercredi',
+                      thursday: 'Jeudi',
+                      friday: 'Vendredi',
+                      saturday: 'Samedi',
+                      sunday: 'Dimanche'
+                    };
+                    return hours.enabled ? (
+                      <p key={day} className="text-gray-700">
+                        <span className="font-medium">{dayLabels[day]}:</span> {hours.open} - {hours.close}
+                      </p>
+                    ) : (
+                      <p key={day} className="text-gray-400">
+                        <span className="font-medium">{dayLabels[day]}:</span> Fermé
+                      </p>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Cadence */}
+            {pizzaPerHour && (
+              <div>
+                <p className="text-sm font-semibold text-gray-900 mb-1">⚡ Cadence de travail</p>
+                <p className="text-sm text-gray-700">{pizzaPerHour} pizzas/heure</p>
+              </div>
+            )}
           </div>
         </Card>
       ) : (
@@ -477,6 +543,83 @@ export default function PizzaioloProfile() {
                 />
                 <span className="text-sm">Uber Eats</span>
               </label>
+            </div>
+          </div>
+
+          {/* Horaires d'ouverture */}
+          <div>
+            <h3 className="font-semibold text-gray-900">🕐 Horaires d'ouverture</h3>
+            <div className="mt-4 space-y-3">
+              {[
+                { key: 'monday', label: 'Lundi' },
+                { key: 'tuesday', label: 'Mardi' },
+                { key: 'wednesday', label: 'Mercredi' },
+                { key: 'thursday', label: 'Jeudi' },
+                { key: 'friday', label: 'Vendredi' },
+                { key: 'saturday', label: 'Samedi' },
+                { key: 'sunday', label: 'Dimanche' }
+              ].map(({ key, label }) => (
+                <div key={key} className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer w-32">
+                    <input
+                      type="checkbox"
+                      checked={openingHours[key].enabled}
+                      onChange={(e) => setOpeningHours(prev => ({
+                        ...prev,
+                        [key]: { ...prev[key], enabled: e.target.checked }
+                      }))}
+                      className="rounded"
+                    />
+                    <span className="text-sm font-medium">{label}</span>
+                  </label>
+                  
+                  {openingHours[key].enabled && (
+                    <div className="flex items-center gap-2 flex-1">
+                      <input
+                        type="time"
+                        value={openingHours[key].open}
+                        onChange={(e) => setOpeningHours(prev => ({
+                          ...prev,
+                          [key]: { ...prev[key], open: e.target.value }
+                        }))}
+                        className="rounded-md border border-gray-300 px-2 py-1 text-sm"
+                      />
+                      <span className="text-gray-500">→</span>
+                      <input
+                        type="time"
+                        value={openingHours[key].close}
+                        onChange={(e) => setOpeningHours(prev => ({
+                          ...prev,
+                          [key]: { ...prev[key], close: e.target.value }
+                        }))}
+                        className="rounded-md border border-gray-300 px-2 py-1 text-sm"
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Cadence de travail */}
+          <div>
+            <h3 className="font-semibold text-gray-900">⚡ Cadence de travail</h3>
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nombre de pizzas par heure *
+              </label>
+              <Input
+                type="number"
+                value={pizzaPerHour}
+                onChange={(e) => setPizzaPerHour(e.target.value)}
+                placeholder="30"
+                min="1"
+                max="100"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Indique votre capacité de production (pizzas/heure)
+              </p>
             </div>
           </div>
 
