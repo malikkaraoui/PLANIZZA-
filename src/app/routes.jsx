@@ -16,7 +16,7 @@ export const ROUTES = {
   register: '/register',
 
   // Client (privé)
-  dashboard: '/mon-profil',
+  dashboard: '/dashboard',
   account: '/mon-compte',
   myOrders: '/commandes',
 

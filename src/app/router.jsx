@@ -61,7 +61,7 @@ export const router = createBrowserRouter([
       { path: 'register', element: <Register /> },
 
       // Client (privé plus tard; navigation en place)
-      { path: 'mon-profil', element: <ProtectedRoute><Dashboard /></ProtectedRoute> },
+      { path: 'dashboard', element: <ProtectedRoute><Dashboard /></ProtectedRoute> },
       { path: 'mon-compte', element: <ProtectedRoute><Account /></ProtectedRoute> },
       { path: 'commandes', element: <ProtectedRoute><Orders /></ProtectedRoute> },
 

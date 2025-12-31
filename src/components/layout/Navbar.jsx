@@ -113,7 +113,7 @@ export default function Navbar() {
                     <DropdownMenuItem asChild>
                       <Link to={ROUTES.dashboard} className="flex items-center gap-3 px-5 py-3 rounded-2xl hover:bg-primary/10 cursor-pointer transition-colors font-bold">
                         <User className="h-4 w-4 text-primary" />
-                        Mon Profil
+                        Tableau de bord
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>

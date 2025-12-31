@@ -198,7 +198,7 @@ export default function Dashboard() {
             <div className="h-1 flex-1 bg-gradient-to-r from-transparent via-orange-500/30 to-transparent rounded-full" />
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-3">
             {/* Mon Camion */}
             <Link to={ROUTES.pizzaioloProfile}>
               <Card className="glass-premium glass-glossy border-orange-500/20 p-8 rounded-[32px] hover:scale-[1.02] hover:shadow-2xl hover:shadow-orange-500/10 transition-all group cursor-pointer h-full">
@@ -229,6 +229,26 @@ export default function Dashboard() {
                     ) : (
                       <p className="text-sm text-muted-foreground font-medium">Gérer votre établissement</p>
                     )}
+                  </div>
+                </div>
+              </Card>
+            </Link>
+
+            {/* Menu */}
+            <Link to={ROUTES.pizzaioloMenu}>
+              <Card className="glass-premium glass-glossy border-orange-500/20 p-8 rounded-[32px] hover:scale-[1.02] hover:shadow-2xl hover:shadow-orange-500/10 transition-all group cursor-pointer h-full">
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div className="p-4 rounded-2xl bg-orange-500/10 group-hover:bg-orange-500/20 transition-colors">
+                      <Pizza className="h-8 w-8 text-orange-500" />
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-black tracking-tight">Menu</h3>
+                    <p className="text-sm text-muted-foreground font-medium">
+                      Gérer vos pizzas et produits
+                    </p>
                   </div>
                 </div>
               </Card>
