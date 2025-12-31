@@ -21,9 +21,11 @@ export default function MenuItemCard({ item, onAdd }) {
     if (hasSizes) {
       onAdd({
         ...item,
+        id: `${item.id}_${selectedSize}`, // ID unique par taille
         priceCents: item.prices[selectedSize],
         size: selectedSize,
-        name: `${item.name} (${selectedSize === 'classic' ? 'Classic' : 'Large'})`
+        name: `${item.name} (${selectedSize === 'classic' ? 'Classic' : 'Large'})`,
+        baseItemId: item.id // Garder l'ID original pour référence
       });
     } else {
       onAdd(item);
@@ -59,8 +61,8 @@ export default function MenuItemCard({ item, onAdd }) {
         </div>
       </CardHeader>
 
-      <CardFooter className="pt-4 px-8 pb-8 flex items-center justify-between gap-4">
-        <div className="space-y-2">
+      <CardFooter className="pt-4 px-8 pb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="space-y-2 flex-1">
           {/* Sélecteur de taille pour les pizzas */}
           {hasSizes && (
             <div className="flex gap-2">
@@ -87,7 +89,7 @@ export default function MenuItemCard({ item, onAdd }) {
             </div>
           )}
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <span className="text-3xl font-black text-premium-gradient tracking-tighter">
               {formatEUR(displayPrice)}
             </span>
@@ -110,7 +112,7 @@ export default function MenuItemCard({ item, onAdd }) {
           size="lg"
           onClick={handleAdd}
           disabled={!isAvailable}
-          className="rounded-[20px] h-14 px-8 bg-linear-to-r from-primary to-orange-500 shadow-xl shadow-primary/10 hover:shadow-primary/30 transition-all font-black text-xs tracking-widest uppercase gap-3"
+          className="rounded-[20px] h-14 px-8 bg-linear-to-r from-primary to-orange-500 shadow-xl shadow-primary/10 hover:shadow-primary/30 transition-all font-black text-xs tracking-widest uppercase gap-3 w-full sm:w-auto"
         >
           <div className="p-1.5 rounded-full bg-white/20">
             <Plus className="h-4 w-4" />

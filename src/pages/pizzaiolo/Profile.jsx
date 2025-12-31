@@ -34,6 +34,7 @@ export default function PizzaioloProfile() {
   const [location, setLocation] = useState(null);
   const [logoUrl, setLogoUrl] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
+  const [ovenType, setOvenType] = useState('Bois');
   
   // Badges
   const [badges, setBadges] = useState({
@@ -86,6 +87,7 @@ export default function PizzaioloProfile() {
             setLocation(truck.location || null);
             setLogoUrl(truck.logoUrl || '');
             setPhotoUrl(truck.photoUrl || '');
+            setOvenType(truck.ovenType || 'Bois');
             setBadges(truck.badges || {});
             setDeliveryOptions(truck.deliveryOptions || {});
             
@@ -135,6 +137,7 @@ export default function PizzaioloProfile() {
         photoUrl: photoUrl.trim(),
         location: location || { lat: 0, lng: 0, address: '' },
         city: location?.address?.split(',').pop()?.trim() || 'France',
+        ovenType,
         badges,
         deliveryOptions,
         ratingAvg: 0,
@@ -143,10 +146,13 @@ export default function PizzaioloProfile() {
         openingToday: 'Ouvert maintenant',
         estimatedPrepMin: 15,
         capacity: { minPerPizza: 10, pizzaPerHour: 30 },
-        ovenType: 'Bois',
-        updatedAt: Date.now(),
-        createdAt: truckId ? undefined : Date.now()
+        updatedAt: Date.now()
       };
+
+      // Ajouter createdAt uniquement si nouveau camion
+      if (!truckId) {
+        truckData.createdAt = Date.now();
+      }
 
       await set(ref(db, `public/trucks/${finalTruckId}`), truckData);
 
@@ -168,6 +174,7 @@ export default function PizzaioloProfile() {
         setLocation(truck.location || null);
         setLogoUrl(truck.logoUrl || '');
         setPhotoUrl(truck.photoUrl || '');
+        setOvenType(truck.ovenType || 'Bois');
         setBadges(truck.badges || {});
         setDeliveryOptions(truck.deliveryOptions || {});
       }
@@ -280,6 +287,14 @@ export default function PizzaioloProfile() {
               )}
             </div>
 
+            {/* Type de four */}
+            {ovenType && (
+              <div>
+                <p className="text-sm font-semibold text-gray-900 mb-1">🔥 Type de four</p>
+                <p className="text-sm text-gray-700">{ovenType}</p>
+              </div>
+            )}
+
             {/* Emplacement */}
             {location?.address && (
               <div>
@@ -361,6 +376,25 @@ export default function PizzaioloProfile() {
                   rows={3}
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Type de four */}
+          <div>
+            <h3 className="font-semibold text-gray-900">🔥 Type de four</h3>
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700">Choisissez votre type de four *</label>
+              <select
+                value={ovenType}
+                onChange={(e) => setOvenType(e.target.value)}
+                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white"
+                required
+              >
+                <option value="Bois">🪵 Bois</option>
+                <option value="Gaz">⛽ Gaz</option>
+                <option value="Électrique">⚡ Électrique</option>
+                <option value="Charbon">🪨 Charbon</option>
+              </select>
             </div>
           </div>
 

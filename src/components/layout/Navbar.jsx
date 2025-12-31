@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { ShoppingCart, User, ChefHat, Pizza } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ShoppingCart, User, ChefHat, Pizza, Store, Receipt } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -14,13 +15,37 @@ import {
 import { useAuth } from '../../app/providers/AuthProvider';
 import { ROUTES } from '../../app/routes';
 import { useCart } from '../../features/cart/hooks/useCart.jsx';
+import { ref, get } from 'firebase/database';
+import { db } from '../../lib/firebase';
 
 export default function Navbar() {
   const { isAuthenticated, user } = useAuth();
   const { items } = useCart();
+  const [isPizzaiolo, setIsPizzaiolo] = useState(false);
 
   const cartItemsCount = items.reduce((sum, item) => sum + (item.qty || 0), 0);
   const cartHasItems = cartItemsCount > 0;
+
+  // Vérifier si l'utilisateur est pizzaiolo
+  useEffect(() => {
+    if (!user?.uid) {
+      setIsPizzaiolo(false);
+      return;
+    }
+
+    const checkPizzaiolo = async () => {
+      try {
+        const pizzaioloRef = ref(db, `pizzaiolos/${user.uid}`);
+        const snap = await get(pizzaioloRef);
+        setIsPizzaiolo(snap.exists() && snap.val().truckId);
+      } catch (err) {
+        console.error('[PLANIZZA] Erreur vérification pizzaiolo:', err);
+        setIsPizzaiolo(false);
+      }
+    };
+
+    checkPizzaiolo();
+  }, [user?.uid]);
 
   return (
     <header className="sticky top-0 z-50 flex justify-center w-full pointer-events-none">
@@ -80,7 +105,7 @@ export default function Navbar() {
                     <span className="hidden md:inline text-sm font-black tracking-tight">{user.displayName || 'Mon compte'}</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64 glass-deep border-white/20 p-2 mt-4 rounded-3xl shadow-2xl animate-in slide-in-from-top-2">
+                <DropdownMenuContent align="end" className="w-72 glass-deep border-white/20 p-2 mt-4 rounded-3xl shadow-2xl animate-in slide-in-from-top-2">
                   <DropdownMenuLabel className="px-5 py-4">
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-black">{user.displayName || 'Utilisateur'}</p>
@@ -88,18 +113,45 @@ export default function Navbar() {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-white/10 mx-5" />
-                  <DropdownMenuItem asChild>
-                    <Link to={ROUTES.account} className="flex items-center gap-3 px-5 py-3 rounded-2xl hover:bg-primary/10 cursor-pointer transition-colors font-bold m-1">
-                      <User className="h-4 w-4 text-primary" />
-                      Profil
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to={ROUTES.myOrders} className="flex items-center gap-3 px-5 py-3 rounded-2xl hover:bg-primary/10 cursor-pointer transition-colors font-bold m-1">
-                      <ShoppingCart className="h-4 w-4 text-primary" />
-                      Commandes
-                    </Link>
-                  </DropdownMenuItem>
+                  
+                  {/* Espace Client */}
+                  <div className="px-3 py-2">
+                    <p className="text-xs font-bold text-muted-foreground/60 uppercase tracking-wider px-2 mb-1">Espace Client</p>
+                    <DropdownMenuItem asChild>
+                      <Link to={ROUTES.account} className="flex items-center gap-3 px-5 py-3 rounded-2xl hover:bg-primary/10 cursor-pointer transition-colors font-bold">
+                        <User className="h-4 w-4 text-primary" />
+                        Mon Profil
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to={ROUTES.myOrders} className="flex items-center gap-3 px-5 py-3 rounded-2xl hover:bg-primary/10 cursor-pointer transition-colors font-bold">
+                        <Receipt className="h-4 w-4 text-primary" />
+                        Mes Commandes
+                      </Link>
+                    </DropdownMenuItem>
+                  </div>
+
+                  {/* Espace Pro (si pizzaiolo) */}
+                  {isPizzaiolo && (
+                    <>
+                      <DropdownMenuSeparator className="bg-white/10 mx-5 my-2" />
+                      <div className="px-3 py-2">
+                        <p className="text-xs font-bold text-orange-500/80 uppercase tracking-wider px-2 mb-1">Espace Pro</p>
+                        <DropdownMenuItem asChild>
+                          <Link to="/pizzaiolo/dashboard" className="flex items-center gap-3 px-5 py-3 rounded-2xl hover:bg-orange-500/10 cursor-pointer transition-colors font-bold">
+                            <Store className="h-4 w-4 text-orange-500" />
+                            Mon Camion
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/pizzaiolo/orders" className="flex items-center gap-3 px-5 py-3 rounded-2xl hover:bg-orange-500/10 cursor-pointer transition-colors font-bold">
+                            <ShoppingCart className="h-4 w-4 text-orange-500" />
+                            Commandes Reçues
+                          </Link>
+                        </DropdownMenuItem>
+                      </div>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (

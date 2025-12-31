@@ -124,7 +124,7 @@ export default function LocationPicker({ value, onChange }) {
 
   // Recherche d'adresse
   const handleSearchAddress = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!searchAddress.trim()) return;
 
     setSearching(true);
@@ -170,17 +170,27 @@ export default function LocationPicker({ value, onChange }) {
       </div>
 
       {/* Recherche d'adresse */}
-      <form onSubmit={handleSearchAddress} className="flex gap-2">
+      <div className="flex gap-2">
         <Input
           value={searchAddress}
           onChange={(e) => setSearchAddress(e.target.value)}
           placeholder="Rechercher une adresse..."
           className="flex-1"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleSearchAddress(e);
+            }
+          }}
         />
-        <Button type="submit" disabled={searching || !searchAddress.trim()}>
+        <Button 
+          type="button" 
+          onClick={handleSearchAddress}
+          disabled={searching || !searchAddress.trim()}
+        >
           {searching ? 'Recherche...' : '🔍'}
         </Button>
-      </form>
+      </div>
 
       {/* Adresse sélectionnée */}
       {position && (

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ref, get, set, push, remove } from 'firebase/database';
+import { ref, get, set, push, remove, onValue } from 'firebase/database';
 import { useAuth } from '../../app/providers/AuthProvider';
 import { db } from '../../lib/firebase';
 import Card from '../../components/ui/Card';
@@ -49,21 +49,32 @@ export default function PizzaioloMenu() {
           const tid = data.truckId;
           setTruckId(tid);
 
-          // Charger les items du menu
+          console.log('[PLANIZZA] Menu - TruckId:', tid);
+
+          // Écouter les changements du menu en temps réel
           const menuRef = ref(db, `public/trucks/${tid}/menu/items`);
-          const menuSnap = await get(menuRef);
-          
-          if (menuSnap.exists()) {
-            const items = Object.entries(menuSnap.val()).map(([id, data]) => ({
-              id,
-              ...data
-            }));
-            setMenuItems(items);
-          }
+          const unsubscribe = onValue(menuRef, (menuSnap) => {
+            if (menuSnap.exists()) {
+              const items = Object.entries(menuSnap.val()).map(([id, data]) => ({
+                id,
+                ...data
+              }));
+              console.log('[PLANIZZA] Menu items chargés:', items.length, items);
+              setMenuItems(items);
+            } else {
+              console.log('[PLANIZZA] Aucun item dans le menu');
+              setMenuItems([]);
+            }
+            setLoading(false);
+          });
+
+          // Cleanup listener
+          return () => unsubscribe();
+        } else {
+          setLoading(false);
         }
       } catch (err) {
-        console.error('Erreur chargement menu:', err);
-      } finally {
+        console.error('[PLANIZZA] Erreur chargement menu:', err);
         setLoading(false);
       }
     };
@@ -74,6 +85,17 @@ export default function PizzaioloMenu() {
   const handleAddItem = async (e) => {
     e.preventDefault();
     if (!truckId) return;
+
+    // Validation des prix pour les pizzas
+    if (itemType === 'pizza') {
+      const classicPrice = parseFloat(priceClassic);
+      const largePrice = parseFloat(priceLarge);
+      
+      if (largePrice < classicPrice) {
+        setMessage('❌ Le prix Large ne peut pas être inférieur au prix Classic');
+        return;
+      }
+    }
 
     setSaving(true);
     setMessage('');
@@ -102,8 +124,8 @@ export default function PizzaioloMenu() {
 
       await set(newItemRef, itemData);
 
-      // Ajouter à la liste locale
-      setMenuItems(prev => [...prev, { id: newItemRef.key, ...itemData }]);
+      // Le listener onValue() mettra à jour automatiquement menuItems
+      // Pas besoin de setMenuItems ici (évite les doublons)
 
       // Reset form
       setItemName('');
@@ -128,7 +150,7 @@ export default function PizzaioloMenu() {
 
     try {
       await remove(ref(db, `public/trucks/${truckId}/menu/items/${itemId}`));
-      setMenuItems(prev => prev.filter(item => item.id !== itemId));
+      // Le listener onValue() mettra à jour automatiquement menuItems
       setMessage('✅ Article supprimé');
     } catch (err) {
       console.error('Erreur suppression item:', err);
