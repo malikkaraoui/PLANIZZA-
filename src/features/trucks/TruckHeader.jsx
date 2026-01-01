@@ -1,4 +1,4 @@
-import { MapPin, Clock, Heart, Star } from 'lucide-react';
+import { MapPin, Clock, Heart, Star, Pause } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
 import { isCurrentlyOpen, getOpeningStatusText } from '../../lib/openingHours';
@@ -15,6 +15,7 @@ export default function TruckHeader({ truck }) {
   const rating = typeof truck.ratingAvg === 'number' ? truck.ratingAvg : null;
   const ratingCount = typeof truck.ratingCount === 'number' ? truck.ratingCount : null;
   const etaMin = typeof truck.estimatedPrepMin === 'number' ? truck.estimatedPrepMin : null;
+  const isPaused = truck.isPaused === true;
   
   // Calculer dynamiquement si le camion est ouvert
   const isOpen = isCurrentlyOpen(truck.openingHours);
@@ -59,7 +60,15 @@ export default function TruckHeader({ truck }) {
                   >
                     {truck.tags?.[0] || 'ARTISAN'}
                   </Badge>
-                  {isOpen && (
+                  {isPaused ? (
+                    <Badge
+                      variant="secondary"
+                      className="bg-amber-500/90 hover:bg-amber-500 text-white border-amber-400/50 rounded-full px-4 py-1.5 text-[10px] uppercase font-black tracking-[0.2em] animate-pulse"
+                    >
+                      <Pause className="h-3 w-3 mr-1" />
+                      EN PAUSE
+                    </Badge>
+                  ) : isOpen && (
                     <span className="flex items-center gap-2 text-[10px] font-black text-emerald-300 uppercase tracking-widest">
                       <span className="h-2 w-2 rounded-full bg-emerald-300 animate-pulse" />
                       LIVE

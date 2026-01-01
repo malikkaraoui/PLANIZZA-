@@ -593,9 +593,16 @@ export default function TrucksNew() {
           </div>
         ) : trucks.length > 0 ? (
           <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
-            {trucks.map((truck) => (
-              <TruckCard key={truck.id} truck={truck} />
-            ))}
+            {trucks
+              .sort((a, b) => {
+                // Les camions en pause toujours en dernier
+                if (a.isPaused && !b.isPaused) return 1;
+                if (!a.isPaused && b.isPaused) return -1;
+                return 0;
+              })
+              .map((truck) => (
+                <TruckCard key={truck.id} truck={truck} />
+              ))}
           </div>
         ) : (
           <Card className="glass-premium p-24 text-center rounded-[48px] space-y-6 border-white/10 animate-in fade-in zoom-in">

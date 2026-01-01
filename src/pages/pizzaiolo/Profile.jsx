@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ref, get, set, push, update } from 'firebase/database';
+import { Pause, Play } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import { useAuth } from '../../app/providers/AuthProvider';
 import { useUserProfile } from '../../features/users/hooks/useUserProfile';
@@ -8,6 +9,8 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import LocationPicker from '../../components/ui/LocationPicker';
 import ImageUploader from '../../components/ui/ImageUploader';
+import { useTruckPause } from '../../features/trucks/hooks/useTruckPause';
+import { Badge } from '../../components/ui/Badge';
 
 function initialsFromUser({ email, displayName } = {}) {
   const base = (displayName || email || '').trim();
@@ -69,6 +72,20 @@ export default function PizzaioloProfile() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [truckId, setTruckId] = useState(null);
+  const [isPaused, setIsPaused] = useState(false);
+  const { togglePause, isUpdating: isPauseUpdating } = useTruckPause(truckId);
+
+  // Fonction toggle pause
+  const handleTogglePause = async () => {
+    if (!truckId || isPauseUpdating) return;
+
+    try {
+      const newIsPaused = await togglePause(isPaused);
+      setIsPaused(newIsPaused);
+    } catch (err) {
+      console.error('[Profile] Erreur toggle pause:', err);
+    }
+  };
 
   // Charger les données existantes
   useEffect(() => {
@@ -98,6 +115,7 @@ export default function PizzaioloProfile() {
             const truck = truckSnap.val();
             setTruckName(truck.name || '');
             setTruckDescription(truck.description || '');
+            setIsPaused(truck.isPaused || false);
             setLocation(truck.location || null);
             setLogoUrl(truck.logoUrl || '');
             setPhotoUrl(truck.photoUrl || '');
@@ -272,13 +290,44 @@ export default function PizzaioloProfile() {
         // MODE VISUALISATION
         <Card className="p-6">
           <div className="flex items-start justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">🍕 Mon Camion</h2>
-              <p className="mt-1 text-gray-600">Votre vitrine professionnelle</p>
+            <div className="flex items-center gap-3">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">🍕 Mon Camion</h2>
+                <p className="mt-1 text-gray-600">Votre vitrine professionnelle</p>
+              </div>
+              {isPaused && (
+                <Badge variant="secondary" className="mt-1">
+                  <Pause className="h-3 w-3 mr-1" />
+                  En pause
+                </Badge>
+              )}
             </div>
-            <Button onClick={() => setIsEditing(true)} variant="outline">
-              ✏️ Modifier
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleTogglePause}
+                disabled={isPauseUpdating}
+                size="sm"
+                variant={isPaused ? "default" : "outline"}
+                className={isPaused ? "bg-emerald-500 hover:bg-emerald-600" : ""}
+              >
+                {isPauseUpdating ? (
+                  '...'
+                ) : isPaused ? (
+                  <>
+                    <Play className="h-4 w-4 mr-1" />
+                    Relancer
+                  </>
+                ) : (
+                  <>
+                    <Pause className="h-4 w-4 mr-1" />
+                    Pause
+                  </>
+                )}
+              </Button>
+              <Button onClick={() => setIsEditing(true)} variant="outline">
+                ✏️ Modifier
+              </Button>
+            </div>
           </div>
 
           {/* Photos */}

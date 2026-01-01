@@ -20,6 +20,7 @@ export default function TruckDetails() {
   const { addItem, items } = useCart();
 
   const isLoading = loadingTruck || loadingMenu;
+  const isPaused = truck?.isPaused === true;
 
   const hasMenu = useMemo(() => (menuItems?.length ?? 0) > 0, [menuItems]);
 
@@ -193,11 +194,20 @@ export default function TruckDetails() {
               </div>
             ) : (
               <div className="grid gap-8">
+                {isPaused && (
+                  <div className="p-8 text-center glass-premium border-amber-500/30 rounded-[32px] bg-amber-50/5">
+                    <p className="text-lg font-black text-amber-500 mb-2">☕ Pause en cours</p>
+                    <p className="text-muted-foreground font-medium">
+                      Le pizzaiolo prend un instant de repos. Les commandes sont temporairement suspendues.
+                    </p>
+                  </div>
+                )}
                 {menuItems.map((it) => (
                   <MenuItemCard
                     key={it.id}
                     item={it}
                     onAdd={(item) => addItem(item, { truckId })}
+                    isPaused={isPaused}
                   />
                 ))}
               </div>

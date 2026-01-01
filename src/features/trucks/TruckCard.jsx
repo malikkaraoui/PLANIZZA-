@@ -26,13 +26,14 @@ export default function TruckCard({ truck }) {
   const ratingAvg = typeof truck.ratingAvg === 'number' ? truck.ratingAvg : 0;
   const ratingCount = typeof truck.ratingCount === 'number' ? truck.ratingCount : 0;
   const badges = truck.badges || truck.tags || [];
+  const isPaused = truck.isPaused === true;
   
   // Calculer dynamiquement si le camion est ouvert
   const isOpen = isCurrentlyOpen(truck.openingHours);
   const statusText = getOpeningStatusText(truck.openingHours);
 
   return (
-    <Card className="group glass-premium glass-glossy overflow-hidden border-white/30 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.2)]">
+    <Card className={`group glass-premium glass-glossy overflow-hidden border-white/30 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.2)] ${isPaused ? 'opacity-60 blur-[0.5px] backdrop-blur-xl' : ''}`}>
       {/* Image d'en-tête */}
       <Link to={href} className="relative block aspect-[16/10] overflow-hidden">
         {hero ? (
@@ -96,11 +97,18 @@ export default function TruckCard({ truck }) {
           </div>
 
           <div className="flex-1 min-w-0 space-y-1">
-            <CardTitle className="text-xl font-black tracking-tighter truncate group-hover:text-premium-gradient transition-all duration-300">
-              <Link to={href}>
-                {truck.name}
-              </Link>
-            </CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-xl font-black tracking-tighter truncate group-hover:text-premium-gradient transition-all duration-300">
+                <Link to={href}>
+                  {truck.name}
+                </Link>
+              </CardTitle>
+              {isPaused && (
+                <Badge variant="secondary" className="text-xs font-bold">
+                  En pause
+                </Badge>
+              )}
+            </div>
             <div className="flex items-center gap-1.5 text-muted-foreground/60 font-medium text-sm">
               <Clock className="h-3 w-3" />
               <span className="truncate">{statusText}</span>

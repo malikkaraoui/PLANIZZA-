@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { ChefHat, Receipt, Pizza, Store, ArrowRight, TrendingUp, Clock, Star, Phone, LogOut, MapPin, Edit2 } from 'lucide-react';
+import { ChefHat, Receipt, Pizza, Store, ArrowRight, TrendingUp, Clock, Star, Phone, LogOut, MapPin, Edit2, Pause, Play } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { useAuth } from '../app/providers/AuthProvider';
 import { ROUTES } from '../app/routes';
@@ -14,6 +14,7 @@ import { db, auth, isFirebaseConfigured } from '../lib/firebase';
 import { useMyOrders } from '../features/orders/hooks/useMyOrders';
 import { useLoyaltyPoints } from '../features/users/hooks/useLoyaltyPoints';
 import { useCart } from '../features/cart/hooks/useCart.jsx';
+import { useTruckPause } from '../features/trucks/hooks/useTruckPause';
 import LoyaltyProgressBar from '../components/loyalty/LoyaltyProgressBar';
 import AddressAutocomplete from '../components/ui/AddressAutocomplete';
 
@@ -25,6 +26,8 @@ export default function Dashboard() {
   const [isPizzaiolo, setIsPizzaiolo] = useState(false);
   const [truckData, setTruckData] = useState(null);
   const [loadingTruck, setLoadingTruck] = useState(false);
+  const [truckId, setTruckId] = useState(null);
+  const { togglePause, isUpdating: isPauseUpdating } = useTruckPause(truckId);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [signingOut, setSigningOut] = useState(false);
   
@@ -57,10 +60,12 @@ export default function Dashboard() {
         
         if (snap.exists() && snap.val().truckId) {
           setIsPizzaiolo(true);
+          const tid = snap.val().truckId;
+          setTruckId(tid);
           
           // Charger les infos du camion
           setLoadingTruck(true);
-          const truckRef = ref(db, `public/trucks/${snap.val().truckId}`);
+          const truckRef = ref(db, `public/trucks/${tid}`);
           const truckSnap = await get(truckRef);
           
           if (truckSnap.exists()) {
@@ -133,6 +138,18 @@ export default function Dashboard() {
       console.error('[PLANIZZA] Erreur déconnexion:', err);
     } finally {
       setSigningOut(false);
+    }
+  };
+
+  // Fonction toggle pause camion
+  const handleTogglePause = async () => {
+    if (!truckData || isPauseUpdating) return;
+
+    try {
+      const newIsPaused = await togglePause(truckData.isPaused || false);
+      setTruckData(prev => ({ ...prev, isPaused: newIsPaused }));
+    } catch (err) {
+      console.error('[Dashboard] Erreur toggle pause:', err);
     }
   };
 
@@ -366,22 +383,58 @@ export default function Dashboard() {
 
           <div className="grid gap-6 md:grid-cols-3">
             {/* Mon Camion */}
-            <Link to={ROUTES.pizzaioloProfile}>
+            <Link to={ROUTES.pizzaioloProfile} className="relative">
               <Card className="glass-premium glass-glossy border-orange-500/20 p-8 rounded-[32px] hover:scale-[1.02] hover:shadow-2xl hover:shadow-orange-500/10 transition-all group cursor-pointer h-full">
                 <div className="space-y-4">
                   <div className="flex items-start justify-between">
                     <div className="p-4 rounded-2xl bg-orange-500/10 group-hover:bg-orange-500/20 transition-colors">
                       <Store className="h-8 w-8 text-orange-500" />
                     </div>
-                    <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
+                    <div className="flex items-center gap-2">
+                      <Button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleTogglePause();
+                        }}
+                        disabled={isPauseUpdating || !truckData}
+                        size="sm"
+                        variant={truckData?.isPaused ? "default" : "outline"}
+                        className={truckData?.isPaused ? "bg-emerald-500 hover:bg-emerald-600" : ""}
+                      >
+                        {isPauseUpdating ? (
+                          '...'
+                        ) : truckData?.isPaused ? (
+                          <>
+                            <Play className="h-4 w-4 mr-1" />
+                            Relancer
+                          </>
+                        ) : (
+                          <>
+                            <Pause className="h-4 w-4 mr-1" />
+                            Pause
+                          </>
+                        )}
+                      </Button>
+                      <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
+                    </div>
                   </div>
+                  
                   <div className="space-y-2">
                     <h3 className="text-xl font-black tracking-tight">Mon Camion</h3>
                     {loadingTruck ? (
                       <p className="text-sm text-muted-foreground font-medium">Chargement...</p>
                     ) : truckData ? (
                       <div className="space-y-2">
-                        <p className="text-lg font-bold text-orange-500">{truckData.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-lg font-bold text-orange-500">{truckData.name}</p>
+                          {truckData.isPaused && (
+                            <Badge variant="secondary" className="text-xs">
+                              <Pause className="h-3 w-3 mr-1" />
+                              En pause
+                            </Badge>
+                          )}
+                        </div>
                         {truckData.ratingAvg && (
                           <div className="flex items-center gap-2 text-sm">
                             <Star className="h-4 w-4 text-amber-400 fill-amber-400" />

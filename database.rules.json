@@ -54,7 +54,13 @@
       "trucks": {
         ".read": true,
         "$truckId": {
-          ".write": "auth != null"
+          ".write": "auth != null",
+          "isPaused": {
+            ".validate": "newData.isBoolean()"
+          },
+          "updatedAt": {
+            ".validate": "newData.isNumber()"
+          }
         }
       }
     },

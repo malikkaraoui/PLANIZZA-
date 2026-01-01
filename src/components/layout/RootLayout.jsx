@@ -1,6 +1,7 @@
 import { Outlet, ScrollRestoration } from 'react-router-dom';
 import Navbar from './Navbar';
 import Footer from './Footer';
+import PausedTruckWatcher from '../../features/cart/PausedTruckWatcher';
 
 export default function RootLayout() {
   return (
@@ -10,6 +11,7 @@ export default function RootLayout() {
         <Outlet />
       </main>
       <Footer />
+      <PausedTruckWatcher />
       <ScrollRestoration getKey={(location) => `${location.pathname}${location.search}`} />
     </div>
   );
