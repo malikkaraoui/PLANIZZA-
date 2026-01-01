@@ -6,10 +6,11 @@ import { Button } from '../../components/ui/Button';
 import { Coffee, Wind } from 'lucide-react';
 
 export default function PausedTruckWatcher() {
-  const { items, clearCart, truckId } = useCart();
+  const { items, clear, truckId } = useCart();
   const [showMessage, setShowMessage] = useState(false);
   const [truckName, setTruckName] = useState('');
   const [messageIndex] = useState(() => Math.floor(Math.random() * 4));
+  const [previousPausedState, setPreviousPausedState] = useState(false);
 
   const messages = [
     "prend un instant pour s'hydrater 💧",
@@ -28,22 +29,27 @@ export default function PausedTruckWatcher() {
     const unsubscribe = onValue(truckRef, (snapshot) => {
       if (snapshot.exists()) {
         const truck = snapshot.val();
+        const isPaused = truck.isPaused === true;
+        
         setTruckName(truck.name || 'Votre pizzaiolo');
 
-        // Si le camion EST en pause ET qu'on a des items dans le panier
-        // On vérifie à chaque changement si le panier n'est pas vide
-        if (truck.isPaused === true) {
-          const currentItems = items;
-          if (currentItems && currentItems.length > 0) {
-            clearCart();
+        // Détecter le passage en pause (transition false -> true)
+        if (isPaused && !previousPausedState) {
+          // Le camion vient de passer en pause
+          if (items && items.length > 0) {
+            console.log('[PausedTruckWatcher] Camion passé en pause, vidage du panier:', items.length, 'items');
+            clear();
             setShowMessage(true);
           }
         }
+        
+        // Mettre à jour l'état précédent
+        setPreviousPausedState(isPaused);
       }
     });
 
     return () => off(truckRef, 'value', unsubscribe);
-  }, [truckId, clearCart, items]);
+  }, [truckId, clear, items, previousPausedState]);
 
   if (!showMessage) return null;
 
