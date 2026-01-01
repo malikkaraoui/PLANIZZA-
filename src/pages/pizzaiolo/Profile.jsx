@@ -10,6 +10,7 @@ import { Button } from '../../components/ui/Button';
 import LocationPicker from '../../components/ui/LocationPicker';
 import ImageUploader from '../../components/ui/ImageUploader';
 import { useTruckPause } from '../../features/trucks/hooks/useTruckPause';
+import { useActiveOrdersCount } from '../../features/orders/hooks/useActiveOrdersCount';
 import { Badge } from '../../components/ui/Badge';
 
 function initialsFromUser({ email, displayName } = {}) {
@@ -74,10 +75,22 @@ export default function PizzaioloProfile() {
   const [truckId, setTruckId] = useState(null);
   const [isPaused, setIsPaused] = useState(false);
   const { togglePause, isUpdating: isPauseUpdating } = useTruckPause(truckId);
+  const { count: activeOrdersCount } = useActiveOrdersCount(truckId);
 
   // Fonction toggle pause
   const handleTogglePause = async () => {
     if (!truckId || isPauseUpdating) return;
+
+    // Si on veut passer en pause et qu'il y a des commandes actives
+    if (!isPaused && activeOrdersCount > 0) {
+      const confirmPause = window.confirm(
+        `⚠️ Attention ! Vous avez ${activeOrdersCount} commande${activeOrdersCount > 1 ? 's' : ''} en cours.\n\n` +
+        `En passant en pause, vous ne recevrez plus de nouvelles commandes, mais vous devrez honorer les commandes déjà acceptées.\n\n` +
+        `Souhaitez-vous continuer ?`
+      );
+      
+      if (!confirmPause) return;
+    }
 
     try {
       const newIsPaused = await togglePause(isPaused);

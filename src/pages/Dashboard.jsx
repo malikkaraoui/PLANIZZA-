@@ -15,6 +15,7 @@ import { useMyOrders } from '../features/orders/hooks/useMyOrders';
 import { useLoyaltyPoints } from '../features/users/hooks/useLoyaltyPoints';
 import { useCart } from '../features/cart/hooks/useCart.jsx';
 import { useTruckPause } from '../features/trucks/hooks/useTruckPause';
+import { useActiveOrdersCount } from '../features/orders/hooks/useActiveOrdersCount';
 import LoyaltyProgressBar from '../components/loyalty/LoyaltyProgressBar';
 import AddressAutocomplete from '../components/ui/AddressAutocomplete';
 
@@ -28,6 +29,7 @@ export default function Dashboard() {
   const [loadingTruck, setLoadingTruck] = useState(false);
   const [truckId, setTruckId] = useState(null);
   const { togglePause, isUpdating: isPauseUpdating } = useTruckPause(truckId);
+  const { count: activeOrdersCount } = useActiveOrdersCount(truckId);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [signingOut, setSigningOut] = useState(false);
   
@@ -144,6 +146,17 @@ export default function Dashboard() {
   // Fonction toggle pause camion
   const handleTogglePause = async () => {
     if (!truckData || isPauseUpdating) return;
+
+    // Si on veut passer en pause et qu'il y a des commandes actives
+    if (!truckData.isPaused && activeOrdersCount > 0) {
+      const confirmPause = window.confirm(
+        `⚠️ Attention ! Vous avez ${activeOrdersCount} commande${activeOrdersCount > 1 ? 's' : ''} en cours.\n\n` +
+        `En passant en pause, vous ne recevrez plus de nouvelles commandes, mais vous devrez honorer les commandes déjà acceptées.\n\n` +
+        `Souhaitez-vous continuer ?`
+      );
+      
+      if (!confirmPause) return;
+    }
 
     try {
       const newIsPaused = await togglePause(truckData.isPaused || false);
@@ -474,19 +487,29 @@ export default function Dashboard() {
             </Link>
 
             {/* Commandes Reçues */}
-            <Link to={ROUTES.pizzaioloOrders}>
+            <Link to={ROUTES.pizzaioloOrders} className="relative">
               <Card className="glass-premium glass-glossy border-orange-500/20 p-8 rounded-[32px] hover:scale-[1.02] hover:shadow-2xl hover:shadow-orange-500/10 transition-all group cursor-pointer h-full">
                 <div className="space-y-4">
                   <div className="flex items-start justify-between">
-                    <div className="p-4 rounded-2xl bg-orange-500/10 group-hover:bg-orange-500/20 transition-colors">
-                      <Receipt className="h-8 w-8 text-orange-500" />
+                    <div className="relative">
+                      <div className="p-4 rounded-2xl bg-orange-500/10 group-hover:bg-orange-500/20 transition-colors">
+                        <Receipt className="h-8 w-8 text-orange-500" />
+                      </div>
+                      {activeOrdersCount > 0 && (
+                        <div className="absolute -top-2 -right-2 h-8 w-8 bg-red-500 rounded-full flex items-center justify-center border-2 border-white shadow-lg animate-pulse">
+                          <span className="text-white text-xs font-black">{activeOrdersCount}</span>
+                        </div>
+                      )}
                     </div>
                     <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
                   </div>
                   <div className="space-y-2">
                     <h3 className="text-xl font-black tracking-tight">Commandes</h3>
                     <p className="text-sm text-muted-foreground font-medium">
-                      Gérer vos commandes en cours
+                      {activeOrdersCount > 0 
+                        ? `${activeOrdersCount} commande${activeOrdersCount > 1 ? 's' : ''} en cours`
+                        : 'Gérer vos commandes en cours'
+                      }
                     </p>
                   </div>
                 </div>
