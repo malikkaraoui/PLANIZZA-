@@ -54,36 +54,36 @@ export default function PausedTruckWatcher() {
   if (!showMessage) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="glass-premium glass-glossy border-white/30 rounded-[32px] p-8 max-w-md w-full shadow-2xl animate-in zoom-in slide-in-from-bottom-4 duration-500">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+      <div className="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl border-2 border-orange-500/20 animate-in zoom-in slide-in-from-bottom-4 duration-500">
         <div className="text-center space-y-6">
           {/* Icône animée */}
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 animate-bounce">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-orange-100 animate-bounce">
             {randomMessage.includes('air') ? (
-              <Wind className="h-10 w-10 text-primary" />
+              <Wind className="h-10 w-10 text-orange-500" />
             ) : (
-              <Coffee className="h-10 w-10 text-primary" />
+              <Coffee className="h-10 w-10 text-orange-500" />
             )}
           </div>
 
           {/* Titre */}
-          <h2 className="text-2xl font-black tracking-tight text-premium-gradient">
+          <h2 className="text-2xl font-black tracking-tight text-orange-500">
             Petite pause ! ☕
           </h2>
 
           {/* Message */}
-          <p className="text-lg font-medium text-muted-foreground leading-relaxed">
-            <span className="font-bold text-primary">{truckName}</span> {randomMessage}
+          <p className="text-lg font-medium text-gray-700 leading-relaxed">
+            <span className="font-bold text-orange-600">{truckName}</span> {randomMessage}
           </p>
 
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-600">
             Votre panier a été vidé. Revenez dans quelques instants ! 
           </p>
 
           {/* Bouton */}
           <Button
             onClick={() => setShowMessage(false)}
-            className="w-full rounded-2xl h-12 font-black text-base"
+            className="w-full rounded-2xl h-12 font-black text-base bg-orange-500 hover:bg-orange-600"
           >
             J'ai compris ! 👍
           </Button>
