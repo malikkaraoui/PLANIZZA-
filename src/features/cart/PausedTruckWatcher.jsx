@@ -30,16 +30,20 @@ export default function PausedTruckWatcher() {
         const truck = snapshot.val();
         setTruckName(truck.name || 'Votre pizzaiolo');
 
-        // Si le camion passe en pause ET qu'on a des items dans le panier
-        if (truck.isPaused && items.length > 0) {
-          clearCart();
-          setShowMessage(true);
+        // Si le camion EST en pause ET qu'on a des items dans le panier
+        // On vérifie à chaque changement si le panier n'est pas vide
+        if (truck.isPaused === true) {
+          const currentItems = items;
+          if (currentItems && currentItems.length > 0) {
+            clearCart();
+            setShowMessage(true);
+          }
         }
       }
     });
 
     return () => off(truckRef, 'value', unsubscribe);
-  }, [truckId, items.length, clearCart]);
+  }, [truckId, clearCart, items]);
 
   if (!showMessage) return null;
 
