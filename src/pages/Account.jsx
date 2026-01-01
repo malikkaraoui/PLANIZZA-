@@ -10,6 +10,8 @@ import Card from '../components/ui/Card';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { auth, db, isFirebaseConfigured } from '../lib/firebase';
 import { useCart } from '../features/cart/hooks/useCart.jsx';
+import { useLoyaltyPoints } from '../features/users/hooks/useLoyaltyPoints';
+import LoyaltyProgressBar from '../components/loyalty/LoyaltyProgressBar';
 
 export default function Account() {
   const { isAuthenticated, user, loading } = useAuth();
@@ -17,6 +19,9 @@ export default function Account() {
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState(null);
   const { flushToStorage } = useCart();
+  
+  // Carte de fidélité
+  const { points, currentTier, nextTier, progress, maxTierReached, loading: loyaltyLoading } = useLoyaltyPoints(user?.uid);
 
   // Profil éditable
   const [isEditing, setIsEditing] = useState(false);
@@ -193,6 +198,19 @@ export default function Account() {
             <p className="text-sm text-gray-600">{user?.email}</p>
           </div>
         </div>
+
+        {/* Carte de fidélité */}
+        {!loyaltyLoading && (
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <LoyaltyProgressBar
+              points={points}
+              currentTier={currentTier}
+              nextTier={nextTier}
+              progress={progress}
+              maxTierReached={maxTierReached}
+            />
+          </div>
+        )}
       </Card>
 
       {/* Informations personnelles */}

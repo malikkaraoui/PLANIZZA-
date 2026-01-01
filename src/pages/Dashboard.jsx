@@ -1,22 +1,47 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { ChefHat, Receipt, Pizza, Store, ArrowRight, TrendingUp, Clock, Star } from 'lucide-react';
+import { ChefHat, Receipt, Pizza, Store, ArrowRight, TrendingUp, Clock, Star, Phone, LogOut, MapPin, Edit2 } from 'lucide-react';
+import { signOut } from 'firebase/auth';
 import { useAuth } from '../app/providers/AuthProvider';
 import { ROUTES } from '../app/routes';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { Badge } from '../components/ui/Badge';
-import { ref, get } from 'firebase/database';
-import { db } from '../lib/firebase';
+import { Input } from '../components/ui/Input';
+import { ref, get, remove, set } from 'firebase/database';
+import { db, auth, isFirebaseConfigured } from '../lib/firebase';
 import { useMyOrders } from '../features/orders/hooks/useMyOrders';
+import { useLoyaltyPoints } from '../features/users/hooks/useLoyaltyPoints';
+import { useCart } from '../features/cart/hooks/useCart.jsx';
+import LoyaltyProgressBar from '../components/loyalty/LoyaltyProgressBar';
+import AddressAutocomplete from '../components/ui/AddressAutocomplete';
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { orders, loading: ordersLoading } = useMyOrders();
+  const { flushToStorage } = useCart();
   const [isPizzaiolo, setIsPizzaiolo] = useState(false);
   const [truckData, setTruckData] = useState(null);
   const [loadingTruck, setLoadingTruck] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [signingOut, setSigningOut] = useState(false);
+  
+  // Adresse
+  const [address, setAddress] = useState({
+    streetNumber: '',
+    street: '',
+    postalCode: '',
+    city: '',
+    country: 'France'
+  });
+  const [isEditingAddress, setIsEditingAddress] = useState(false);
+  const [savingAddress, setSavingAddress] = useState(false);
+  const [addressMessage, setAddressMessage] = useState('');
+  
+  // Carte de fidélité
+  const { points, currentTier, nextTier, progress, maxTierReached, loading: loyaltyLoading } = useLoyaltyPoints(user?.uid);
 
   // Vérifier si l'utilisateur est pizzaiolo
   useEffect(() => {
@@ -55,6 +80,91 @@ export default function Dashboard() {
     checkPizzaiolo();
   }, [user?.uid]);
 
+  // Charger le numéro de téléphone et l'adresse
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const loadUserData = async () => {
+      try {
+        const userRef = ref(db, `users/${user.uid}`);
+        const snap = await get(userRef);
+        if (snap.exists()) {
+          const userData = snap.val();
+          setPhoneNumber(userData.phoneNumber || '');
+          
+          // Charger l'adresse
+          if (userData.address) {
+            setAddress({
+              streetNumber: userData.address.streetNumber || '',
+              street: userData.address.street || '',
+              postalCode: userData.address.postalCode || '',
+              city: userData.address.city || '',
+              country: userData.address.country || 'France'
+            });
+          }
+        }
+      } catch (err) {
+        console.error('[PLANIZZA] Erreur chargement données:', err);
+      }
+    };
+
+    loadUserData();
+  }, [user?.uid]);
+
+  // Fonction déconnexion
+  const handleSignOut = async () => {
+    if (!isFirebaseConfigured || !auth) return;
+
+    setSigningOut(true);
+    try {
+      flushToStorage?.();
+
+      if (isFirebaseConfigured && db && user?.uid) {
+        try {
+          await remove(ref(db, `carts/${user.uid}/active`));
+        } catch (e) {
+          console.warn('[PLANIZZA] Impossible de supprimer le panier:', e);
+        }
+      }
+
+      await signOut(auth);
+      navigate(ROUTES.explore, { replace: true });
+    } catch (err) {
+      console.error('[PLANIZZA] Erreur déconnexion:', err);
+    } finally {
+      setSigningOut(false);
+    }
+  };
+
+  // Fonction sauvegarde adresse
+  const handleSaveAddress = async (e) => {
+    e.preventDefault();
+    if (!user?.uid) return;
+
+    setSavingAddress(true);
+    setAddressMessage('');
+
+    try {
+      const userRef = ref(db, `users/${user.uid}`);
+      const snap = await get(userRef);
+      const existingData = snap.exists() ? snap.val() : {};
+
+      await set(userRef, {
+        ...existingData,
+        address,
+        updatedAt: Date.now()
+      });
+
+      setAddressMessage('✅ Adresse sauvegardée avec succès !');
+      setIsEditingAddress(false);
+    } catch (err) {
+      console.error('[PLANIZZA] Erreur sauvegarde adresse:', err);
+      setAddressMessage('❌ Erreur lors de la sauvegarde.');
+    } finally {
+      setSavingAddress(false);
+    }
+  };
+
   // Stats client
   const recentOrders = orders.slice(0, 3);
   const totalOrders = orders.length;
@@ -82,6 +192,27 @@ export default function Dashboard() {
         <p className="text-muted-foreground font-medium text-lg">
           Bienvenue sur votre tableau de bord personnel
         </p>
+
+        {/* Téléphone */}
+        {phoneNumber && (
+          <div className="inline-flex items-center gap-2 text-sm text-gray-600 bg-white/50 px-4 py-2 rounded-full border border-gray-200">
+            <Phone className="h-4 w-4 text-primary" />
+            <span className="font-medium">{phoneNumber}</span>
+          </div>
+        )}
+
+        {/* Carte de fidélité */}
+        {!loyaltyLoading && (
+          <div className="max-w-md mx-auto mt-6">
+            <LoyaltyProgressBar
+              points={points}
+              currentTier={currentTier}
+              nextTier={nextTier}
+              progress={progress}
+              maxTierReached={maxTierReached}
+            />
+          </div>
+        )}
       </div>
 
       {/* Section Client */}
@@ -95,7 +226,7 @@ export default function Dashboard() {
           <div className="h-1 flex-1 bg-gradient-to-r from-transparent via-primary/30 to-transparent rounded-full" />
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-1">
           {/* Mes Commandes */}
           <Link to={ROUTES.myOrders}>
             <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-[32px] hover:scale-[1.02] hover:shadow-2xl transition-all group cursor-pointer h-full">
@@ -121,32 +252,65 @@ export default function Dashboard() {
               </div>
             </Card>
           </Link>
-
-          {/* Mon Profil */}
-          <Link to={ROUTES.account}>
-            <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-[32px] hover:scale-[1.02] hover:shadow-2xl transition-all group cursor-pointer h-full">
-              <div className="space-y-4">
-                <div className="flex items-start justify-between">
-                  <div className="p-4 rounded-2xl bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={user?.photoURL} />
-                      <AvatarFallback className="bg-purple-500/20 text-purple-500 font-bold text-sm">
-                        {user?.email?.[0]?.toUpperCase() || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
-                  <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-purple-500 group-hover:translate-x-1 transition-all" />
-                </div>
-                <div className="space-y-2">
-                  <h3 className="text-xl font-black tracking-tight">Mon Profil</h3>
-                  <p className="text-sm text-muted-foreground font-medium">
-                    Gérer mes informations personnelles
-                  </p>
-                </div>
-              </div>
-            </Card>
-          </Link>
         </div>
+
+        {/* Adresse postale */}
+        <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-[32px]">
+          <div className="flex items-start justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <MapPin className="h-6 w-6 text-primary" />
+              <div>
+                <h3 className="text-xl font-black tracking-tight">Mon Adresse</h3>
+                <p className="text-sm text-muted-foreground">Adresse de livraison</p>
+              </div>
+            </div>
+            {!isEditingAddress && (
+              <Button onClick={() => setIsEditingAddress(true)} variant="outline" size="sm">
+                <Edit2 className="h-4 w-4 mr-2" />
+                Modifier
+              </Button>
+            )}
+          </div>
+
+          {!isEditingAddress ? (
+            <div className="text-gray-700">
+              {address.streetNumber || address.street || address.postalCode || address.city ? (
+                <div className="space-y-1">
+                  {address.streetNumber && address.street && <p className="font-medium">{address.streetNumber} {address.street}</p>}
+                  {!address.streetNumber && address.street && <p className="font-medium">{address.street}</p>}
+                  {(address.postalCode || address.city) && (
+                    <p>{address.postalCode} {address.city}</p>
+                  )}
+                  {address.country && <p className="text-sm text-muted-foreground">{address.country}</p>}
+                </div>
+              ) : (
+                <p className="text-muted-foreground italic">Aucune adresse renseignée</p>
+              )}
+            </div>
+          ) : (
+            <form onSubmit={handleSaveAddress} className="space-y-4">
+              <AddressAutocomplete 
+                address={address}
+                onAddressChange={setAddress}
+              />
+
+              {addressMessage && (
+                <div className={`p-3 rounded-lg text-sm ${addressMessage.includes('✅') ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-800'}`}>
+                  {addressMessage}
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <Button type="submit" disabled={savingAddress} className="flex-1">
+                  {savingAddress ? 'Enregistrement...' : 'Enregistrer'}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => setIsEditingAddress(false)}>
+                  Annuler
+                </Button>
+              </div>
+            </form>
+          )}
+        </Card>
 
         {/* Dernières commandes */}
         {recentOrders.length > 0 && (
@@ -302,6 +466,19 @@ export default function Dashboard() {
           </Card>
         </section>
       )}
+
+      {/* Bouton Déconnexion */}
+      <div className="flex justify-center pt-8">
+        <Button
+          onClick={handleSignOut}
+          disabled={signingOut}
+          variant="outline"
+          className="gap-2 rounded-2xl px-8 h-12 font-bold border-gray-300 hover:border-red-500 hover:text-red-500 transition-colors"
+        >
+          <LogOut className="h-4 w-4" />
+          {signingOut ? 'Déconnexion...' : 'Se déconnecter'}
+        </Button>
+      </div>
     </div>
   );
 }

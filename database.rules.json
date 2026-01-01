@@ -32,6 +32,16 @@
           ".validate": "newData.isString() && (newData.val() === 'user' || newData.val() === 'pizzaiolo')"
         },
 
+        "loyaltyPoints": {
+          ".validate": "newData.isNumber()"
+        },
+        "totalSpentCents": {
+          ".validate": "newData.isNumber()"
+        },
+        "address": {
+          ".validate": "newData.hasChildren()"
+        },
+
         "createdAt": {
           ".validate": "(!data.exists() && (newData.isNumber() || newData.child('.sv').val() === 'timestamp')) || (data.exists() && newData.val() === data.val())"
         },

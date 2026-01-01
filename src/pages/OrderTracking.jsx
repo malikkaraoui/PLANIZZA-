@@ -108,10 +108,19 @@ export default function OrderTracking() {
             </button>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-6">
             <div>
               <span className="text-gray-500 text-sm font-medium">Commande</span>
               <p className="text-gray-900 font-mono text-lg font-bold">#{orderId.slice(0, 8)}</p>
+            </div>
+            <div>
+              <span className="text-gray-500 text-sm font-medium">Heure</span>
+              <p className="text-gray-900 font-bold text-lg">
+                {order.createdAt ? new Date(order.createdAt).toLocaleTimeString('fr-FR', { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                }) : '-'}
+              </p>
             </div>
             <div>
               <span className="text-gray-500 text-sm font-medium">Articles</span>
