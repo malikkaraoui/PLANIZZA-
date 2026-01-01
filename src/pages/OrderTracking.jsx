@@ -6,10 +6,9 @@ import { useAuth } from '../app/providers/AuthProvider';
 
 const STEPS = [
   { key: 'created', label: 'Confirmée', icon: '✅' },
-  { key: 'received', label: 'Réception', icon: '📋' },
-  { key: 'prep', label: 'Préparation', icon: '👨‍🍳' },
-  { key: 'cooking', label: 'Cuisson', icon: '🔥' },
-  { key: 'ready', label: 'Dégustez !', icon: '🍕' },
+  { key: 'received', label: 'Reçue', icon: '📋' },
+  { key: 'accepted', label: 'En préparation', icon: '👨‍🍳' },
+  { key: 'delivered', label: 'Prête !', icon: '🍕' },
 ];
 
 export default function OrderTracking() {
@@ -161,11 +160,10 @@ export default function OrderTracking() {
               <p className="text-sm text-gray-500 font-medium">Statut actuel</p>
               <p className="text-emerald-600 font-bold text-lg capitalize">
                 {currentStatus === 'created' && '✅ Confirmée'}
-                {currentStatus === 'received' && '📋 Réception'}
-                {currentStatus === 'prep' && '👨‍🍳 Préparation'}
-                {currentStatus === 'cooking' && '🔥 Cuisson'}
-                {currentStatus === 'ready' && '🍕 Prête !'}
-                {!['created', 'received', 'prep', 'cooking', 'ready'].includes(currentStatus) && '⏳ En attente...'}
+                {currentStatus === 'received' && '📋 Reçue'}
+                {currentStatus === 'accepted' && '👨‍🍳 En préparation'}
+                {currentStatus === 'delivered' && '🍕 Prête !'}
+                {!['created', 'received', 'accepted', 'delivered'].includes(currentStatus) && '⏳ En attente...'}
               </p>
             </div>
           </div>
@@ -232,24 +230,24 @@ export default function OrderTracking() {
           {/* Message en fonction du statut */}
           <div className="mt-12 p-6 bg-emerald-50 rounded-2xl border border-emerald-100">
             {currentStatus === 'received' && (
+              <p className="textcreated' && (
               <p className="text-emerald-900 text-center text-lg font-medium">
-                🎉 Votre commande a été reçue ! Le pizzaiolo démarre la préparation...
+                ✅ Commande confirmée ! En attente de réception par le pizzaiolo...
               </p>
             )}
-            {currentStatus === 'prep' && (
+            {currentStatus === 'received' && (
               <p className="text-emerald-900 text-center text-lg font-medium">
-                👨‍🍳 Votre pizza est en cours de préparation avec soin...
+                📋 Votre commande a été reçue ! Le pizzaiolo va bientôt la prendre en charge...
               </p>
             )}
-            {currentStatus === 'cooking' && (
+            {currentStatus === 'accepted' && (
               <p className="text-emerald-900 text-center text-lg font-medium">
-                🔥 La magie opère dans le four ! Votre pizza cuit à la perfection...
+                👨‍🍳 C'est parti ! Votre pizza est en cours de préparation avec soin...
               </p>
             )}
-            {currentStatus === 'ready' && (
+            {currentStatus === 'delivered' && (
               <p className="text-emerald-900 text-center text-lg font-bold animate-pulse">
-                🍕 Votre commande est prête ! Bon appétit ! 🎊
-              </p>
+                🍕 Votre commande est prête ! Régalez-vous
             )}
           </div>
         </div>

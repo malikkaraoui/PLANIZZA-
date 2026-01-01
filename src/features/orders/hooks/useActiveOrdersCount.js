@@ -19,15 +19,15 @@ export function useActiveOrdersCount(truckId) {
     const unsubscribe = onValue(ordersQuery, (snapshot) => {
       if (snapshot.exists()) {
         const orders = snapshot.val();
-        // Compter les commandes actives : received, prep, cook (pas ready, cancelled)
+        // Compter les commandes actives : received, accepted (pas delivered, cancelled)
         // Une commande = un client, donc on compte le nombre d'objets order
         const activeCount = Object.values(orders).filter(order => {
           const status = order.status;
           const paymentStatus = order.payment?.paymentStatus;
           
-          // Ne compter que les commandes payées et pas encore prêtes/annulées
+          // Ne compter que les commandes payées et pas encore livrées/annulées
           return paymentStatus === 'paid' && 
-                 (status === 'received' || status === 'prep' || status === 'cook');
+                 (status === 'received' || status === 'accepted');
         }).length;
         
         setCount(activeCount);

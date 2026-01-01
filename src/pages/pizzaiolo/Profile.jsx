@@ -81,20 +81,20 @@ export default function PizzaioloProfile() {
   const handleTogglePause = async () => {
     if (!truckId || isPauseUpdating) return;
 
-    // Si on veut passer en pause et qu'il y a des commandes actives
-    if (!isPaused && activeOrdersCount > 0) {
-      const confirmPause = window.confirm(
-        `⚠️ Attention ! Vous avez ${activeOrdersCount} commande${activeOrdersCount > 1 ? 's' : ''} en cours.\n\n` +
-        `En passant en pause, vous ne recevrez plus de nouvelles commandes, mais vous devrez honorer les commandes déjà acceptées.\n\n` +
-        `Souhaitez-vous continuer ?`
-      );
-      
-      if (!confirmPause) return;
-    }
-
     try {
       const newIsPaused = await togglePause(isPaused);
       setIsPaused(newIsPaused);
+
+      // Si on vient de passer en pause et qu'il y a des commandes actives, afficher un rappel
+      if (newIsPaused && activeOrdersCount > 0) {
+        setTimeout(() => {
+          alert(
+            `✅ Mode pause activé\n\n` +
+            `📋 Rappel : Vous avez ${activeOrdersCount} commande${activeOrdersCount > 1 ? 's' : ''} en cours à honorer.\n\n` +
+            `Vous ne recevrez plus de nouvelles commandes jusqu'à la reprise de votre activité.`
+          );
+        }, 300);
+      }
     } catch (err) {
       console.error('[Profile] Erreur toggle pause:', err);
     }
