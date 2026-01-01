@@ -229,8 +229,7 @@ export default function OrderTracking() {
 
           {/* Message en fonction du statut */}
           <div className="mt-12 p-6 bg-emerald-50 rounded-2xl border border-emerald-100">
-            {currentStatus === 'received' && (
-              <p className="textcreated' && (
+            {currentStatus === 'created' && (
               <p className="text-emerald-900 text-center text-lg font-medium">
                 ✅ Commande confirmée ! En attente de réception par le pizzaiolo...
               </p>
@@ -247,7 +246,8 @@ export default function OrderTracking() {
             )}
             {currentStatus === 'delivered' && (
               <p className="text-emerald-900 text-center text-lg font-bold animate-pulse">
-                🍕 Votre commande est prête ! Régalez-vous
+                🍕 Votre commande est prête ! Régalez-vous ! 🎊
+              </p>
             )}
           </div>
         </div>

@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { ref, query, orderByChild, equalTo, onValue } from 'firebase/database';
 import { db } from '../lib/firebase';
 import { useAuth } from '../app/providers/AuthProvider';
 
 export default function Orders() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -83,6 +85,15 @@ export default function Orders() {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-4xl mx-auto">
+        {/* Bouton retour */}
+        <button
+          onClick={() => navigate(-1)}
+          className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mb-6"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Retour
+        </button>
+
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Mes commandes</h1>
         </div>

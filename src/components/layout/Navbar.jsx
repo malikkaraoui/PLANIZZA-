@@ -131,7 +131,7 @@ export default function Navbar() {
                       <div className="px-3 py-2">
                         <p className="text-xs font-bold text-orange-500/80 uppercase tracking-wider px-2 mb-1">Espace Pro</p>
                         <DropdownMenuItem asChild>
-                          <Link to="/pizzaiolo/dashboard" className="flex items-center gap-3 px-5 py-3 rounded-2xl hover:bg-orange-500/10 cursor-pointer transition-colors font-bold">
+                          <Link to="/pizzaiolo/profile" className="flex items-center gap-3 px-5 py-3 rounded-2xl hover:bg-orange-500/10 cursor-pointer transition-colors font-bold">
                             <Store className="h-4 w-4 text-orange-500" />
                             Mon Camion
                           </Link>

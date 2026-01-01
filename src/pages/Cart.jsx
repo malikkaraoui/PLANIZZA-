@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { ShoppingBag, ArrowLeft, Trash2, Minus, Plus } from 'lucide-react';
+import { ShoppingBag, ArrowLeft, Trash2, Minus, Plus, Bike, Store } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/Card';
 import { Separator } from '../components/ui/separator';
@@ -8,6 +8,8 @@ import { useCart } from '../features/cart/hooks/useCart.jsx';
 import { useAuth } from '../app/providers/AuthProvider';
 import { useCreateOrder } from '../features/orders/hooks/useCreateOrder';
 import { ROUTES } from '../app/routes';
+import { ref, get } from 'firebase/database';
+import { db } from '../lib/firebase';
 
 function formatEUR(cents) {
   return (cents / 100).toFixed(2).replace('.', ',') + ' €';
@@ -20,8 +22,49 @@ export default function Cart() {
   const { isAuthenticated, user } = useAuth();
   const { createOrder, loading: creatingOrder } = useCreateOrder();
   const [error, setError] = useState(null);
+  const [deliveryMethod, setDeliveryMethod] = useState('pickup'); // 'pickup' ou 'delivery'
+  const [deliveryAddress, setDeliveryAddress] = useState('');
 
   const truckId = location.state?.truckId ?? cartTruckId ?? null;
+
+  // Charger les préférences utilisateur
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const loadUserPreferences = async () => {
+      try {
+        const userRef = ref(db, `users/${user.uid}`);
+        const snap = await get(userRef);
+        
+        if (snap.exists()) {
+          const userData = snap.val();
+          
+          // Pré-sélectionner la méthode selon la préférence
+          if (userData.preferences?.wantsDelivery) {
+            setDeliveryMethod('delivery');
+          }
+          
+          // Pré-remplir l'adresse si elle existe
+          if (userData.address) {
+            const addr = userData.address;
+            const fullAddress = [
+              addr.streetNumber,
+              addr.street,
+              addr.postalCode,
+              addr.city,
+              addr.country !== 'France' ? addr.country : ''
+            ].filter(Boolean).join(' ');
+            
+            setDeliveryAddress(fullAddress);
+          }
+        }
+      } catch (err) {
+        console.error('[Cart] Erreur chargement préférences:', err);
+      }
+    };
+
+    loadUserPreferences();
+  }, [user?.uid]);
 
   const handleCheckout = async () => {
     // Vérifier l'authentification
@@ -169,6 +212,106 @@ export default function Cart() {
           ))}
         </div>
 
+        {/* Méthode de livraison */}
+        <div className="lg:col-span-2">
+          <Card className="glass-premium glass-glossy border-white/30">
+            <CardHeader>
+              <CardTitle className="text-xl font-black tracking-tight">Méthode de récupération</CardTitle>
+              <CardDescription>Comment souhaitez-vous récupérer votre commande ?</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Retrait au camion */}
+                <button
+                  onClick={() => setDeliveryMethod('pickup')}
+                  className={`group relative overflow-hidden rounded-[28px] p-6 transition-all duration-300 ${
+                    deliveryMethod === 'pickup'
+                      ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-[1.02]'
+                      : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
+                  }`}
+                >
+                  <div className="flex flex-col items-center gap-4 text-center">
+                    <div className={`p-4 rounded-2xl transition-all ${
+                      deliveryMethod === 'pickup' 
+                        ? 'bg-white/20' 
+                        : 'bg-primary/10 group-hover:bg-primary/20'
+                    }`}>
+                      <Store className="h-8 w-8" />
+                    </div>
+                    <div>
+                      <div className="font-black text-lg tracking-tight">Retrait au camion</div>
+                      <div className={`text-sm mt-1 ${
+                        deliveryMethod === 'pickup' 
+                          ? 'text-white/80' 
+                          : 'text-muted-foreground'
+                      }`}>
+                        Gratuit • Prêt en 15-20 min
+                      </div>
+                    </div>
+                    {deliveryMethod === 'pickup' && (
+                      <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white flex items-center justify-center">
+                        <div className="w-3 h-3 rounded-full bg-primary" />
+                      </div>
+                    )}
+                  </div>
+                </button>
+
+                {/* Livraison à domicile */}
+                <button
+                  onClick={() => setDeliveryMethod('delivery')}
+                  className={`group relative overflow-hidden rounded-[28px] p-6 transition-all duration-300 ${
+                    deliveryMethod === 'delivery'
+                      ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-[1.02]'
+                      : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
+                  }`}
+                >
+                  <div className="flex flex-col items-center gap-4 text-center">
+                    <div className={`p-4 rounded-2xl transition-all ${
+                      deliveryMethod === 'delivery' 
+                        ? 'bg-white/20' 
+                        : 'bg-primary/10 group-hover:bg-primary/20'
+                    }`}>
+                      <Bike className="h-8 w-8" />
+                    </div>
+                    <div>
+                      <div className="font-black text-lg tracking-tight">Livraison à domicile</div>
+                      <div className={`text-sm mt-1 ${
+                        deliveryMethod === 'delivery' 
+                          ? 'text-white/80' 
+                          : 'text-muted-foreground'
+                      }`}>
+                        + 3,50€ • 30-40 min
+                      </div>
+                    </div>
+                    {deliveryMethod === 'delivery' && (
+                      <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white flex items-center justify-center">
+                        <div className="w-3 h-3 rounded-full bg-primary" />
+                      </div>
+                    )}
+                  </div>
+                </button>
+              </div>
+
+              {/* Adresse de livraison si livraison sélectionnée */}
+              {deliveryMethod === 'delivery' && (
+                <div className="mt-6 p-4 rounded-2xl glass-deep border-white/10">
+                  <label className="block text-sm font-bold mb-2">Adresse de livraison</label>
+                  <input
+                    type="text"
+                    value={deliveryAddress}
+                    onChange={(e) => setDeliveryAddress(e.target.value)}
+                    placeholder="Ex: 15 Rue de la Pizza, 75001 Paris"
+                    className="w-full px-4 py-3 rounded-xl bg-white/50 border border-white/20 focus:border-primary focus:outline-none transition-colors"
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    🚨 La livraison via Uber Direct sera implémentée prochainement
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Récapitulatif */}
         <div className="lg:col-span-1">
           <Card className="sticky top-20">
@@ -188,10 +331,16 @@ export default function Cart() {
                   <span className="text-muted-foreground">Sous-total</span>
                   <span>{formatEUR(totalCents)}</span>
                 </div>
+                {deliveryMethod === 'delivery' && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Frais de livraison</span>
+                    <span>{formatEUR(350)}</span>
+                  </div>
+                )}
                 <Separator />
                 <div className="flex items-center justify-between font-bold text-lg">
                   <span>Total</span>
-                  <span className="text-primary">{formatEUR(totalCents)}</span>
+                  <span className="text-primary">{formatEUR(totalCents + (deliveryMethod === 'delivery' ? 350 : 0))}</span>
                 </div>
               </div>
             </CardContent>

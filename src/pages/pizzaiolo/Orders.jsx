@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Clock, User, Pizza, CheckCircle, ChefHat, Package } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Clock, User, Pizza, CheckCircle, ChefHat, Package, ArrowLeft } from 'lucide-react';
 import { ref, get } from 'firebase/database';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../app/providers/AuthProvider';
@@ -29,6 +29,7 @@ const TIME_PER_PIZZA = 8;
 
 export default function PizzaioloOrders() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [truckId, setTruckId] = useState(null);
   const [loadingTruck, setLoadingTruck] = useState(true);
   const [currentTime, setCurrentTime] = useState(Date.now());
@@ -162,6 +163,15 @@ export default function PizzaioloOrders() {
 
   return (
     <div className="space-y-8">
+      {/* Bouton retour */}
+      <button
+        onClick={() => navigate(-1)}
+        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Retour
+      </button>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ref, get, set, push, update } from 'firebase/database';
-import { Pause, Play } from 'lucide-react';
+import { Pause, Play, Pizza, Edit2, ArrowLeft } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import { useAuth } from '../../app/providers/AuthProvider';
 import { useUserProfile } from '../../features/users/hooks/useUserProfile';
@@ -23,6 +24,7 @@ function initialsFromUser({ email, displayName } = {}) {
 
 export default function PizzaioloProfile() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { profile, loading: profileLoading } = useUserProfile();
 
   const email = profile?.email || user?.email || null;
@@ -258,15 +260,24 @@ export default function PizzaioloProfile() {
   };
 
   return (
-    <div className="space-y-6">
-      <Card className="p-6">
-        <h1 className="text-xl font-bold text-gray-900">Mon compte</h1>
-        <p className="mt-2 text-gray-600">
+    <div className="space-y-8">
+      {/* Bouton retour */}
+      <button
+        onClick={() => navigate(-1)}
+        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Retour
+      </button>
+
+      <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-[32px]">
+        <h1 className="text-3xl font-black tracking-tight">Mon compte</h1>
+        <p className="mt-2 text-muted-foreground font-medium">
           {profileLoading ? 'Chargement du profil…' : 'Informations de connexion.'}
         </p>
 
-        <div className="mt-4 flex items-center gap-4">
-          <div className="h-14 w-14 rounded-full border bg-gray-50 overflow-hidden flex items-center justify-center text-sm font-extrabold text-gray-700">
+        <div className="mt-6 flex items-center gap-4">
+          <div className="h-16 w-16 rounded-full border-2 border-white/20 bg-white/5 overflow-hidden flex items-center justify-center text-sm font-extrabold shadow-lg">
             {photoURL ? (
               <img
                 src={photoURL}
@@ -280,10 +291,10 @@ export default function PizzaioloProfile() {
           </div>
 
           <div className="min-w-0">
-            <div className="font-semibold text-gray-900 truncate">
+            <div className="font-black tracking-tight truncate">
               {displayName || 'Utilisateur'}
             </div>
-            <div className="text-sm text-gray-600 truncate">
+            <div className="text-sm text-muted-foreground truncate">
               {email || 'Email indisponible'}
             </div>
           </div>
@@ -291,78 +302,84 @@ export default function PizzaioloProfile() {
       </Card>
 
       {!truckId ? (
-        <Card className="p-8 text-center border-2 border-dashed border-gray-300">
-          <div className="text-6xl mb-4">🚚</div>
-          <h2 className="text-2xl font-bold text-gray-900">Créez votre camion pizza</h2>
-          <p className="mt-2 text-gray-600">Commencez par renseigner les informations de votre camion</p>
-          <Button onClick={() => setIsEditing(true)} className="mt-6">
+        <Card className="glass-premium glass-glossy border-white/20 p-12 rounded-[32px] text-center">
+          <div className="inline-flex p-6 rounded-3xl bg-orange-500/10 mb-6">
+            <Pizza className="h-16 w-16 text-orange-500" />
+          </div>
+          <h2 className="text-3xl font-black tracking-tight">Créez votre camion pizza</h2>
+          <p className="mt-3 text-muted-foreground font-medium">Commencez par renseigner les informations de votre camion</p>
+          <Button onClick={() => setIsEditing(true)} className="mt-8 rounded-2xl px-8 h-12 font-bold bg-orange-500 hover:bg-orange-600">
             Créer mon camion
           </Button>
         </Card>
       ) : !isEditing ? (
         // MODE VISUALISATION
-        <Card className="p-6">
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex items-center gap-3">
+        <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-[32px]">
+          <div className="flex items-start justify-between mb-8">
+            <div className="flex items-center gap-4">
+              <div className="p-4 rounded-2xl bg-orange-500/10">
+                <Pizza className="h-8 w-8 text-orange-500" />
+              </div>
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">🍕 Mon Camion</h2>
-                <p className="mt-1 text-gray-600">Votre vitrine professionnelle</p>
+                <h2 className="text-3xl font-black tracking-tight">Mon Camion</h2>
+                <p className="mt-1 text-muted-foreground font-medium">Votre vitrine professionnelle</p>
               </div>
               {isPaused && (
-                <Badge variant="secondary" className="mt-1">
+                <Badge variant="secondary" className="mt-1 rounded-full">
                   <Pause className="h-3 w-3 mr-1" />
                   En pause
                 </Badge>
               )}
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <Button
                 onClick={handleTogglePause}
                 disabled={isPauseUpdating}
                 size="sm"
                 variant={isPaused ? "default" : "outline"}
-                className={isPaused ? "bg-emerald-500 hover:bg-emerald-600" : ""}
+                className={isPaused ? "bg-emerald-500 hover:bg-emerald-600 rounded-2xl font-bold" : "rounded-2xl font-bold"}
               >
                 {isPauseUpdating ? (
                   '...'
                 ) : isPaused ? (
                   <>
-                    <Play className="h-4 w-4 mr-1" />
+                    <Play className="h-4 w-4 mr-2" />
                     Relancer
                   </>
                 ) : (
                   <>
-                    <Pause className="h-4 w-4 mr-1" />
+                    <Pause className="h-4 w-4 mr-2" />
                     Pause
                   </>
                 )}
               </Button>
-              <Button onClick={() => setIsEditing(true)} variant="outline">
-                ✏️ Modifier
+              <Button onClick={() => setIsEditing(true)} variant="outline" className="rounded-2xl font-bold">
+                <Edit2 className="h-4 w-4 mr-2" />
+                Modifier
               </Button>
             </div>
           </div>
 
           {/* Photos */}
           {(logoUrl || photoUrl) && (
-            <div className="grid gap-4 mb-6">
+            <div className="grid gap-6 mb-8">
               {photoUrl && (
                 <div>
-                  <p className="text-sm font-medium text-gray-700 mb-2">Photo principale</p>
+                  <p className="text-sm font-bold mb-3">📸 Photo principale</p>
                   <img
                     src={photoUrl}
                     alt={truckName}
-                    className="w-full h-64 object-cover rounded-lg border border-gray-300"
+                    className="w-full h-64 object-cover rounded-3xl border border-white/20 shadow-xl"
                   />
                 </div>
               )}
               {logoUrl && (
                 <div>
-                  <p className="text-sm font-medium text-gray-700 mb-2">Logo</p>
+                  <p className="text-sm font-bold mb-3">🎨 Logo</p>
                   <img
                     src={logoUrl}
                     alt={`Logo ${truckName}`}
-                    className="w-32 h-32 object-contain rounded-lg border border-gray-300 bg-white p-2"
+                    className="w-32 h-32 object-contain rounded-2xl border border-white/20 bg-white/5 p-3 shadow-lg"
                   />
                 </div>
               )}
@@ -370,31 +387,44 @@ export default function PizzaioloProfile() {
           )}
 
           {/* Informations */}
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-bold text-gray-900">{truckName || 'Sans nom'}</h3>
+              <h3 className="text-2xl font-black tracking-tight">{truckName || 'Sans nom'}</h3>
               {truckDescription && (
-                <p className="mt-1 text-gray-700">{truckDescription}</p>
+                <p className="mt-2 text-muted-foreground font-medium">{truckDescription}</p>
               )}
             </div>
 
             {/* Type de four */}
             {ovenType && (
               <div>
-                <p className="text-sm font-semibold text-gray-900 mb-1">🔥 Type de four</p>
-                <p className="text-sm text-gray-700">{ovenType}</p>
+                <p className="text-sm font-bold mb-2">🔥 Type de four</p>
+                <p className="text-sm text-muted-foreground font-medium">{ovenType}</p>
               </div>
             )}
 
             {/* Emplacement */}
             {location?.address && (
               <div>
-                <p className="text-sm font-semibold text-gray-900 mb-1">📍 Emplacement</p>
-                <p className="text-sm text-gray-700">{location.address}</p>
+                <p className="text-sm font-bold mb-3">📍 Emplacement</p>
+                <p className="text-sm text-muted-foreground font-medium mb-3">{location.address}</p>
                 {location.lat && location.lng && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Coordonnées: {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
-                  </p>
+                  <div className="mt-4 rounded-2xl overflow-hidden border border-white/20 shadow-xl">
+                    <div className="bg-white/5 p-3 backdrop-blur-sm">
+                      <p className="text-xs font-bold text-muted-foreground mb-1">📍 Carte de localisation</p>
+                      <p className="text-xs text-muted-foreground font-medium">
+                        Coordonnées: {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
+                      </p>
+                    </div>
+                    <iframe
+                      width="100%"
+                      height="200"
+                      frameBorder="0"
+                      style={{ border: 0 }}
+                      src={`https://www.google.com/maps?q=${location.lat},${location.lng}&z=15&output=embed`}
+                      allowFullScreen
+                    ></iframe>
+                  </div>
                 )}
               </div>
             )}
@@ -465,164 +495,179 @@ export default function PizzaioloProfile() {
         </Card>
       ) : (
         // MODE ÉDITION
-        <Card className="p-6">
-          <div className="flex items-start justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">🍕 Configuration du Camion</h2>
-              <p className="mt-1 text-gray-600">Renseignez les informations de votre camion pizza</p>
+        <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-[32px]">
+          <div className="flex items-start justify-between mb-8">
+            <div className="flex items-center gap-4">
+              <div className="p-4 rounded-2xl bg-orange-500/10">
+                <Pizza className="h-8 w-8 text-orange-500" />
+              </div>
+              <div>
+                <h2 className="text-3xl font-black tracking-tight">Configuration du Camion</h2>
+                <p className="mt-1 text-muted-foreground font-medium">Renseignez les informations de votre camion pizza</p>
+              </div>
             </div>
             {truckId && (
-              <Button onClick={() => setIsEditing(false)} variant="outline">
+              <Button onClick={() => setIsEditing(false)} variant="outline" className="rounded-2xl font-bold">
                 Annuler
               </Button>
             )}
           </div>
 
-        <form onSubmit={handleSaveTruck} className="mt-6 space-y-6">
+        <form onSubmit={handleSaveTruck} className="mt-8 space-y-8">
           {/* Informations de base */}
-          <div>
-            <h3 className="font-semibold text-gray-900">Informations de base</h3>
-            <div className="mt-4 space-y-4">
+          <div className="glass-card p-6 rounded-3xl border border-white/10">
+            <h3 className="text-xl font-black tracking-tight mb-6 flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-primary/10">
+                <Pizza className="h-5 w-5 text-primary" />
+              </div>
+              Informations de base
+            </h3>
+            <div className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Nom du camion *</label>
+                <label className="block text-sm font-bold mb-2">Nom du camion *</label>
                 <Input
                   value={truckName}
                   onChange={(e) => setTruckName(e.target.value)}
                   placeholder="Ex: Pizza Sole Napoli"
                   required
-                  className="mt-1"
+                  className="rounded-2xl h-12 font-medium"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Description</label>
+                <label className="block text-sm font-bold mb-2">Description</label>
                 <textarea
                   value={truckDescription}
                   onChange={(e) => setTruckDescription(e.target.value)}
-                  placeholder="Ex: Pizzas artisanales au feu de bois..."
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                  rows={3}
+                  placeholder="Ex: Pizzas artisanales au feu de bois, pâte maison fermentée 48h..."
+                  className="mt-1 w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-sm font-medium focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+                  rows={4}
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold mb-2">Type de four *</label>
+                <select
+                  value={ovenType}
+                  onChange={(e) => setOvenType(e.target.value)}
+                  className="w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-sm font-medium focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all h-12"
+                  required
+                >
+                  <option value="Bois">🪵 Bois</option>
+                  <option value="Gaz">⛽ Gaz</option>
+                  <option value="Électrique">⚡ Électrique</option>
+                  <option value="Charbon">🪨 Charbon</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold mb-2">Capacité de production *</label>
+                <Input
+                  type="number"
+                  value={pizzaPerHour}
+                  onChange={(e) => setPizzaPerHour(e.target.value)}
+                  placeholder="30"
+                  min="1"
+                  max="100"
+                  required
+                  className="rounded-2xl h-12 font-medium"
+                />
+                <p className="text-xs text-muted-foreground mt-2 font-medium">
+                  ⚡ Nombre de pizzas que vous pouvez produire par heure
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Type de four */}
-          <div>
-            <h3 className="font-semibold text-gray-900">🔥 Type de four</h3>
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700">Choisissez votre type de four *</label>
-              <select
-                value={ovenType}
-                onChange={(e) => setOvenType(e.target.value)}
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white"
-                required
-              >
-                <option value="Bois">🪵 Bois</option>
-                <option value="Gaz">⛽ Gaz</option>
-                <option value="Électrique">⚡ Électrique</option>
-                <option value="Charbon">🪨 Charbon</option>
-              </select>
+          {/* Photos & Visuels */}
+          <div className="glass-card p-6 rounded-3xl border border-white/10">
+            <h3 className="text-xl font-black tracking-tight mb-6 flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-orange-500/10">
+                <span className="text-xl">📸</span>
+              </div>
+              Photos & Visuels
+            </h3>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-bold mb-3">Photo du camion</label>
+                <ImageUploader
+                  value={photoUrl}
+                  onChange={setPhotoUrl}
+                  label=""
+                  folder="trucks"
+                />
+                <p className="text-xs text-muted-foreground mt-2 font-medium">
+                  🍕 Photo principale visible sur votre fiche
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold mb-3">Logo</label>
+                <ImageUploader
+                  value={logoUrl}
+                  onChange={setLogoUrl}
+                  label=""
+                  folder="logos"
+                />
+                <p className="text-xs text-muted-foreground mt-2 font-medium">
+                  🎨 Apparaît dans les résultats de recherche
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Localisation */}
-          <div>
-            <h3 className="font-semibold text-gray-900">📍 Emplacement</h3>
-            <div className="mt-4">
+          {/* Localisation avec preview */}
+          <div className="glass-card p-6 rounded-3xl border border-white/10">
+            <h3 className="text-xl font-black tracking-tight mb-6 flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-blue-500/10">
+                <span className="text-xl">📍</span>
+              </div>
+              Emplacement
+            </h3>
+            <div className="space-y-4">
               <LocationPicker
                 value={location}
                 onChange={setLocation}
               />
+              {location?.lat && location?.lng && (
+                <div className="mt-4 rounded-2xl overflow-hidden border border-white/20 shadow-lg">
+                  <div className="bg-white/5 p-3 backdrop-blur-sm">
+                    <p className="text-xs font-bold text-muted-foreground mb-1">📍 Aperçu de localisation</p>
+                    <p className="text-sm font-medium">{location.address || 'Adresse non renseignée'}</p>
+                  </div>
+                  <iframe
+                    width="100%"
+                    height="200"
+                    frameBorder="0"
+                    style={{ border: 0 }}
+                    src={`https://www.google.com/maps?q=${location.lat},${location.lng}&z=15&output=embed`}
+                    allowFullScreen
+                  ></iframe>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Médias */}
-          <div>
-            <h3 className="font-semibold text-gray-900">📸 Photos & Logo</h3>
-            <div className="mt-4 space-y-6">
-              <ImageUploader
-                value={logoUrl}
-                onChange={setLogoUrl}
-                label="Logo du camion"
-                folder="logos"
-              />
-
-              <ImageUploader
-                value={photoUrl}
-                onChange={setPhotoUrl}
-                label="Photo principale du camion"
-                folder="trucks"
-              />
-            </div>
-          </div>
-
-          {/* Badges */}
-          <div>
-            <h3 className="font-semibold text-gray-900">🏷️ Badges</h3>
-            <div className="mt-4 grid grid-cols-2 gap-3">
+          {/* Horaires d'ouverture modernisés */}
+          <div className="glass-card p-6 rounded-3xl border border-white/10">
+            <h3 className="text-xl font-black tracking-tight mb-6 flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-emerald-500/10">
+                <span className="text-xl">🕐</span>
+              </div>
+              Horaires d'ouverture
+            </h3>
+            <div className="space-y-3">
               {[
-                { key: 'bio', label: '🌱 Bio' },
-                { key: 'terroir', label: '🌾 Terroir' },
-                { key: 'sansGluten', label: '🚫🌾 Sans gluten' },
-                { key: 'halal', label: '☪️ Halal' },
-                { key: 'kasher', label: '✡️ Kasher' },
-                { key: 'sucre', label: '🍰 Sucré' }
-              ].map(({ key, label }) => (
-                <label key={key} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={badges[key]}
-                    onChange={() => toggleBadge(key)}
-                    className="rounded"
-                  />
-                  <span className="text-sm">{label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Livraison */}
-          <div>
-            <h3 className="font-semibold text-gray-900">🚴 Options de livraison</h3>
-            <div className="mt-4 space-y-3">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={deliveryOptions.deliveroo}
-                  onChange={() => toggleDelivery('deliveroo')}
-                  className="rounded"
-                />
-                <span className="text-sm">Deliveroo</span>
-              </label>
-
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={deliveryOptions.uber}
-                  onChange={() => toggleDelivery('uber')}
-                  className="rounded"
-                />
-                <span className="text-sm">Uber Eats</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Horaires d'ouverture */}
-          <div>
-            <h3 className="font-semibold text-gray-900">🕐 Horaires d'ouverture</h3>
-            <div className="mt-4 space-y-3">
-              {[
-                { key: 'monday', label: 'Lundi' },
-                { key: 'tuesday', label: 'Mardi' },
-                { key: 'wednesday', label: 'Mercredi' },
-                { key: 'thursday', label: 'Jeudi' },
-                { key: 'friday', label: 'Vendredi' },
-                { key: 'saturday', label: 'Samedi' },
-                { key: 'sunday', label: 'Dimanche' }
-              ].map(({ key, label }) => (
-                <div key={key} className="flex items-center gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer w-32">
+                { key: 'monday', label: 'Lun', fullLabel: 'Lundi' },
+                { key: 'tuesday', label: 'Mar', fullLabel: 'Mardi' },
+                { key: 'wednesday', label: 'Mer', fullLabel: 'Mercredi' },
+                { key: 'thursday', label: 'Jeu', fullLabel: 'Jeudi' },
+                { key: 'friday', label: 'Ven', fullLabel: 'Vendredi' },
+                { key: 'saturday', label: 'Sam', fullLabel: 'Samedi' },
+                { key: 'sunday', label: 'Dim', fullLabel: 'Dimanche' }
+              ].map(({ key, label, fullLabel }) => (
+                <div key={key} className={`flex items-center gap-4 p-4 rounded-2xl transition-all ${openingHours[key].enabled ? 'bg-emerald-500/5 border border-emerald-500/20' : 'bg-white/5 border border-white/10'}`}>
+                  <label className="flex items-center gap-3 cursor-pointer min-w-[120px]">
                     <input
                       type="checkbox"
                       checked={openingHours[key].enabled}
@@ -630,13 +675,16 @@ export default function PizzaioloProfile() {
                         ...prev,
                         [key]: { ...prev[key], enabled: e.target.checked }
                       }))}
-                      className="rounded"
+                      className="rounded w-5 h-5"
                     />
-                    <span className="text-sm font-medium">{label}</span>
+                    <div>
+                      <span className="text-sm font-black block">{label}</span>
+                      <span className="text-xs text-muted-foreground font-medium">{fullLabel}</span>
+                    </div>
                   </label>
                   
-                  {openingHours[key].enabled && (
-                    <div className="flex items-center gap-2 flex-1">
+                  {openingHours[key].enabled ? (
+                    <div className="flex items-center gap-3 flex-1">
                       <input
                         type="time"
                         value={openingHours[key].open}
@@ -644,9 +692,9 @@ export default function PizzaioloProfile() {
                           ...prev,
                           [key]: { ...prev[key], open: e.target.value }
                         }))}
-                        className="rounded-md border border-gray-300 px-2 py-1 text-sm"
+                        className="rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm font-bold focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all"
                       />
-                      <span className="text-gray-500">→</span>
+                      <span className="text-muted-foreground font-bold">→</span>
                       <input
                         type="time"
                         value={openingHours[key].close}
@@ -654,44 +702,85 @@ export default function PizzaioloProfile() {
                           ...prev,
                           [key]: { ...prev[key], close: e.target.value }
                         }))}
-                        className="rounded-md border border-gray-300 px-2 py-1 text-sm"
+                        className="rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm font-bold focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all"
                       />
                     </div>
+                  ) : (
+                    <span className="text-sm text-muted-foreground font-medium italic">Fermé</span>
                   )}
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Cadence de travail */}
-          <div>
-            <h3 className="font-semibold text-gray-900">⚡ Cadence de travail</h3>
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nombre de pizzas par heure *
-              </label>
-              <Input
-                type="number"
-                value={pizzaPerHour}
-                onChange={(e) => setPizzaPerHour(e.target.value)}
-                placeholder="30"
-                min="1"
-                max="100"
-                required
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Indique votre capacité de production (pizzas/heure)
-              </p>
+          {/* Badges & Options */}
+          <div className="glass-card p-6 rounded-3xl border border-white/10">
+            <h3 className="text-xl font-black tracking-tight mb-6 flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-purple-500/10">
+                <span className="text-xl">🏷️</span>
+              </div>
+              Badges & Spécialités
+            </h3>
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-bold mb-3">Caractéristiques</label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {[
+                    { key: 'bio', label: 'Bio', icon: '🌱', color: 'emerald' },
+                    { key: 'terroir', label: 'Terroir', icon: '🌾', color: 'amber' },
+                    { key: 'sansGluten', label: 'Sans gluten', icon: '🚫🌾', color: 'blue' },
+                    { key: 'halal', label: 'Halal', icon: '☪️', color: 'purple' },
+                    { key: 'kasher', label: 'Kasher', icon: '✡️', color: 'indigo' },
+                    { key: 'sucre', label: 'Sucré', icon: '🍰', color: 'pink' }
+                  ].map(({ key, label, icon, color }) => (
+                    <label key={key} className={`flex items-center gap-3 p-4 rounded-2xl cursor-pointer transition-all ${badges[key] ? `bg-${color}-500/10 border-2 border-${color}-500/30` : 'bg-white/5 border border-white/10 hover:border-white/20'}`}>
+                      <input
+                        type="checkbox"
+                        checked={badges[key]}
+                        onChange={() => toggleBadge(key)}
+                        className="rounded w-5 h-5"
+                      />
+                      <span className="text-lg">{icon}</span>
+                      <span className="text-sm font-bold">{label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold mb-3">🚴 Plateformes de livraison</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className={`flex items-center gap-3 p-4 rounded-2xl cursor-pointer transition-all ${deliveryOptions.deliveroo ? 'bg-teal-500/10 border-2 border-teal-500/30' : 'bg-white/5 border border-white/10 hover:border-white/20'}`}>
+                    <input
+                      type="checkbox"
+                      checked={deliveryOptions.deliveroo}
+                      onChange={() => toggleDelivery('deliveroo')}
+                      className="rounded w-5 h-5"
+                    />
+                    <span className="text-sm font-bold">Deliveroo</span>
+                  </label>
+
+                  <label className={`flex items-center gap-3 p-4 rounded-2xl cursor-pointer transition-all ${deliveryOptions.uber ? 'bg-gray-500/10 border-2 border-gray-500/30' : 'bg-white/5 border border-white/10 hover:border-white/20'}`}>
+                    <input
+                      type="checkbox"
+                      checked={deliveryOptions.uber}
+                      onChange={() => toggleDelivery('uber')}
+                      className="rounded w-5 h-5"
+                    />
+                    <span className="text-sm font-bold">Uber Eats</span>
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
 
           {message && (
-            <div className={`p-4 rounded-lg ${message.includes('✅') ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-800'}`}>
+            <div className={`p-6 rounded-3xl font-bold ${message.includes('✅') ? 'bg-emerald-500/10 text-emerald-600' : 'bg-red-500/10 text-red-600'}`}>
               {message}
             </div>
           )}
 
-          <Button type="submit" disabled={saving} className="w-full">
+          <Button type="submit" disabled={saving} className="w-full rounded-2xl h-14 font-bold text-lg bg-orange-500 hover:bg-orange-600">
             {saving ? 'Sauvegarde en cours...' : truckId ? 'Mettre à jour le camion' : 'Créer mon camion'}
           </Button>
         </form>

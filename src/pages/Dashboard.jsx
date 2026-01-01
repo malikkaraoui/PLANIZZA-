@@ -41,6 +41,7 @@ export default function Dashboard() {
     city: '',
     country: 'France'
   });
+  const [wantsDelivery, setWantsDelivery] = useState(false);
   const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [savingAddress, setSavingAddress] = useState(false);
   const [addressMessage, setAddressMessage] = useState('');
@@ -109,6 +110,9 @@ export default function Dashboard() {
               country: userData.address.country || 'France'
             });
           }
+          
+          // Charger la préférence de livraison
+          setWantsDelivery(userData.preferences?.wantsDelivery || false);
         }
       } catch (err) {
         console.error('[PLANIZZA] Erreur chargement données:', err);
@@ -182,6 +186,10 @@ export default function Dashboard() {
       await set(userRef, {
         ...existingData,
         address,
+        preferences: {
+          ...existingData.preferences,
+          wantsDelivery
+        },
         updatedAt: Date.now()
       });
 
@@ -305,19 +313,46 @@ export default function Dashboard() {
           </div>
 
           {!isEditingAddress ? (
-            <div className="text-gray-700">
-              {address.streetNumber || address.street || address.postalCode || address.city ? (
-                <div className="space-y-1">
-                  {address.streetNumber && address.street && <p className="font-medium">{address.streetNumber} {address.street}</p>}
-                  {!address.streetNumber && address.street && <p className="font-medium">{address.street}</p>}
-                  {(address.postalCode || address.city) && (
-                    <p>{address.postalCode} {address.city}</p>
+            <div>
+              <div className="text-gray-700 mb-6">
+                {address.streetNumber || address.street || address.postalCode || address.city ? (
+                  <div className="space-y-1">
+                    {address.streetNumber && address.street && <p className="font-medium">{address.streetNumber} {address.street}</p>}
+                    {!address.streetNumber && address.street && <p className="font-medium">{address.street}</p>}
+                    {(address.postalCode || address.city) && (
+                      <p>{address.postalCode} {address.city}</p>
+                    )}
+                    {address.country && <p className="text-sm text-muted-foreground">{address.country}</p>}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground italic">Aucune adresse renseignée</p>
+                )}
+              </div>
+              
+              {/* Badge préférence de livraison */}
+              <div className="pt-6 border-t border-white/10">
+                <p className="text-sm font-semibold text-gray-700 mb-3">🚚 Préférence de livraison</p>
+                <div className={`inline-flex items-center gap-3 px-5 py-3 rounded-2xl font-bold text-sm shadow-lg transition-all ${
+                  wantsDelivery 
+                    ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-emerald-500/30' 
+                    : 'bg-gradient-to-r from-gray-200 to-gray-300 text-gray-800 shadow-gray-300/50'
+                }`}>
+                  {wantsDelivery ? (
+                    <>
+                      <span className="text-lg">✅</span>
+                      <span>Livraison activée par défaut</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-lg">🚶</span>
+                      <span>Retrait sur place par défaut</span>
+                    </>
                   )}
-                  {address.country && <p className="text-sm text-muted-foreground">{address.country}</p>}
                 </div>
-              ) : (
-                <p className="text-muted-foreground italic">Aucune adresse renseignée</p>
-              )}
+                <p className="text-xs text-muted-foreground mt-2 ml-1">
+                  Cette préférence sera utilisée automatiquement lors de vos commandes
+                </p>
+              </div>
             </div>
           ) : (
             <form onSubmit={handleSaveAddress} className="space-y-4">
@@ -325,6 +360,29 @@ export default function Dashboard() {
                 address={address}
                 onAddressChange={setAddress}
               />
+
+              {/* Toggle préférence de livraison */}
+              <div className="p-5 rounded-2xl border-2 border-primary/20 bg-primary/5">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <p className="font-bold text-gray-900 flex items-center gap-2">
+                      🚚 Activer la livraison par défaut
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Si activé, l'option livraison sera sélectionnée automatiquement lors de vos commandes
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer ml-4">
+                    <input
+                      type="checkbox"
+                      checked={wantsDelivery}
+                      onChange={(e) => setWantsDelivery(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-14 h-7 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-500 shadow-inner"></div>
+                  </label>
+                </div>
+              </div>
 
               {addressMessage && (
                 <div className={`p-3 rounded-lg text-sm ${addressMessage.includes('✅') ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-800'}`}>

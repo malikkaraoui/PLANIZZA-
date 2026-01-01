@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { ref, get, set, push, remove, onValue } from 'firebase/database';
 import { useAuth } from '../../app/providers/AuthProvider';
 import { db } from '../../lib/firebase';
@@ -13,12 +15,14 @@ const ITEM_TYPES = [
 ];
 
 const PIZZA_SIZES = [
-  { value: 'classic', label: 'Classic' },
-  { value: 'large', label: 'Large' }
+  { value: 's', label: 'S (26cm)', defaultDiameter: 26 },
+  { value: 'm', label: 'M (33cm)', defaultDiameter: 33 },
+  { value: 'l', label: 'L (40cm)', defaultDiameter: 40 }
 ];
 
 export default function PizzaioloMenu() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [truckId, setTruckId] = useState(null);
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,8 +32,12 @@ export default function PizzaioloMenu() {
   const [itemName, setItemName] = useState('');
   const [itemDesc, setItemDesc] = useState('');
   const [itemType, setItemType] = useState('pizza');
-  const [priceClassic, setPriceClassic] = useState('');
-  const [priceLarge, setPriceLarge] = useState('');
+  const [priceS, setPriceS] = useState('');
+  const [priceM, setPriceM] = useState('');
+  const [priceL, setPriceL] = useState('');
+  const [diameterS, setDiameterS] = useState('26');
+  const [diameterM, setDiameterM] = useState('33');
+  const [diameterL, setDiameterL] = useState('40');
   
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -88,11 +96,12 @@ export default function PizzaioloMenu() {
 
     // Validation des prix pour les pizzas
     if (itemType === 'pizza') {
-      const classicPrice = parseFloat(priceClassic);
-      const largePrice = parseFloat(priceLarge);
+      const sPrice = parseFloat(priceS);
+      const mPrice = parseFloat(priceM);
+      const lPrice = parseFloat(priceL);
       
-      if (largePrice < classicPrice) {
-        setMessage('❌ Le prix Large ne peut pas être inférieur au prix Classic');
+      if (mPrice < sPrice || lPrice < mPrice) {
+        setMessage('❌ Les prix doivent être croissants : S ≤ M ≤ L');
         return;
       }
     }
@@ -113,13 +122,23 @@ export default function PizzaioloMenu() {
 
       // Gestion des prix selon le type
       if (itemType === 'pizza') {
-        itemData.prices = {
-          classic: parseFloat(priceClassic) * 100, // convertir en centimes
-          large: parseFloat(priceLarge) * 100
+        itemData.sizes = {
+          s: { 
+            priceCents: parseFloat(priceS) * 100,
+            diameter: parseInt(diameterS)
+          },
+          m: { 
+            priceCents: parseFloat(priceM) * 100,
+            diameter: parseInt(diameterM)
+          },
+          l: { 
+            priceCents: parseFloat(priceL) * 100,
+            diameter: parseInt(diameterL)
+          }
         };
       } else {
         // Pour calzone et dessert, un seul prix
-        itemData.priceCents = parseFloat(priceClassic) * 100;
+        itemData.priceCents = parseFloat(priceS) * 100;
       }
 
       await set(newItemRef, itemData);
@@ -131,8 +150,12 @@ export default function PizzaioloMenu() {
       setItemName('');
       setItemDesc('');
       setItemType('pizza');
-      setPriceClassic('');
-      setPriceLarge('');
+      setPriceS('');
+      setPriceM('');
+      setPriceL('');
+      setDiameterS('26');
+      setDiameterM('33');
+      setDiameterL('40');
       setShowForm(false);
       setMessage('✅ Article ajouté avec succès !');
 
@@ -180,6 +203,15 @@ export default function PizzaioloMenu() {
 
   return (
     <div className="space-y-6">
+      {/* Bouton retour */}
+      <button
+        onClick={() => navigate(-1)}
+        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Retour
+      </button>
+
       <Card className="p-6">
         <div className="flex items-center justify-between">
           <div>
@@ -236,40 +268,86 @@ export default function PizzaioloMenu() {
             </div>
 
             {itemType === 'pizza' ? (
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Prix Classic (€) *</label>
-                  <Input
-                    value={priceClassic}
-                    onChange={(e) => setPriceClassic(e.target.value)}
-                    placeholder="12.50"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    required
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Prix Large (€) *</label>
-                  <Input
-                    value={priceLarge}
-                    onChange={(e) => setPriceLarge(e.target.value)}
-                    placeholder="15.50"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    required
-                    className="mt-1"
-                  />
+              <div className="space-y-4">
+                <p className="text-sm font-medium text-gray-700">Tailles et prix *</p>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">S (Petite)</label>
+                    <div className="space-y-2">
+                      <Input
+                        value={priceS}
+                        onChange={(e) => setPriceS(e.target.value)}
+                        placeholder="Prix €"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        required
+                      />
+                      <Input
+                        value={diameterS}
+                        onChange={(e) => setDiameterS(e.target.value)}
+                        placeholder="Ø cm"
+                        type="number"
+                        min="15"
+                        max="50"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">M (Moyenne)</label>
+                    <div className="space-y-2">
+                      <Input
+                        value={priceM}
+                        onChange={(e) => setPriceM(e.target.value)}
+                        placeholder="Prix €"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        required
+                      />
+                      <Input
+                        value={diameterM}
+                        onChange={(e) => setDiameterM(e.target.value)}
+                        placeholder="Ø cm"
+                        type="number"
+                        min="15"
+                        max="50"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">L (Grande)</label>
+                    <div className="space-y-2">
+                      <Input
+                        value={priceL}
+                        onChange={(e) => setPriceL(e.target.value)}
+                        placeholder="Prix €"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        required
+                      />
+                      <Input
+                        value={diameterL}
+                        onChange={(e) => setDiameterL(e.target.value)}
+                        placeholder="Ø cm"
+                        type="number"
+                        min="15"
+                        max="50"
+                        required
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : (
               <div>
                 <label className="block text-sm font-medium text-gray-700">Prix (€) *</label>
                 <Input
-                  value={priceClassic}
-                  onChange={(e) => setPriceClassic(e.target.value)}
+                  value={priceS}
+                  onChange={(e) => setPriceS(e.target.value)}
                   placeholder="5.00"
                   type="number"
                   step="0.01"
@@ -309,8 +387,21 @@ export default function PizzaioloMenu() {
                     <p className="mt-1 text-sm text-gray-600">{item.description}</p>
                   )}
                   
-                  <div className="mt-3 flex items-center gap-4">
-                    {item.type === 'pizza' && item.prices ? (
+                  <div className="mt-3 flex items-center gap-4 flex-wrap">
+                    {item.type === 'pizza' && item.sizes ? (
+                      <>
+                        <span className="text-sm font-semibold text-gray-900">
+                          S ({item.sizes.s.diameter}cm): {formatPrice(item.sizes.s.priceCents)}
+                        </span>
+                        <span className="text-sm font-semibold text-gray-900">
+                          M ({item.sizes.m.diameter}cm): {formatPrice(item.sizes.m.priceCents)}
+                        </span>
+                        <span className="text-sm font-semibold text-gray-900">
+                          L ({item.sizes.l.diameter}cm): {formatPrice(item.sizes.l.priceCents)}
+                        </span>
+                      </>
+                    ) : item.type === 'pizza' && item.prices ? (
+                      // Retro-compatibilité ancien format
                       <>
                         <span className="text-sm font-semibold text-gray-900">
                           Classic: {formatPrice(item.prices.classic)}
