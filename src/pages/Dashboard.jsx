@@ -195,9 +195,11 @@ export default function Dashboard() {
 
         {/* Téléphone */}
         {phoneNumber && (
-          <div className="inline-flex items-center gap-2 text-sm text-gray-600 bg-white/50 px-4 py-2 rounded-full border border-gray-200">
-            <Phone className="h-4 w-4 text-primary" />
-            <span className="font-medium">{phoneNumber}</span>
+          <div className="inline-flex items-center gap-2 text-sm text-gray-600 bg-white/50 px-4 py-2 rounded-full border border-gray-200 group hover:bg-white transition-all duration-300 cursor-default overflow-hidden">
+            <Phone className="h-4 w-4 text-primary transition-all duration-[2000ms] ease-linear group-hover:-rotate-[360deg] group-hover:translate-x-1" />
+            <span className="font-medium max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-[2000ms] ease-linear whitespace-nowrap">
+              {phoneNumber}
+            </span>
           </div>
         )}
 
