@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ref, onValue } from 'firebase/database';
+import { Bike, Store } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { useAuth } from '../app/providers/AuthProvider';
 
@@ -149,6 +150,88 @@ export default function OrderTracking() {
                 )}
               </p>
             </div>
+          </div>
+
+          {/* Méthode de livraison */}
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <span className="text-gray-500 text-sm font-medium block mb-3">🚚 Mode de récupération</span>
+            <div className="flex gap-4">
+              {/* Retrait au camion */}
+              <div
+                className={`flex-1 relative overflow-hidden rounded-2xl p-4 transition-all ${
+                  order.deliveryMethod !== 'delivery'
+                    ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                    : 'bg-gray-100 text-gray-400 opacity-50'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`p-3 rounded-xl ${
+                    order.deliveryMethod !== 'delivery' 
+                      ? 'bg-white/20' 
+                      : 'bg-gray-200'
+                  }`}>
+                    <Store className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-sm">Retrait au camion</div>
+                    <div className={`text-xs mt-0.5 ${
+                      order.deliveryMethod !== 'delivery' 
+                        ? 'text-white/80' 
+                        : 'text-gray-400'
+                    }`}>
+                      Gratuit • 15-20 min
+                    </div>
+                  </div>
+                  {order.deliveryMethod !== 'delivery' && (
+                    <div className="ml-auto w-5 h-5 rounded-full bg-white flex items-center justify-center">
+                      <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Livraison à domicile */}
+              <div
+                className={`flex-1 relative overflow-hidden rounded-2xl p-4 transition-all ${
+                  order.deliveryMethod === 'delivery'
+                    ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                    : 'bg-gray-100 text-gray-400 opacity-50'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`p-3 rounded-xl ${
+                    order.deliveryMethod === 'delivery' 
+                      ? 'bg-white/20' 
+                      : 'bg-gray-200'
+                  }`}>
+                    <Bike className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-sm">Livraison à domicile</div>
+                    <div className={`text-xs mt-0.5 ${
+                      order.deliveryMethod === 'delivery' 
+                        ? 'text-white/80' 
+                        : 'text-gray-400'
+                    }`}>
+                      + 3,50€ • 30-40 min
+                    </div>
+                  </div>
+                  {order.deliveryMethod === 'delivery' && (
+                    <div className="ml-auto w-5 h-5 rounded-full bg-white flex items-center justify-center">
+                      <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Adresse de livraison si applicable */}
+            {order.deliveryMethod === 'delivery' && order.deliveryAddress && (
+              <div className="mt-4 p-4 bg-emerald-50 border border-emerald-100 rounded-xl">
+                <p className="text-sm font-medium text-emerald-900 mb-1">📍 Adresse de livraison</p>
+                <p className="text-sm text-emerald-700">{order.deliveryAddress}</p>
+              </div>
+            )}
           </div>
         </div>
 

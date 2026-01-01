@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { ChefHat, Receipt, Pizza, Store, ArrowRight, TrendingUp, Clock, Star, Phone, LogOut, MapPin, Edit2, Pause, Play } from 'lucide-react';
+import { ChefHat, Receipt, Pizza, Store, ArrowRight, TrendingUp, Clock, Star, Phone, LogOut, MapPin, Edit2, Pause, Play, Bike } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { useAuth } from '../app/providers/AuthProvider';
 import { ROUTES } from '../app/routes';
@@ -45,6 +45,7 @@ export default function Dashboard() {
   const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [savingAddress, setSavingAddress] = useState(false);
   const [addressMessage, setAddressMessage] = useState('');
+  const [savingDeliveryPref, setSavingDeliveryPref] = useState(false);
   
   // Carte de fidélité
   const { points, currentTier, nextTier, progress, maxTierReached, loading: loyaltyLoading } = useLoyaltyPoints(user?.uid);
@@ -203,6 +204,37 @@ export default function Dashboard() {
     }
   };
 
+  // Fonction pour changer la préférence de livraison instantanément
+  const handleToggleDeliveryPreference = async (newValue) => {
+    if (!user?.uid || savingDeliveryPref) return;
+
+    setSavingDeliveryPref(true);
+    setWantsDelivery(newValue);
+
+    try {
+      const userRef = ref(db, `users/${user.uid}`);
+      const snap = await get(userRef);
+      const existingData = snap.exists() ? snap.val() : {};
+
+      await set(userRef, {
+        ...existingData,
+        preferences: {
+          ...existingData.preferences,
+          wantsDelivery: newValue
+        },
+        updatedAt: Date.now()
+      });
+
+      console.log('[Dashboard] Préférence de livraison mise à jour:', newValue);
+    } catch (err) {
+      console.error('[Dashboard] Erreur mise à jour préférence:', err);
+      // Revenir à l'ancienne valeur en cas d'erreur
+      setWantsDelivery(!newValue);
+    } finally {
+      setSavingDeliveryPref(false);
+    }
+  };
+
   // Stats client
   const recentOrders = orders.slice(0, 3);
   const totalOrders = orders.length;
@@ -329,29 +361,85 @@ export default function Dashboard() {
                 )}
               </div>
               
-              {/* Badge préférence de livraison */}
+              {/* Cellules de préférence de livraison */}
               <div className="pt-6 border-t border-white/10">
-                <p className="text-sm font-semibold text-gray-700 mb-3">🚚 Préférence de livraison</p>
-                <div className={`inline-flex items-center gap-3 px-5 py-3 rounded-2xl font-bold text-sm shadow-lg transition-all ${
-                  wantsDelivery 
-                    ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-emerald-500/30' 
-                    : 'bg-gradient-to-r from-gray-200 to-gray-300 text-gray-800 shadow-gray-300/50'
-                }`}>
-                  {wantsDelivery ? (
-                    <>
-                      <span className="text-lg">✅</span>
-                      <span>Livraison activée par défaut</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="text-lg">🚶</span>
-                      <span>Retrait sur place par défaut</span>
-                    </>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground mt-2 ml-1">
-                  Cette préférence sera utilisée automatiquement lors de vos commandes
+                <p className="text-sm font-semibold text-gray-700 mb-3">🚚 Méthode de récupération par défaut</p>
+                <p className="text-xs text-muted-foreground mb-4">
+                  Comment souhaitez-vous récupérer votre commande ?
                 </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Retrait au camion */}
+                  <button
+                    onClick={() => handleToggleDeliveryPreference(false)}
+                    disabled={savingDeliveryPref}
+                    className={`group relative overflow-hidden rounded-[28px] p-6 transition-all duration-300 ${
+                      !wantsDelivery
+                        ? 'bg-primary text-white shadow-xl shadow-primary/30'
+                        : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
+                    } ${savingDeliveryPref ? 'cursor-wait' : 'cursor-pointer'}`}
+                  >
+                    <div className="flex flex-col items-center gap-4 text-center">
+                      <div className={`p-4 rounded-2xl transition-all ${
+                        !wantsDelivery 
+                          ? 'bg-white/20' 
+                          : 'bg-primary/10 group-hover:bg-primary/20'
+                      }`}>
+                        <Store className="h-8 w-8" />
+                      </div>
+                      <div>
+                        <div className="font-black text-lg tracking-tight">Retrait au camion</div>
+                        <div className={`text-sm mt-1 ${
+                          !wantsDelivery 
+                            ? 'text-white/80' 
+                            : 'text-muted-foreground'
+                        }`}>
+                          Gratuit • Prêt en 15-20 min
+                        </div>
+                      </div>
+                      {!wantsDelivery && (
+                        <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white flex items-center justify-center">
+                          <div className="w-3 h-3 rounded-full bg-primary" />
+                        </div>
+                      )}
+                    </div>
+                  </button>
+
+                  {/* Livraison à domicile */}
+                  <button
+                    onClick={() => handleToggleDeliveryPreference(true)}
+                    disabled={savingDeliveryPref}
+                    className={`group relative overflow-hidden rounded-[28px] p-6 transition-all duration-300 ${
+                      wantsDelivery
+                        ? 'bg-primary text-white shadow-xl shadow-primary/30'
+                        : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
+                    } ${savingDeliveryPref ? 'cursor-wait' : 'cursor-pointer'}`}
+                  >
+                    <div className="flex flex-col items-center gap-4 text-center">
+                      <div className={`p-4 rounded-2xl transition-all ${
+                        wantsDelivery 
+                          ? 'bg-white/20' 
+                          : 'bg-primary/10 group-hover:bg-primary/20'
+                      }`}>
+                        <Bike className="h-8 w-8" />
+                      </div>
+                      <div>
+                        <div className="font-black text-lg tracking-tight">Livraison à domicile</div>
+                        <div className={`text-sm mt-1 ${
+                          wantsDelivery 
+                            ? 'text-white/80' 
+                            : 'text-muted-foreground'
+                        }`}>
+                          + 3,50€ • 30-40 min
+                        </div>
+                      </div>
+                      {wantsDelivery && (
+                        <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white flex items-center justify-center">
+                          <div className="w-3 h-3 rounded-full bg-primary" />
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
@@ -361,26 +449,81 @@ export default function Dashboard() {
                 onAddressChange={setAddress}
               />
 
-              {/* Toggle préférence de livraison */}
-              <div className="p-5 rounded-2xl border-2 border-primary/20 bg-primary/5">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="font-bold text-gray-900 flex items-center gap-2">
-                      🚚 Activer la livraison par défaut
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Si activé, l'option livraison sera sélectionnée automatiquement lors de vos commandes
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer ml-4">
-                    <input
-                      type="checkbox"
-                      checked={wantsDelivery}
-                      onChange={(e) => setWantsDelivery(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-14 h-7 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-500 shadow-inner"></div>
-                  </label>
+              {/* Cellules de préférence de livraison */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">🚚 Méthode de récupération par défaut</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Retrait au camion */}
+                  <button
+                    type="button"
+                    onClick={() => setWantsDelivery(false)}
+                    className={`group relative overflow-hidden rounded-[28px] p-6 transition-all duration-300 ${
+                      !wantsDelivery
+                        ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-[1.02]'
+                        : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
+                    }`}
+                  >
+                    <div className="flex flex-col items-center gap-4 text-center">
+                      <div className={`p-4 rounded-2xl transition-all ${
+                        !wantsDelivery 
+                          ? 'bg-white/20' 
+                          : 'bg-primary/10 group-hover:bg-primary/20'
+                      }`}>
+                        <Store className="h-8 w-8" />
+                      </div>
+                      <div>
+                        <div className="font-black text-lg tracking-tight">Retrait au camion</div>
+                        <div className={`text-sm mt-1 ${
+                          !wantsDelivery 
+                            ? 'text-white/80' 
+                            : 'text-muted-foreground'
+                        }`}>
+                          Gratuit • Prêt en 15-20 min
+                        </div>
+                      </div>
+                      {!wantsDelivery && (
+                        <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white flex items-center justify-center">
+                          <div className="w-3 h-3 rounded-full bg-primary" />
+                        </div>
+                      )}
+                    </div>
+                  </button>
+
+                  {/* Livraison à domicile */}
+                  <button
+                    type="button"
+                    onClick={() => setWantsDelivery(true)}
+                    className={`group relative overflow-hidden rounded-[28px] p-6 transition-all duration-300 ${
+                      wantsDelivery
+                        ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-[1.02]'
+                        : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
+                    }`}
+                  >
+                    <div className="flex flex-col items-center gap-4 text-center">
+                      <div className={`p-4 rounded-2xl transition-all ${
+                        wantsDelivery 
+                          ? 'bg-white/20' 
+                          : 'bg-primary/10 group-hover:bg-primary/20'
+                      }`}>
+                        <Bike className="h-8 w-8" />
+                      </div>
+                      <div>
+                        <div className="font-black text-lg tracking-tight">Livraison à domicile</div>
+                        <div className={`text-sm mt-1 ${
+                          wantsDelivery 
+                            ? 'text-white/80' 
+                            : 'text-muted-foreground'
+                        }`}>
+                          + 3,50€ • 30-40 min
+                        </div>
+                      </div>
+                      {wantsDelivery && (
+                        <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white flex items-center justify-center">
+                          <div className="w-3 h-3 rounded-full bg-primary" />
+                        </div>
+                      )}
+                    </div>
+                  </button>
                 </div>
               </div>
 
