@@ -23,10 +23,11 @@ export const ROUTES = {
   // Pizzaiolo
   pizzaioloStart: '/pizzaiolo/start',
   pizzaioloBase: '/pizzaiolo',
-  pizzaioloDashboard: '/pizzaiolo/dashboard',
-  pizzaioloProfile: '/pizzaiolo/profile',
-  pizzaioloMenu: '/pizzaiolo/menu',
-  pizzaioloOrders: '/pizzaiolo/orders',
+  pizzaioloDashboard: '/pro/truck',
+  pizzaioloProfile: '/pro/truck',
+  pizzaioloMenu: '/pro/menu',
+  pizzaioloOrders: '/pro/commandes',
+  pizzaioloLive: '/pro/live',
 
   // Partenaires / Pro
   becomePartner: '/devenez_partenaire',

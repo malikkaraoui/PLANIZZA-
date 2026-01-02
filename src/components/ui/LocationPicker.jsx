@@ -71,7 +71,7 @@ async function geocodeAddress(address) {
   }
 }
 
-export default function LocationPicker({ value, onChange }) {
+export default function LocationPicker({ value, onChange, defaultOpen = false }) {
   const [position, setPosition] = useState(
     value?.lat && value?.lng
       ? { lat: value.lat, lng: value.lng, address: value.address || '' }
@@ -80,7 +80,7 @@ export default function LocationPicker({ value, onChange }) {
   const [searchAddress, setSearchAddress] = useState('');
   const [searching, setSearching] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
-  const [showMap, setShowMap] = useState(false);
+  const [showMap, setShowMap] = useState(defaultOpen);
 
   // Synchroniser avec le parent
   useEffect(() => {

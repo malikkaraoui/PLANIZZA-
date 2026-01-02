@@ -96,12 +96,19 @@ export default function Navbar() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="gap-3 h-12 rounded-full pl-2 pr-5 transition-all group hover:bg-white/10">
-                    <Avatar className="h-9 w-9 border-2 border-white/40 shadow-xl group-hover:scale-110 transition-transform">
-                      <AvatarImage src={user.photoURL} alt={user.displayName || 'User'} />
-                      <AvatarFallback className="bg-primary/20 text-primary font-bold">
-                        {user.email?.[0]?.toUpperCase() || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="relative">
+                      <Avatar className="h-9 w-9 border-2 border-white/40 shadow-xl group-hover:scale-110 transition-transform">
+                        <AvatarImage src={user.photoURL} alt={user.displayName || 'User'} />
+                        <AvatarFallback className="bg-primary/20 text-primary font-bold">
+                          {user.email?.[0]?.toUpperCase() || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      {isPizzaiolo && (
+                        <div className="absolute -bottom-0.5 -right-0.5 h-5 w-5 rounded-full bg-orange-500 border-2 border-white shadow-lg flex items-center justify-center">
+                          <ChefHat className="h-2.5 w-2.5 text-white" />
+                        </div>
+                      )}
+                    </div>
                     <span className="hidden md:inline text-sm font-black tracking-tight">{user.displayName || 'Mon compte'}</span>
                   </Button>
                 </DropdownMenuTrigger>
@@ -131,13 +138,13 @@ export default function Navbar() {
                       <div className="px-3 py-2">
                         <p className="text-xs font-bold text-orange-500/80 uppercase tracking-wider px-2 mb-1">Espace Pro</p>
                         <DropdownMenuItem asChild>
-                          <Link to="/pizzaiolo/profile" className="flex items-center gap-3 px-5 py-3 rounded-2xl hover:bg-orange-500/10 cursor-pointer transition-colors font-bold">
+                          <Link to={ROUTES.pizzaioloProfile} className="flex items-center gap-3 px-5 py-3 rounded-2xl hover:bg-orange-500/10 cursor-pointer transition-colors font-bold">
                             <Store className="h-4 w-4 text-orange-500" />
                             Mon Camion
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link to="/pizzaiolo/orders" className="flex items-center gap-3 px-5 py-3 rounded-2xl hover:bg-orange-500/10 cursor-pointer transition-colors font-bold">
+                          <Link to={ROUTES.pizzaioloOrders} className="flex items-center gap-3 px-5 py-3 rounded-2xl hover:bg-orange-500/10 cursor-pointer transition-colors font-bold">
                             <ShoppingCart className="h-4 w-4 text-orange-500" />
                             Commandes Reçues
                           </Link>

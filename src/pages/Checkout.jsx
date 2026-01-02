@@ -38,6 +38,8 @@ export default function Checkout() {
 
     // Générer un guestUserId si l'utilisateur n'est pas connecté
     let userUid = user?.uid;
+    let customerName = user?.displayName || 'Client';
+    
     if (!userUid) {
       // Récupérer ou créer un ID invité persistant
       let guestId = localStorage.getItem('planizza:guestUserId');
@@ -46,6 +48,7 @@ export default function Checkout() {
         localStorage.setItem('planizza:guestUserId', guestId);
       }
       userUid = guestId;
+      customerName = 'Client';
     }
 
     try {
@@ -53,6 +56,7 @@ export default function Checkout() {
         truckId,
         items,
         userUid,
+        customerName,
       });
       // createOrder déclenche le redirect Stripe via lib/stripe
     } catch (e) {

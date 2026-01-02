@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ref, get, set, push, update } from 'firebase/database';
-import { Pause, Play, Pizza, Edit2, ArrowLeft } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { ref, get, set, push, update, remove } from 'firebase/database';
+import { Pause, Play, Pizza, Edit2, ArrowLeft, Trash2, Radio, ListOrdered, Utensils } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import { useAuth } from '../../app/providers/AuthProvider';
 import { useUserProfile } from '../../features/users/hooks/useUserProfile';
@@ -13,6 +13,15 @@ import ImageUploader from '../../components/ui/ImageUploader';
 import { useTruckPause } from '../../features/trucks/hooks/useTruckPause';
 import { useActiveOrdersCount } from '../../features/orders/hooks/useActiveOrdersCount';
 import { Badge } from '../../components/ui/Badge';
+import { ROUTES } from '../../app/routes';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 
 function initialsFromUser({ email, displayName } = {}) {
   const base = (displayName || email || '').trim();
@@ -78,6 +87,10 @@ export default function PizzaioloProfile() {
   const [isPaused, setIsPaused] = useState(false);
   const { togglePause, isUpdating: isPauseUpdating } = useTruckPause(truckId);
   const { count: activeOrdersCount } = useActiveOrdersCount(truckId);
+  
+  // Dialog de confirmation de suppression
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Fonction toggle pause
   const handleTogglePause = async () => {
@@ -99,6 +112,47 @@ export default function PizzaioloProfile() {
       }
     } catch (err) {
       console.error('[Profile] Erreur toggle pause:', err);
+    }
+  };
+
+  // Fonction suppression compte pro
+  const handleDeleteProAccount = async () => {
+    if (!user?.uid || !truckId || isDeleting) return;
+
+    setIsDeleting(true);
+
+    try {
+      // Supprimer le camion de public/trucks
+      await remove(ref(db, `public/trucks/${truckId}`));
+      
+      // Supprimer l'entrée pizzaiolos
+      await remove(ref(db, `pizzaiolos/${user.uid}`));
+      
+      // Mettre à jour le rôle dans users
+      const userRef = ref(db, `users/${user.uid}`);
+      const userSnap = await get(userRef);
+      
+      if (userSnap.exists()) {
+        const userData = userSnap.val();
+        await set(userRef, {
+          ...userData,
+          role: 'user',
+          updatedAt: Date.now()
+        });
+      }
+
+      console.log('[PLANIZZA] Compte pro supprimé avec succès');
+      
+      // Fermer le dialog
+      setShowDeleteDialog(false);
+      
+      // Rediriger vers le dashboard client
+      navigate('/dashboard', { replace: true });
+    } catch (err) {
+      console.error('[Profile] Erreur suppression compte pro:', err);
+      alert('❌ Erreur lors de la suppression du compte pro. Réessayez.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -255,8 +309,38 @@ export default function PizzaioloProfile() {
     setBadges(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const toggleDelivery = (key) => {
-    setDeliveryOptions(prev => ({ ...prev, [key]: !prev[key] }));
+  const toggleDelivery = async (key) => {
+    if (!truckId) {
+      // Si on est en mode édition (pas encore de truckId), juste mettre à jour l'état local
+      setDeliveryOptions(prev => ({ ...prev, [key]: !prev[key] }));
+      return;
+    }
+
+    // Si on est en mode visualisation, sauvegarder immédiatement dans Firebase
+    const newValue = !deliveryOptions[key];
+    setDeliveryOptions(prev => ({ ...prev, [key]: newValue }));
+
+    try {
+      const truckRef = ref(db, `public/trucks/${truckId}`);
+      const snap = await get(truckRef);
+      
+      if (snap.exists()) {
+        const existingData = snap.val();
+        await update(truckRef, {
+          deliveryOptions: {
+            ...existingData.deliveryOptions,
+            [key]: newValue
+          },
+          updatedAt: Date.now()
+        });
+        
+        console.log(`[Profile] Option ${key} mise à jour:`, newValue);
+      }
+    } catch (err) {
+      console.error('[Profile] Erreur mise à jour option livraison:', err);
+      // Revenir à l'ancienne valeur en cas d'erreur
+      setDeliveryOptions(prev => ({ ...prev, [key]: !newValue }));
+    }
   };
 
   return (
@@ -270,36 +354,61 @@ export default function PizzaioloProfile() {
         Retour
       </button>
 
-      <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-[32px]">
-        <h1 className="text-3xl font-black tracking-tight">Mon compte</h1>
-        <p className="mt-2 text-muted-foreground font-medium">
-          {profileLoading ? 'Chargement du profil…' : 'Informations de connexion.'}
-        </p>
-
-        <div className="mt-6 flex items-center gap-4">
-          <div className="h-16 w-16 rounded-full border-2 border-white/20 bg-white/5 overflow-hidden flex items-center justify-center text-sm font-extrabold shadow-lg">
-            {photoURL ? (
-              <img
-                src={photoURL}
-                alt=""
-                className="h-full w-full object-cover"
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              initialsFromUser({ email, displayName })
-            )}
-          </div>
-
-          <div className="min-w-0">
-            <div className="font-black tracking-tight truncate">
-              {displayName || 'Utilisateur'}
+      {/* Navigation rapide */}
+      {truckId && (
+        <div className="grid md:grid-cols-3 gap-4">
+          <Link
+            to={ROUTES.pizzaioloLive}
+            className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px] hover:border-primary/50 transition-all group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="p-3 rounded-2xl bg-red-500/10 group-hover:bg-red-500/20 transition">
+                  <Radio className="h-6 w-6 text-red-500" />
+                </div>
+                <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                </span>
+              </div>
+              <div>
+                <h3 className="font-black text-lg">Live</h3>
+                <p className="text-xs text-muted-foreground">Prise de commande</p>
+              </div>
             </div>
-            <div className="text-sm text-muted-foreground truncate">
-              {email || 'Email indisponible'}
+          </Link>
+
+          <Link
+            to={ROUTES.pizzaioloOrders}
+            className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px] hover:border-primary/50 transition-all group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-blue-500/10 group-hover:bg-blue-500/20 transition">
+                <ListOrdered className="h-6 w-6 text-blue-500" />
+              </div>
+              <div>
+                <h3 className="font-black text-lg">Commandes</h3>
+                <p className="text-xs text-muted-foreground">Historique & Stats</p>
+              </div>
             </div>
-          </div>
+          </Link>
+
+          <Link
+            to={ROUTES.pizzaioloMenu}
+            className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px] hover:border-primary/50 transition-all group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-emerald-500/10 group-hover:bg-emerald-500/20 transition">
+                <Utensils className="h-6 w-6 text-emerald-500" />
+              </div>
+              <div>
+                <h3 className="font-black text-lg">Menu</h3>
+                <p className="text-xs text-muted-foreground">Gérer mes pizzas</p>
+              </div>
+            </div>
+          </Link>
         </div>
-      </Card>
+      )}
 
       {!truckId ? (
         <Card className="glass-premium glass-glossy border-white/20 p-12 rounded-[32px] text-center">
@@ -400,6 +509,21 @@ export default function PizzaioloProfile() {
               <div>
                 <p className="text-sm font-bold mb-2">🔥 Type de four</p>
                 <p className="text-sm text-muted-foreground font-medium">{ovenType}</p>
+                
+                {/* Alerte pour les installations au gaz */}
+                {ovenType === 'Gaz' && (
+                  <div className="mt-3 p-4 rounded-xl bg-orange-500/10 border border-orange-500/30">
+                    <div className="flex items-start gap-3">
+                      <span className="text-2xl">⚠️</span>
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-orange-500 mb-1">Rappel de sécurité</p>
+                        <p className="text-xs text-muted-foreground font-medium">
+                          Contrôles réguliers : faites vérifier vos installations au moins une fois par an pour garantir leur bon fonctionnement et leur conformité.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -445,15 +569,50 @@ export default function PizzaioloProfile() {
             )}
 
             {/* Livraison */}
-            {(deliveryOptions.deliveroo || deliveryOptions.uber) && (
-              <div>
-                <p className="text-sm font-semibold text-gray-900 mb-2">🚴 Options de livraison</p>
-                <div className="flex gap-2">
-                  {deliveryOptions.deliveroo && <span className="px-3 py-1 bg-teal-100 text-teal-800 rounded-full text-sm">Deliveroo</span>}
-                  {deliveryOptions.uber && <span className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm">Uber Eats</span>}
-                </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900 mb-3">🚴 Options de livraison</p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => toggleDelivery('deliveroo')}
+                  className={`group relative overflow-hidden rounded-[24px] p-5 transition-all duration-300 ${
+                    deliveryOptions.deliveroo
+                      ? 'bg-teal-500 text-white shadow-xl shadow-teal-500/30'
+                      : 'glass-premium border-white/20 hover:border-teal-500/30 hover:scale-[1.01]'
+                  }`}
+                >
+                  <div className="flex flex-col items-center gap-3 text-center">
+                    <div className="font-black text-base tracking-tight">Deliveroo</div>
+                    <div className={`text-xs font-bold px-3 py-1 rounded-full ${
+                      deliveryOptions.deliveroo 
+                        ? 'bg-white/20 text-white' 
+                        : 'bg-red-500/10 text-red-600'
+                    }`}>
+                      {deliveryOptions.deliveroo ? '✓ Activé' : '✕ Désactivé'}
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => toggleDelivery('uber')}
+                  className={`group relative overflow-hidden rounded-[24px] p-5 transition-all duration-300 ${
+                    deliveryOptions.uber
+                      ? 'bg-gray-700 text-white shadow-xl shadow-gray-700/30'
+                      : 'glass-premium border-white/20 hover:border-gray-500/30 hover:scale-[1.01]'
+                  }`}
+                >
+                  <div className="flex flex-col items-center gap-3 text-center">
+                    <div className="font-black text-base tracking-tight">Uber Eats</div>
+                    <div className={`text-xs font-bold px-3 py-1 rounded-full ${
+                      deliveryOptions.uber 
+                        ? 'bg-white/20 text-white' 
+                        : 'bg-red-500/10 text-red-600'
+                    }`}>
+                      {deliveryOptions.uber ? '✓ Activé' : '✕ Désactivé'}
+                    </div>
+                  </div>
+                </button>
               </div>
-            )}
+            </div>
 
             {/* Horaires */}
             {openingHours && (
@@ -506,11 +665,20 @@ export default function PizzaioloProfile() {
                 <p className="mt-1 text-muted-foreground font-medium">Renseignez les informations de votre camion pizza</p>
               </div>
             </div>
-            {truckId && (
-              <Button onClick={() => setIsEditing(false)} variant="outline" className="rounded-2xl font-bold">
-                Annuler
+            <div className="flex gap-3">
+              <Button 
+                onClick={handleSaveTruck} 
+                disabled={saving}
+                className="rounded-2xl font-bold bg-orange-500 hover:bg-orange-600"
+              >
+                {saving ? 'Enregistrement...' : '✓ Valider'}
               </Button>
-            )}
+              {truckId && (
+                <Button onClick={() => setIsEditing(false)} variant="outline" className="rounded-2xl font-bold">
+                  Annuler
+                </Button>
+              )}
+            </div>
           </div>
 
         <form onSubmit={handleSaveTruck} className="mt-8 space-y-8">
@@ -628,23 +796,8 @@ export default function PizzaioloProfile() {
               <LocationPicker
                 value={location}
                 onChange={setLocation}
+                defaultOpen={true}
               />
-              {location?.lat && location?.lng && (
-                <div className="mt-4 rounded-2xl overflow-hidden border border-white/20 shadow-lg">
-                  <div className="bg-white/5 p-3 backdrop-blur-sm">
-                    <p className="text-xs font-bold text-muted-foreground mb-1">📍 Aperçu de localisation</p>
-                    <p className="text-sm font-medium">{location.address || 'Adresse non renseignée'}</p>
-                  </div>
-                  <iframe
-                    width="100%"
-                    height="200"
-                    frameBorder="0"
-                    style={{ border: 0 }}
-                    src={`https://www.google.com/maps?q=${location.lat},${location.lng}&z=15&output=embed`}
-                    allowFullScreen
-                  ></iframe>
-                </div>
-              )}
             </div>
           </div>
 
@@ -780,12 +933,63 @@ export default function PizzaioloProfile() {
             </div>
           )}
 
-          <Button type="submit" disabled={saving} className="w-full rounded-2xl h-14 font-bold text-lg bg-orange-500 hover:bg-orange-600">
-            {saving ? 'Sauvegarde en cours...' : truckId ? 'Mettre à jour le camion' : 'Créer mon camion'}
-          </Button>
+          <div className="space-y-3">
+            <Button type="submit" disabled={saving} className="w-full rounded-2xl h-14 font-bold text-lg bg-orange-500 hover:bg-orange-600">
+              {saving ? 'Sauvegarde en cours...' : truckId ? 'Mettre à jour le camion' : 'Créer mon camion'}
+            </Button>
+            
+            {truckId && (
+              <Button 
+                type="button"
+                onClick={() => setShowDeleteDialog(true)}
+                variant="outline"
+                className="w-full rounded-2xl h-12 font-bold text-red-600 border-red-600/30 hover:bg-red-600/10"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Supprimer le compte professionnel
+              </Button>
+            )}
+          </div>
         </form>
       </Card>
       )}
+
+      {/* Dialog de confirmation de suppression */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="glass-deep border-white/20 rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black tracking-tight">Supprimer le compte professionnel ?</DialogTitle>
+            <DialogDescription className="text-base text-muted-foreground mt-4">
+              Cette action supprimera définitivement :
+              <ul className="list-disc list-inside mt-3 space-y-1">
+                <li>Votre camion et toutes ses informations</li>
+                <li>Votre menu et vos pizzas</li>
+                <li>Votre statut professionnel</li>
+              </ul>
+              <p className="mt-4 font-bold text-red-600">
+                Cette action est irréversible. Êtes-vous sûr de vouloir continuer ?
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              onClick={() => setShowDeleteDialog(false)}
+              variant="outline"
+              disabled={isDeleting}
+              className="rounded-2xl"
+            >
+              Non, annuler
+            </Button>
+            <Button
+              onClick={handleDeleteProAccount}
+              disabled={isDeleting}
+              className="rounded-2xl bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? 'Suppression...' : 'Oui, supprimer'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

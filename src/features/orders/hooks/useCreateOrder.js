@@ -7,7 +7,7 @@ import { createCheckoutSession } from '../../../lib/stripe';
 export function useCreateOrder() {
   const [loading, setLoading] = useState(false);
 
-  const createOrder = async ({ truckId, items, userUid }) => {
+  const createOrder = async ({ truckId, items, userUid, customerName, deliveryMethod }) => {
     setLoading(true);
     try {
       if (!isFirebaseConfigured || !db) {
@@ -38,6 +38,8 @@ export function useCreateOrder() {
         status: 'created',
         truckId,
         userUid,
+        customerName: customerName || 'Client',
+        deliveryMethod: deliveryMethod || 'pickup',
         currency: 'eur',
         items: items.map((it) => ({
           id: it.id,

@@ -82,11 +82,13 @@ export default function Cart() {
     setError(null);
     
     try {
-      // Créer la commande et lancer directement le paiement Stripe
+      // Créer la commande avec le mode de livraison choisi
       await createOrder({
         truckId,
         items,
         userUid: user.uid,
+        customerName: user.displayName || 'Client',
+        deliveryMethod: deliveryMethod, // Passer la vraie valeur choisie !
       });
       // La fonction createOrder redirige automatiquement vers Stripe Checkout
     } catch (err) {
@@ -314,9 +316,9 @@ export default function Cart() {
 
         {/* Récapitulatif */}
         <div className="lg:col-span-1">
-          <Card className="sticky top-20">
+          <Card className="lg:sticky lg:top-24 glass-premium glass-glossy border-white/30">
             <CardHeader>
-              <CardTitle>Récapitulatif</CardTitle>
+              <CardTitle className="text-xl font-black tracking-tight">Récapitulatif</CardTitle>
             </CardHeader>
 
             <CardContent className="space-y-4">

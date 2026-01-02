@@ -22,16 +22,16 @@ export default function PizzaioloDashboard() {
         if (snap.exists() && snap.val().truckId) {
           setHasTruck(true);
           
-          // Si on est sur /pizzaiolo/dashboard (pas de sous-route), rediriger vers menu
-          if (location.pathname === '/pizzaiolo/dashboard') {
-            navigate('/pizzaiolo/menu', { replace: true });
+          // Si on est sur /pro (pas de sous-route), rediriger vers truck
+          if (location.pathname === '/pro') {
+            navigate('/pro/truck', { replace: true });
           }
         } else {
           setHasTruck(false);
           
           // Si pas de camion, rediriger vers le profil pour en créer un
-          if (location.pathname === '/pizzaiolo/dashboard') {
-            navigate('/pizzaiolo/profile', { replace: true });
+          if (location.pathname === '/pro') {
+            navigate('/pro/truck', { replace: true });
           }
         }
       } catch (err) {

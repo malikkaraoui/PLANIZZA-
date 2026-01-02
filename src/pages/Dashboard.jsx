@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { ChefHat, Receipt, Pizza, Store, ArrowRight, TrendingUp, Clock, Star, Phone, LogOut, MapPin, Edit2, Pause, Play, Bike } from 'lucide-react';
+import { ChefHat, Receipt, Pizza, Store, ArrowRight, TrendingUp, Clock, Star, Phone, LogOut, MapPin, Edit2, Pause, Play, Bike, Radio } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { useAuth } from '../app/providers/AuthProvider';
 import { ROUTES } from '../app/routes';
@@ -249,12 +249,19 @@ export default function Dashboard() {
       {/* Header */}
       <div className="text-center space-y-4">
         <div className="flex justify-center mb-6">
-          <Avatar className="h-24 w-24 border-4 border-white/40 shadow-2xl">
-            <AvatarImage src={user?.photoURL} alt={user?.displayName || 'User'} />
-            <AvatarFallback className="bg-primary/20 text-primary font-black text-2xl">
-              {user?.displayName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <Avatar className="h-24 w-24 border-4 border-white/40 shadow-2xl">
+              <AvatarImage src={user?.photoURL} alt={user?.displayName || 'User'} />
+              <AvatarFallback className="bg-primary/20 text-primary font-black text-2xl">
+                {user?.displayName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            {isPizzaiolo && (
+              <div className="absolute -bottom-1 -right-1 h-10 w-10 rounded-full bg-orange-500 border-4 border-white shadow-xl flex items-center justify-center animate-in zoom-in">
+                <ChefHat className="h-5 w-5 text-white" />
+              </div>
+            )}
+          </div>
         </div>
         <h1 className="text-5xl font-black tracking-tighter text-premium-gradient">
           Salut, {user?.displayName?.split(' ')[0] || 'Chef'} ! 👋
@@ -298,20 +305,20 @@ export default function Dashboard() {
           <div className="h-1 flex-1 bg-gradient-to-r from-transparent via-primary/30 to-transparent rounded-full" />
         </div>
 
-        <div className="grid gap-6 md:grid-cols-1">
+        <div className="grid gap-6 md:grid-cols-2">
           {/* Mes Commandes */}
           <Link to={ROUTES.myOrders}>
-            <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-[32px] hover:scale-[1.02] hover:shadow-2xl transition-all group cursor-pointer h-full">
-              <div className="space-y-4">
+            <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px] hover:scale-[1.02] hover:shadow-2xl transition-all group cursor-pointer h-full">
+              <div className="space-y-3">
                 <div className="flex items-start justify-between">
-                  <div className="p-4 rounded-2xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <Receipt className="h-8 w-8 text-primary" />
+                  <div className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                    <Receipt className="h-6 w-6 text-primary" />
                   </div>
                   <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
                 </div>
-                <div className="space-y-2">
-                  <h3 className="text-xl font-black tracking-tight">Mes Commandes</h3>
-                  <p className="text-sm text-muted-foreground font-medium">
+                <div className="space-y-1">
+                  <h3 className="text-lg font-black tracking-tight">Mes Commandes</h3>
+                  <p className="text-xs text-muted-foreground font-medium">
                     {totalOrders === 0 ? 'Aucune commande' : `${totalOrders} commande${totalOrders > 1 ? 's' : ''}`}
                   </p>
                   {totalOrders > 0 && (
@@ -324,16 +331,14 @@ export default function Dashboard() {
               </div>
             </Card>
           </Link>
-        </div>
 
-        {/* Adresse postale */}
-        <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-[32px]">
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <MapPin className="h-6 w-6 text-primary" />
+          {/* Adresse postale */}
+          <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px] h-full">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-primary" />
               <div>
-                <h3 className="text-xl font-black tracking-tight">Mon Adresse</h3>
-                <p className="text-sm text-muted-foreground">Adresse de livraison</p>
+                <h3 className="text-lg font-black tracking-tight">Adresse de livraison</h3>
               </div>
             </div>
             {!isEditingAddress && (
@@ -346,7 +351,7 @@ export default function Dashboard() {
 
           {!isEditingAddress ? (
             <div>
-              <div className="text-gray-700 mb-6">
+              <div className="text-gray-700 mb-4">
                 {address.streetNumber || address.street || address.postalCode || address.city ? (
                   <div className="space-y-1">
                     {address.streetNumber && address.street && <p className="font-medium">{address.streetNumber} {address.street}</p>}
@@ -354,7 +359,6 @@ export default function Dashboard() {
                     {(address.postalCode || address.city) && (
                       <p>{address.postalCode} {address.city}</p>
                     )}
-                    {address.country && <p className="text-sm text-muted-foreground">{address.country}</p>}
                   </div>
                 ) : (
                   <p className="text-muted-foreground italic">Aucune adresse renseignée</p>
@@ -362,24 +366,20 @@ export default function Dashboard() {
               </div>
               
               {/* Cellules de préférence de livraison */}
-              <div className="pt-6 border-t border-white/10">
-                <p className="text-sm font-semibold text-gray-700 mb-3">🚚 Méthode de récupération par défaut</p>
-                <p className="text-xs text-muted-foreground mb-4">
-                  Comment souhaitez-vous récupérer votre commande ?
-                </p>
+              <div className="pt-4 border-t border-white/10">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Retrait au camion */}
                   <button
                     onClick={() => handleToggleDeliveryPreference(false)}
                     disabled={savingDeliveryPref}
-                    className={`group relative overflow-hidden rounded-[28px] p-6 transition-all duration-300 ${
+                    className={`group relative overflow-hidden rounded-[24px] p-4 transition-all duration-300 ${
                       !wantsDelivery
                         ? 'bg-primary text-white shadow-xl shadow-primary/30'
                         : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
                     } ${savingDeliveryPref ? 'cursor-wait' : 'cursor-pointer'}`}
                   >
-                    <div className="flex flex-col items-center gap-4 text-center">
-                      <div className={`p-4 rounded-2xl transition-all ${
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <div className={`p-3 rounded-xl transition-all ${
                         !wantsDelivery 
                           ? 'bg-white/20' 
                           : 'bg-primary/10 group-hover:bg-primary/20'
@@ -408,14 +408,14 @@ export default function Dashboard() {
                   <button
                     onClick={() => handleToggleDeliveryPreference(true)}
                     disabled={savingDeliveryPref}
-                    className={`group relative overflow-hidden rounded-[28px] p-6 transition-all duration-300 ${
+                    className={`group relative overflow-hidden rounded-[24px] p-4 transition-all duration-300 ${
                       wantsDelivery
                         ? 'bg-primary text-white shadow-xl shadow-primary/30'
                         : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
                     } ${savingDeliveryPref ? 'cursor-wait' : 'cursor-pointer'}`}
                   >
-                    <div className="flex flex-col items-center gap-4 text-center">
-                      <div className={`p-4 rounded-2xl transition-all ${
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <div className={`p-3 rounded-xl transition-all ${
                         wantsDelivery 
                           ? 'bg-white/20' 
                           : 'bg-primary/10 group-hover:bg-primary/20'
@@ -451,20 +451,19 @@ export default function Dashboard() {
 
               {/* Cellules de préférence de livraison */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">🚚 Méthode de récupération par défaut</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Retrait au camion */}
                   <button
                     type="button"
                     onClick={() => setWantsDelivery(false)}
-                    className={`group relative overflow-hidden rounded-[28px] p-6 transition-all duration-300 ${
+                    className={`group relative overflow-hidden rounded-[24px] p-4 transition-all duration-300 ${
                       !wantsDelivery
                         ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-[1.02]'
                         : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
                     }`}
                   >
-                    <div className="flex flex-col items-center gap-4 text-center">
-                      <div className={`p-4 rounded-2xl transition-all ${
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <div className={`p-3 rounded-xl transition-all ${
                         !wantsDelivery 
                           ? 'bg-white/20' 
                           : 'bg-primary/10 group-hover:bg-primary/20'
@@ -493,23 +492,23 @@ export default function Dashboard() {
                   <button
                     type="button"
                     onClick={() => setWantsDelivery(true)}
-                    className={`group relative overflow-hidden rounded-[28px] p-6 transition-all duration-300 ${
+                    className={`group relative overflow-hidden rounded-[24px] p-4 transition-all duration-300 ${
                       wantsDelivery
                         ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-[1.02]'
                         : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
                     }`}
                   >
-                    <div className="flex flex-col items-center gap-4 text-center">
-                      <div className={`p-4 rounded-2xl transition-all ${
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <div className={`p-3 rounded-xl transition-all ${
                         wantsDelivery 
                           ? 'bg-white/20' 
                           : 'bg-primary/10 group-hover:bg-primary/20'
                       }`}>
-                        <Bike className="h-8 w-8" />
+                        <Bike className="h-6 w-6" />
                       </div>
                       <div>
-                        <div className="font-black text-lg tracking-tight">Livraison à domicile</div>
-                        <div className={`text-sm mt-1 ${
+                        <div className="font-black text-base tracking-tight">Livraison à domicile</div>
+                        <div className={`text-xs mt-0.5 ${
                           wantsDelivery 
                             ? 'text-white/80' 
                             : 'text-muted-foreground'
@@ -544,6 +543,7 @@ export default function Dashboard() {
             </form>
           )}
         </Card>
+        </div>
 
         {/* Dernières commandes */}
         {recentOrders.length > 0 && (
@@ -595,7 +595,7 @@ export default function Dashboard() {
             <div className="h-1 flex-1 bg-gradient-to-r from-transparent via-orange-500/30 to-transparent rounded-full" />
           </div>
 
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {/* Mon Camion */}
             <Link to={ROUTES.pizzaioloProfile} className="relative">
               <Card className="glass-premium glass-glossy border-orange-500/20 p-8 rounded-[32px] hover:scale-[1.02] hover:shadow-2xl hover:shadow-orange-500/10 transition-all group cursor-pointer h-full">
@@ -711,6 +711,32 @@ export default function Dashboard() {
                         ? `${activeOrdersCount} commande${activeOrdersCount > 1 ? 's' : ''} en cours`
                         : 'Gérer vos commandes en cours'
                       }
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            </Link>
+
+            {/* Live - Prise de commande */}
+            <Link to={ROUTES.pizzaioloLive}>
+              <Card className="glass-premium glass-glossy border-red-500/20 p-8 rounded-[32px] hover:scale-[1.02] hover:shadow-2xl hover:shadow-red-500/10 transition-all group cursor-pointer h-full">
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div className="relative">
+                      <div className="p-4 rounded-2xl bg-red-500/10 group-hover:bg-red-500/20 transition-colors">
+                        <Radio className="h-8 w-8 text-red-500" />
+                      </div>
+                      <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                      </span>
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-red-500 group-hover:translate-x-1 transition-all" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-black tracking-tight">Live</h3>
+                    <p className="text-sm text-muted-foreground font-medium">
+                      Prise de commande manuelle
                     </p>
                   </div>
                 </div>

@@ -55,11 +55,18 @@ export default function ImageUploader({ value, onChange, label, folder = 'upload
     }
   };
 
-  const handleRemove = () => {
+  const handleRemove = (e) => {
+    e.stopPropagation();
     setPreview('');
     onChange('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const handleImageClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
     }
   };
 
@@ -69,18 +76,35 @@ export default function ImageUploader({ value, onChange, label, folder = 'upload
         <label className="block text-sm font-medium text-gray-700">{label}</label>
       )}
 
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/jpg,image/png,image/webp"
+        onChange={handleFileSelect}
+        className="hidden"
+        id={`file-upload-${folder}`}
+      />
+
       {/* Aperçu de l'image */}
       {preview && (
-        <div className="relative rounded-lg overflow-hidden border border-gray-300 bg-gray-50">
+        <div 
+          className="relative rounded-lg overflow-hidden border border-gray-300 bg-gray-50 cursor-pointer hover:border-primary transition-all group"
+          onClick={handleImageClick}
+        >
           <img
             src={preview}
             alt="Aperçu"
-            className="w-full h-48 object-cover"
+            className="w-full h-48 object-cover group-hover:opacity-90 transition-opacity"
           />
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center">
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-bold text-gray-800">
+              📁 Changer l'image
+            </div>
+          </div>
           <button
             type="button"
             onClick={handleRemove}
-            className="absolute top-2 right-2 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-700 shadow-lg"
+            className="absolute top-2 right-2 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-700 shadow-lg z-10"
           >
             ✕
           </button>
@@ -89,23 +113,14 @@ export default function ImageUploader({ value, onChange, label, folder = 'upload
 
       {/* Zone d'upload */}
       {!preview && (
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/jpg,image/png,image/webp"
-            onChange={handleFileSelect}
-            className="hidden"
-            id={`file-upload-${folder}`}
-          />
-          
+        <div 
+          className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer"
+          onClick={handleImageClick}
+        >
           <div className="space-y-3">
             <div className="text-4xl">📸</div>
             <div>
-              <label
-                htmlFor={`file-upload-${folder}`}
-                className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-              >
+              <div className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
                 {uploading ? (
                   <>
                     <span className="animate-spin">⏳</span>
@@ -116,7 +131,7 @@ export default function ImageUploader({ value, onChange, label, folder = 'upload
                     📁 Choisir une image
                   </>
                 )}
-              </label>
+              </div>
             </div>
             <p className="text-xs text-gray-500">
               JPG, PNG ou WebP • Max 5MB

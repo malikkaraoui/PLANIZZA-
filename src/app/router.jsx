@@ -20,6 +20,7 @@ import PizzaioloDashboard from '../pages/pizzaiolo/Dashboard';
 import PizzaioloProfile from '../pages/pizzaiolo/Profile';
 import PizzaioloMenu from '../pages/pizzaiolo/Menu';
 import PizzaioloOrders from '../pages/pizzaiolo/Orders';
+import PizzaioloLive from '../pages/pizzaiolo/Live';
 import PizzaioloStart from '../pages/pizzaiolo/Start';
 
 import RootLayout from '../components/layout/RootLayout';
@@ -70,18 +71,18 @@ export const router = createBrowserRouter([
 
       // Pizzaiolo (dashboard) - RÉSERVÉ AUX PIZZAIOLOS
       {
-        path: 'pizzaiolo',
+        path: 'pro',
         element: (
           <ProtectedRoute requirePizzaiolo={true}>
             <PizzaioloDashboard />
           </ProtectedRoute>
         ),
         children: [
-          { index: true, element: <Navigate to="dashboard" replace /> },
-          { path: 'dashboard', element: <PizzaioloProfile /> },
-          { path: 'profile', element: <PizzaioloProfile /> },
+          { index: true, element: <Navigate to="truck" replace /> },
+          { path: 'truck', element: <PizzaioloProfile /> },
           { path: 'menu', element: <PizzaioloMenu /> },
-          { path: 'orders', element: <PizzaioloOrders /> },
+          { path: 'commandes', element: <PizzaioloOrders /> },
+          { path: 'live', element: <PizzaioloLive /> },
         ],
       },
     ],
