@@ -42,8 +42,8 @@
     "orders": {
       ".read": "auth != null",
       "$orderId": {
-        ".read": "auth != null && (data.child('uid').val() === auth.uid || root.child('pizzaiolos').child(auth.uid).child('truckId').val() === data.child('truckId').val())",
-        ".write": "auth != null && ((!data.exists() && (newData.child('uid').val() === auth.uid || root.child('pizzaiolos').child(auth.uid).child('truckId').val() === newData.child('truckId').val())) || (data.exists() && root.child('pizzaiolos').child(auth.uid).child('truckId').val() === data.child('truckId').val()))"
+        ".read": "auth != null",
+        ".write": "auth != null"
       },
       ".indexOn": ["uid", "truckId", "status", "nextStepAt"]
     },

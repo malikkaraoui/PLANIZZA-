@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { ChefHat, Receipt, Pizza, Store, ArrowRight, TrendingUp, Clock, Star, Phone, LogOut, MapPin, Edit2, Pause, Play, Bike, Radio } from 'lucide-react';
+import { ChefHat, Receipt, Pizza, Store, ArrowRight, TrendingUp, Clock, Star, Phone, LogOut, MapPin, Edit2, Pause, Play, Bike, Radio, UserCircle } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { useAuth } from '../app/providers/AuthProvider';
 import { ROUTES } from '../app/routes';
@@ -327,6 +327,26 @@ export default function Dashboard() {
                       {completedOrders} complétée{completedOrders > 1 ? 's' : ''}
                     </div>
                   )}
+                </div>
+              </div>
+            </Card>
+          </Link>
+
+          {/* Mon Profil */}
+          <Link to="/complete-profile">
+            <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px] hover:scale-[1.02] hover:shadow-2xl transition-all group cursor-pointer h-full">
+              <div className="space-y-3">
+                <div className="flex items-start justify-between">
+                  <div className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                    <UserCircle className="h-6 w-6 text-primary" />
+                  </div>
+                  <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-lg font-black tracking-tight">Mon Profil</h3>
+                  <p className="text-xs text-muted-foreground font-medium">
+                    Modifier mes informations
+                  </p>
                 </div>
               </div>
             </Card>

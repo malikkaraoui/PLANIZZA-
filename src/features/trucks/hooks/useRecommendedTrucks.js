@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ref, query, orderByChild, equalTo, onValue } from 'firebase/database';
+import { ref, query, orderByChild, equalTo, get } from 'firebase/database';
 import { db } from '../../../lib/firebase';
 import { useAuth } from '../../../app/providers/AuthProvider';
 import { useTrucks } from './useTrucks';
@@ -21,8 +21,8 @@ export function useRecommendedTrucks() {
             // 1. Priorité aux 3 derniers camions commandés
             if (user) {
                 try {
-                    const ordersRef = query(ref(db, 'orders'), orderByChild('userUid'), equalTo(user.uid));
-                    const ordersSnap = await new Promise((resolve) => onValue(ordersRef, resolve, { onlyOnce: true }));
+                    const ordersRef = query(ref(db, 'orders'), orderByChild('uid'), equalTo(user.uid));
+                    const ordersSnap = await get(ordersRef);
 
                     if (ordersSnap.exists()) {
                         const orders = Object.values(ordersSnap.val()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));

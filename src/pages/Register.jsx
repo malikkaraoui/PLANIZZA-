@@ -31,7 +31,13 @@ export default function Register() {
       provider.setCustomParameters({ prompt: 'select_account' });
       const cred = await signInWithPopup(auth, provider);
       await upsertUserProfile(cred.user);
-      navigate('/explore');
+      
+      // Si l'utilisateur n'a pas de displayName ou phoneNumber, rediriger vers complete-profile
+      if (!cred.user.displayName || !cred.user.phoneNumber) {
+        navigate('/complete-profile');
+      } else {
+        navigate('/explore');
+      }
     } catch (err) {
       setError(err?.message || 'Connexion Google impossible');
     } finally {
@@ -52,7 +58,8 @@ export default function Register() {
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
       await upsertUserProfile(cred.user);
-      navigate('/explore');
+      // Toujours rediriger vers complete-profile pour les inscriptions email/mot de passe
+      navigate('/complete-profile');
     } catch (err) {
       setError(err?.message || 'Inscription impossible');
     } finally {

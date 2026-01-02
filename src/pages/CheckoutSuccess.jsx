@@ -58,17 +58,24 @@ export default function CheckoutSuccess() {
 
     const timer = setInterval(() => {
       setProgress((prev) => {
-        if (prev >= 100) {
+        const newProgress = prev + step;
+        if (newProgress >= 100) {
           clearInterval(timer);
-          navigate(ROUTES.order(orderId));
           return 100;
         }
-        return prev + step;
+        return newProgress;
       });
     }, interval);
 
     return () => clearInterval(timer);
-  }, [isPaid, navigate, orderId]);
+  }, [isPaid]);
+
+  // Navigation séparée quand le progress atteint 100%
+  useEffect(() => {
+    if (progress >= 100 && isPaid && orderId) {
+      navigate(ROUTES.order(orderId));
+    }
+  }, [progress, isPaid, orderId, navigate]);
 
   const isGuest = !isAuthenticated;
 

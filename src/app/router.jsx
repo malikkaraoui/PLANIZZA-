@@ -11,7 +11,7 @@ import Dashboard from '../pages/Dashboard';
 import Orders from '../pages/Orders';
 import Login from '../pages/Login';
 import Register from '../pages/Register';
-import DevenezPartenaire from '../pages/DevenezPartenaire';
+import CompleteProfile from '../pages/CompleteProfile';
 import DevenezPartenaireInscription from '../pages/DevenezPartenaireInscription';
 import DevenezPartenaireValidation from '../pages/DevenezPartenaireValidation';
 import DevenezPartenaireTarifs from '../pages/DevenezPartenaireTarifs';
@@ -44,7 +44,7 @@ export const router = createBrowserRouter([
       { path: 'order/:orderId', element: <OrderTracking /> },
 
       // Partenaires / Pro
-      { path: 'devenez_partenaire', element: <DevenezPartenaire /> },
+      { path: 'devenez_partenaire', element: <Navigate to="/devenez_partenaire/tarifs" replace /> },
       { path: 'devenez_partenaire/inscription', element: <DevenezPartenaireInscription /> },
       { path: 'devenez_partenaire/validation', element: <DevenezPartenaireValidation /> },
       { path: 'devenez_partenaire/tarifs', element: <DevenezPartenaireTarifs /> },
@@ -60,6 +60,7 @@ export const router = createBrowserRouter([
       // Auth
       { path: 'login', element: <Login /> },
       { path: 'register', element: <Register /> },
+      { path: 'complete-profile', element: <ProtectedRoute><CompleteProfile /></ProtectedRoute> },
 
       // Client (privé plus tard; navigation en place)
       { path: 'dashboard', element: <ProtectedRoute><Dashboard /></ProtectedRoute> },

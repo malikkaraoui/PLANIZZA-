@@ -133,7 +133,7 @@ function genTrucks({ count = 10, seed = 1337 } = {}) {
 }
 
 import { db } from '../../../lib/firebase';
-import { ref, onValue, set } from 'firebase/database';
+import { ref, onValue, set, get } from 'firebase/database';
 
 export function useTrucks(options = {}) {
   const query = (options.query || '').trim().toLowerCase();
@@ -147,7 +147,6 @@ export function useTrucks(options = {}) {
 
   useEffect(() => {
     if (!db) {
-      // Évite un setState synchrone dans le corps de l'effet (règle ESLint)
       const t = setTimeout(() => {
         setBaseTrucks(genTrucks({ count: mockCount, seed: 1337 }));
         setLoading(false);
@@ -155,57 +154,71 @@ export function useTrucks(options = {}) {
       return () => clearTimeout(t);
     }
 
-    const trucksRef = ref(db, 'public/trucks');
-    const unsub = onValue(trucksRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        const list = Object.entries(data).map(([id, val]) => {
-          // Transformer les badges d'objet vers array de strings
-          const badgesArray = val.badges && typeof val.badges === 'object'
-            ? Object.entries(val.badges)
-                .filter(([_, v]) => v === true)
-                .map(([k, _]) => {
-                  const map = {
-                    bio: 'Bio',
-                    terroir: 'Terroir',
-                    sansGluten: 'Sans gluten',
-                    halal: 'Halal',
-                    kasher: 'Kasher',
-                    sucre: 'Sucré'
-                  };
-                  return map[k] || k;
-                })
-            : [];
+    let unsubscribe = null;
 
-          return { 
-            id, 
-            ...val,
-            badges: badgesArray,
-            tags: badgesArray, // Compat ancien code
-            isOpenNow: val.isOpenNow ?? true,
-            openingToday: val.openingToday || 'Ouvert maintenant',
-            photos: val.photoUrl ? [val.photoUrl] : [],
-            estimatedPrepMin: val.estimatedPrepMin || 15,
-            capacity: val.capacity || { minPerPizza: 10, pizzaPerHour: 30 },
-            distanceKm: val.distanceKm
-          };
-        });
-        setBaseTrucks(list);
-        setLoading(false);
-      } else {
-        // Si vide, on seed la DB avec les camions générés
+    const initTrucks = async () => {
+      const trucksRef = ref(db, 'public/trucks');
+      
+      // Vérifier d'abord si la DB contient des données
+      const snapshot = await get(trucksRef);
+      
+      if (!snapshot.exists()) {
+        // DB vide : on seed une seule fois
         const initialTrucks = genTrucks({ count: mockCount, seed: 1337 });
         const updates = {};
         initialTrucks.forEach(t => {
           updates[t.id] = t;
         });
-        set(trucksRef, updates);
+        await set(trucksRef, updates);
         setBaseTrucks(initialTrucks);
         setLoading(false);
       }
-    });
 
-    return () => unsub();
+      // Maintenant on écoute les changements
+      unsubscribe = onValue(trucksRef, (snap) => {
+        if (snap.exists()) {
+          const data = snap.val();
+          const list = Object.entries(data).map(([id, val]) => {
+            const badgesArray = val.badges && typeof val.badges === 'object'
+              ? Object.entries(val.badges)
+                  .filter(([_, v]) => v === true)
+                  .map(([k, _]) => {
+                    const map = {
+                      bio: 'Bio',
+                      terroir: 'Terroir',
+                      sansGluten: 'Sans gluten',
+                      halal: 'Halal',
+                      kasher: 'Kasher',
+                      sucre: 'Sucré'
+                    };
+                    return map[k] || k;
+                  })
+              : [];
+
+            return { 
+              id, 
+              ...val,
+              badges: badgesArray,
+              tags: badgesArray,
+              isOpenNow: val.isOpenNow ?? true,
+              openingToday: val.openingToday || 'Ouvert maintenant',
+              photos: val.photoUrl ? [val.photoUrl] : [],
+              estimatedPrepMin: val.estimatedPrepMin || 15,
+              capacity: val.capacity || { minPerPizza: 10, pizzaPerHour: 30 },
+              distanceKm: val.distanceKm
+            };
+          });
+          setBaseTrucks(list);
+          setLoading(false);
+        }
+      });
+    };
+
+    initTrucks();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [mockCount]);
 
   const maxDistanceKm =
@@ -242,9 +255,10 @@ export function useTrucks(options = {}) {
       // Si on n'a rien saisi, on laisse tout passer (le tri par distance fera le reste si position)
       if (!locationQuery) return true;
 
-      // Si l'utilisateur a explicitement demandé "Autour de moi" (GPS) ou si on a une position
-      // précise (via sélection), on n'exclut pas les camions par nom de ville car la distance est prio.
-      if (locationQuery.includes('autour de moi') || position) {
+      // Si on a une position GPS (coordonnées exactes), on ne filtre PAS par ville
+      // car le tri par distance est prioritaire. L'utilisateur peut être à Annecy
+      // mais voir des camions d'Annecy-le-Vieux ou villages voisins.
+      if (position) {
         return true;
       }
 
