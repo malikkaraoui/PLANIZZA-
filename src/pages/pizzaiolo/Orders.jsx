@@ -1126,11 +1126,25 @@ export default function PizzaioloOrders() {
                       </div>
 
                       {/* Total */}
-                      <div className="flex items-center justify-between pt-3 border-t border-white/10">
-                        <span className="font-black text-lg">Total TTC</span>
-                        <span className="font-black text-xl text-primary">
-                          {(order.totalCents / 100).toFixed(2)} €
-                        </span>
+                      <div className="space-y-2 pt-3 border-t border-white/10">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Total HT</span>
+                          <span className="font-bold">
+                            {(order.totalCents / (1 + TVA_RATE) / 100).toFixed(2)} €
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">TVA (10%)</span>
+                          <span className="font-bold">
+                            {(order.totalCents / 100 - order.totalCents / (1 + TVA_RATE) / 100).toFixed(2)} €
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between pt-2 border-t border-white/10">
+                          <span className="font-black text-lg">Total TTC</span>
+                          <span className="font-black text-xl text-primary">
+                            {(order.totalCents / 100).toFixed(2)} €
+                          </span>
+                        </div>
                       </div>
                     </div>
 
@@ -1224,7 +1238,12 @@ export default function PizzaioloOrders() {
                         })}
                       </span>
                     </div>
-                    <span className="font-bold text-primary">{(order.totalCents / 100).toFixed(2)} €</span>
+                    <div className="text-right">
+                      <div className="text-xs text-muted-foreground mb-1">
+                        HT: {(order.totalCents / (1 + TVA_RATE) / 100).toFixed(2)} € | TVA: {(order.totalCents / 100 - order.totalCents / (1 + TVA_RATE) / 100).toFixed(2)} €
+                      </div>
+                      <span className="font-bold text-primary">{(order.totalCents / 100).toFixed(2)} € TTC</span>
+                    </div>
                   </div>
                 </Card>
               );
@@ -1330,11 +1349,25 @@ export default function PizzaioloOrders() {
                 </div>
 
                 {/* Total */}
-                <div className="flex items-center justify-between pt-4 border-t border-white/10">
-                  <span className="text-xl font-black">Total TTC</span>
-                  <span className="text-2xl font-black text-primary">
-                    {(selectedOrder.totalCents / 100).toFixed(2)} €
-                  </span>
+                <div className="space-y-2 pt-4 border-t border-white/10">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Total HT</span>
+                    <span className="font-bold">
+                      {(selectedOrder.totalCents / (1 + TVA_RATE) / 100).toFixed(2)} €
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">TVA (10%)</span>
+                    <span className="font-bold">
+                      {(selectedOrder.totalCents / 100 - selectedOrder.totalCents / (1 + TVA_RATE) / 100).toFixed(2)} €
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-white/10">
+                    <span className="text-xl font-black">Total TTC</span>
+                    <span className="text-2xl font-black text-primary">
+                      {(selectedOrder.totalCents / 100).toFixed(2)} €
+                    </span>
+                  </div>
                 </div>
 
                 {/* Timeline */}
