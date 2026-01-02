@@ -11,6 +11,8 @@ import { ROUTES } from '../app/routes';
 import { ref, get } from 'firebase/database';
 import { db } from '../lib/firebase';
 
+const TVA_RATE = 0.10; // 10% TVA restauration
+
 function formatEUR(cents) {
   return (cents / 100).toFixed(2).replace('.', ',') + ' €';
 }
@@ -330,8 +332,12 @@ export default function Cart() {
               
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Sous-total</span>
+                  <span className="text-muted-foreground">Sous-total HT</span>
                   <span>{formatEUR(totalCents)}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">TVA (10%)</span>
+                  <span>{formatEUR(Math.round(totalCents * TVA_RATE))}</span>
                 </div>
                 {deliveryMethod === 'delivery' && (
                   <div className="flex items-center justify-between text-sm">
@@ -341,8 +347,8 @@ export default function Cart() {
                 )}
                 <Separator />
                 <div className="flex items-center justify-between font-bold text-lg">
-                  <span>Total</span>
-                  <span className="text-primary">{formatEUR(totalCents + (deliveryMethod === 'delivery' ? 350 : 0))}</span>
+                  <span>Total TTC</span>
+                  <span className="text-primary">{formatEUR(Math.round(totalCents * (1 + TVA_RATE)) + (deliveryMethod === 'delivery' ? 350 : 0))}</span>
                 </div>
               </div>
             </CardContent>

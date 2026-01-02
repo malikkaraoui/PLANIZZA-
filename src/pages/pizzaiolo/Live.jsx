@@ -10,6 +10,7 @@ import { Input } from '../../components/ui/Input';
 
 const STORAGE_KEY_CART = 'planizza_live_cart';
 const STORAGE_KEY_CUSTOMER = 'planizza_live_customer';
+const TVA_RATE = 0.10; // 10% TVA restauration
 
 export default function PizzaioloLive() {
   const { user } = useAuth();
@@ -230,14 +231,10 @@ export default function PizzaioloLive() {
           qty: item.qty
         })),
         totalCents,
-        status: 'ready', // Commande manuelle = prête immédiatement
+        status: 'received', // Commande manuelle = à prendre en charge
         createdAt: Date.now(),
         timeline: {
-          acceptedAt: Date.now(),
-          prepAt: Date.now(),
-          cookAt: Date.now(),
-          readyAt: Date.now(),
-          deliveredAt: Date.now() // Délivrée immédiatement (main à main)
+          // Pas de timeline pour le moment, sera remplie lors de la prise en charge
         },
         payment: {
           provider: 'manual',
@@ -480,11 +477,23 @@ export default function PizzaioloLive() {
             </div>
 
             {/* Total */}
-            <div className="pt-4 border-t border-white/10 mb-4">
-              <div className="flex items-center justify-between">
-                <span className="font-black text-xl">Total</span>
-                <span className="font-black text-3xl text-primary">
+            <div className="pt-4 border-t border-white/10 mb-4 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Total HT</span>
+                <span className="font-bold">
                   {(totalCents / 100).toFixed(2)}€
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">TVA (10%)</span>
+                <span className="font-bold">
+                  {(totalCents * TVA_RATE / 100).toFixed(2)}€
+                </span>
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t border-white/10">
+                <span className="font-black text-xl">Total TTC</span>
+                <span className="font-black text-3xl text-primary">
+                  {(totalCents * (1 + TVA_RATE) / 100).toFixed(2)}€
                 </span>
               </div>
             </div>

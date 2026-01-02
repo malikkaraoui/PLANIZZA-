@@ -3,6 +3,9 @@ import { push, ref, set } from 'firebase/database';
 import { db, isFirebaseConfigured } from '../../../lib/firebase';
 import { createCheckoutSession } from '../../../lib/stripe';
 
+const TVA_RATE = 0.10; // 10% TVA restauration
+const DELIVERY_COST_CENTS = 350; // 3,50€ frais de livraison
+
 // MVP RTDB: crée une commande status=created, puis lance Stripe Checkout via Cloud Function.
 export function useCreateOrder() {
   const [loading, setLoading] = useState(false);
@@ -30,6 +33,12 @@ export function useCreateOrder() {
         0
       );
 
+      // Calcul du montant TTC avec TVA et frais de livraison
+      const totalHT = totalCents;
+      const tvaAmount = Math.round(totalHT * TVA_RATE);
+      const deliveryCost = deliveryMethod === 'delivery' ? DELIVERY_COST_CENTS : 0;
+      const totalTTC = totalHT + tvaAmount + deliveryCost;
+
       const orderRef = push(ref(db, 'orders'));
       const orderId = orderRef.key;
       if (!orderId) throw new Error('Impossible de générer un orderId');
@@ -47,7 +56,10 @@ export function useCreateOrder() {
           priceCents: it.priceCents,
           qty: it.qty,
         })),
-        totalCents,
+        totalCents: totalTTC, // Montant TTC pour Stripe
+        totalHT: totalHT,
+        tvaAmount: tvaAmount,
+        deliveryCost: deliveryCost,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };

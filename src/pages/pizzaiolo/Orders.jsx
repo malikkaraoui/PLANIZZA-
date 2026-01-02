@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Clock, User, Pizza, CheckCircle, ChefHat, Package, ArrowLeft, Filter, TrendingUp, Store, Bike, CreditCard, Calendar, CalendarRange, PieChart as PieChartIcon, BarChart3 } from 'lucide-react';
+import { Clock, User, Pizza, CheckCircle, ChefHat, Package, ArrowLeft, Filter, TrendingUp, Store, Bike, CreditCard, Calendar, CalendarRange, PieChart as PieChartIcon, BarChart3, X } from 'lucide-react';
 import { ref, get } from 'firebase/database';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../app/providers/AuthProvider';
@@ -10,6 +10,7 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { useTruckOrders } from '../../features/orders/hooks/useTruckOrders';
 import { useUpdateOrderStatus } from '../../features/orders/hooks/useUpdateOrderStatus';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -50,6 +51,7 @@ const STATUS_CONFIG = {
 
 // Durée max avant de considérer une commande comme perdue (120 min après prise en charge)
 const MAX_ORDER_DURATION = 120 * 60 * 1000;
+const TVA_RATE = 0.10; // 10% TVA restauration
 
 export default function PizzaioloOrders() {
   const { user } = useAuth();
@@ -74,6 +76,9 @@ export default function PizzaioloOrders() {
   const [dataType, setDataType] = useState('revenue'); // 'revenue' ou 'pizzaCount'
   const [chartsVisible, setChartsVisible] = useState(true); // Afficher/cacher les graphiques
   const [filtersVisible, setFiltersVisible] = useState(true); // Afficher/cacher les filtres
+  
+  // Modal de détails de commande
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   // Charger le truckId et la cadence du pizzaiolo
   useEffect(() => {
@@ -738,10 +743,14 @@ export default function PizzaioloOrders() {
         </div>
         
         <div className="mt-6 pt-4 border-t border-white/10">
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid md:grid-cols-4 gap-4">
             <div className="glass-premium glass-glossy border-white/20 p-4 rounded-xl text-center">
-              <p className="text-sm text-muted-foreground mb-1">CA Total</p>
+              <p className="text-sm text-muted-foreground mb-1">CA TTC</p>
               <p className="text-2xl font-black text-emerald-500">{getGraphStats().totalRevenue.toFixed(2)} €</p>
+            </div>
+            <div className="glass-premium glass-glossy border-white/20 p-4 rounded-xl text-center">
+              <p className="text-sm text-muted-foreground mb-1">TVA collectée</p>
+              <p className="text-2xl font-black text-orange-500">{(getGraphStats().totalRevenue / (1 + TVA_RATE) * TVA_RATE).toFixed(2)} €</p>
             </div>
             <div className="glass-premium glass-glossy border-white/20 p-4 rounded-xl text-center">
               <p className="text-sm text-muted-foreground mb-1">Commandes</p>
@@ -750,7 +759,7 @@ export default function PizzaioloOrders() {
               </p>
             </div>
             <div className="glass-premium glass-glossy border-white/20 p-4 rounded-xl text-center">
-              <p className="text-sm text-muted-foreground mb-1">Ticket Moyen</p>
+              <p className="text-sm text-muted-foreground mb-1">Ticket Moyen TTC</p>
               <p className="text-2xl font-black text-purple-500">
                 {getGraphStats().avgTicket.toFixed(2)} €
               </p>
@@ -1118,7 +1127,7 @@ export default function PizzaioloOrders() {
 
                       {/* Total */}
                       <div className="flex items-center justify-between pt-3 border-t border-white/10">
-                        <span className="font-black text-lg">Total</span>
+                        <span className="font-black text-lg">Total TTC</span>
                         <span className="font-black text-xl text-primary">
                           {(order.totalCents / 100).toFixed(2)} €
                         </span>
@@ -1178,7 +1187,11 @@ export default function PizzaioloOrders() {
               const deliveryLabel = order.deliveryMethod === 'delivery' ? 'Livraison' : 'Camion';
               
               return (
-                <Card key={order.id} className="glass-premium glass-glossy border-white/20 p-4 rounded-3xl opacity-60">
+                <Card 
+                  key={order.id} 
+                  className="glass-premium glass-glossy border-white/20 p-4 rounded-3xl opacity-60 hover:opacity-100 transition-opacity cursor-pointer"
+                  onClick={() => setSelectedOrder(order)}
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Badge className={`${statusConfig.color} text-white rounded-full text-xs`}>
@@ -1194,6 +1207,11 @@ export default function PizzaioloOrders() {
                         <Badge className="bg-emerald-600/90 text-white rounded-full text-xs flex items-center gap-1 font-bold">
                           <CreditCard className="h-3 w-3" />
                           En ligne
+                        </Badge>
+                      )}
+                      {order.source === 'manual' && (
+                        <Badge className="bg-purple-600/90 text-white rounded-full text-xs font-bold">
+                          ✋ MANUELLE
                         </Badge>
                       )}
                       <span className="font-bold text-sm">#{order.id.slice(-6).toUpperCase()}</span>
@@ -1214,6 +1232,151 @@ export default function PizzaioloOrders() {
           </div>
         </section>
       )}
+
+      {/* Modal de détails de commande */}
+      <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
+        <DialogContent className="max-w-2xl glass-premium glass-glossy border-white/20 rounded-[32px]">
+          {selectedOrder && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-3 text-2xl">
+                  <span>Commande #{selectedOrder.id.slice(-6).toUpperCase()}</span>
+                  <Badge className={`${(isExpired(selectedOrder) ? STATUS_CONFIG.lost : STATUS_CONFIG[selectedOrder.status] || STATUS_CONFIG.delivered).color} text-white rounded-full`}>
+                    {isExpired(selectedOrder) ? 'Perdue' : (STATUS_CONFIG[selectedOrder.status] || STATUS_CONFIG.delivered).label}
+                  </Badge>
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-6 mt-4">
+                {/* Informations générales */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Date et heure</p>
+                    <p className="font-bold">
+                      {new Date(selectedOrder.createdAt).toLocaleDateString('fr-FR', { 
+                        day: 'numeric', 
+                        month: 'long',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
+                  </div>
+
+                  {selectedOrder.customerName && (
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Client</p>
+                      <p className="font-bold">{selectedOrder.customerName}</p>
+                    </div>
+                  )}
+
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Mode de retrait</p>
+                    <div className="flex items-center gap-2">
+                      {selectedOrder.deliveryMethod === 'delivery' ? (
+                        <>
+                          <Bike className="h-4 w-4" />
+                          <span className="font-bold">Livraison à domicile</span>
+                        </>
+                      ) : (
+                        <>
+                          <Store className="h-4 w-4" />
+                          <span className="font-bold">Retrait au camion</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Paiement</p>
+                    <div className="flex items-center gap-2">
+                      {selectedOrder.payment?.provider === 'stripe' ? (
+                        <>
+                          <CreditCard className="h-4 w-4 text-emerald-500" />
+                          <span className="font-bold">En ligne</span>
+                          <Badge className="bg-emerald-500 text-white text-xs rounded-full">
+                            {selectedOrder.payment?.paymentStatus === 'paid' ? 'Payé' : 'En attente'}
+                          </Badge>
+                        </>
+                      ) : (
+                        <>
+                          <CreditCard className="h-4 w-4 text-purple-500" />
+                          <span className="font-bold">Manuel</span>
+                          <Badge className="bg-purple-500 text-white text-xs rounded-full">
+                            {selectedOrder.payment?.paymentStatus === 'paid' ? 'Payé' : 'À payer'}
+                          </Badge>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Articles */}
+                <div className="space-y-3">
+                  <p className="text-sm font-bold text-muted-foreground">Articles</p>
+                  <div className="space-y-2">
+                    {selectedOrder.items?.map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-white/5">
+                        <div className="flex items-center gap-3">
+                          <span className="font-black text-primary">{item.qty}x</span>
+                          <span className="font-bold">{item.name}</span>
+                        </div>
+                        <span className="font-bold text-muted-foreground">
+                          {((item.priceCents * item.qty) / 100).toFixed(2)} €
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Total */}
+                <div className="flex items-center justify-between pt-4 border-t border-white/10">
+                  <span className="text-xl font-black">Total TTC</span>
+                  <span className="text-2xl font-black text-primary">
+                    {(selectedOrder.totalCents / 100).toFixed(2)} €
+                  </span>
+                </div>
+
+                {/* Timeline */}
+                {selectedOrder.timeline && (
+                  <div className="space-y-3">
+                    <p className="text-sm font-bold text-muted-foreground">Chronologie</p>
+                    <div className="space-y-2">
+                      {selectedOrder.timeline.acceptedAt && (
+                        <div className="flex items-center gap-3 text-sm">
+                          <CheckCircle className="h-4 w-4 text-blue-500" />
+                          <span>Prise en charge</span>
+                          <span className="text-muted-foreground">
+                            {new Date(selectedOrder.timeline.acceptedAt).toLocaleTimeString('fr-FR')}
+                          </span>
+                        </div>
+                      )}
+                      {selectedOrder.timeline.readyAt && (
+                        <div className="flex items-center gap-3 text-sm">
+                          <Pizza className="h-4 w-4 text-orange-500" />
+                          <span>Prête</span>
+                          <span className="text-muted-foreground">
+                            {new Date(selectedOrder.timeline.readyAt).toLocaleTimeString('fr-FR')}
+                          </span>
+                        </div>
+                      )}
+                      {selectedOrder.timeline.deliveredAt && (
+                        <div className="flex items-center gap-3 text-sm">
+                          <Package className="h-4 w-4 text-green-500" />
+                          <span>Délivrée</span>
+                          <span className="text-muted-foreground">
+                            {new Date(selectedOrder.timeline.deliveredAt).toLocaleTimeString('fr-FR')}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

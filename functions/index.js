@@ -17,16 +17,35 @@ const FRONTEND_URL = process.env.FRONTEND_URL || "https://planizza-ac827.web.app
 
 function buildLineItems(order) {
   if (!order?.items || !Array.isArray(order.items)) return [];
-  return order.items
+
+  const lineItems = order.items
       .filter((it) => typeof it.priceCents === "number" && it.priceCents > 0)
-      .map((item) => ({
-        price_data: {
-          currency: order.currency || "eur",
-          product_data: {name: item.name || "Article"},
-          unit_amount: Number(item.priceCents),
-        },
-        quantity: Number(item.qty) || 1,
-      }));
+      .map((item) => {
+        // Les prix sont déjà HT, on ajoute la TVA 10%
+        const priceWithTVA = Math.round(Number(item.priceCents) * 1.10);
+        return {
+          price_data: {
+            currency: order.currency || "eur",
+            product_data: {name: item.name || "Article"},
+            unit_amount: priceWithTVA,
+          },
+          quantity: Number(item.qty) || 1,
+        };
+      });
+
+  // Ajouter les frais de livraison si applicable (déjà TTC)
+  if (order.deliveryMethod === "delivery" && order.deliveryCost > 0) {
+    lineItems.push({
+      price_data: {
+        currency: order.currency || "eur",
+        product_data: {name: "Frais de livraison"},
+        unit_amount: Number(order.deliveryCost),
+      },
+      quantity: 1,
+    });
+  }
+
+  return lineItems;
 }
 
 // Garde-fou : ne conserver que les N derniers paniers archivés
