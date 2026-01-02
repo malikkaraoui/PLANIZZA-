@@ -37,6 +37,15 @@ function genTrucks({ count = 10, seed = 1337 } = {}) {
   const rng = mulberry32(seed);
 
   const cities = [
+    // Annecy et environs (beaucoup plus)
+    { name: 'Annecy', lat: 45.8992, lng: 6.1294 },
+    { name: 'Annecy-le-Vieux', lat: 45.9186, lng: 6.1447 },
+    { name: 'Seynod', lat: 45.8906, lng: 6.0895 },
+    { name: 'Cran-Gevrier', lat: 45.9019, lng: 6.1056 },
+    { name: 'Meythet', lat: 45.9153, lng: 6.0942 },
+    { name: 'Annecy-le-Vieux', lat: 45.9186, lng: 6.1447 },
+    { name: 'Epagny', lat: 45.9342, lng: 6.0814 },
+    { name: 'Pringy', lat: 45.9389, lng: 6.1194 },
     // Lyon et environs
     { name: 'Lyon', lat: 45.764, lng: 4.8357 },
     { name: 'Villeurbanne', lat: 45.7719, lng: 4.8902 },
@@ -52,9 +61,6 @@ function genTrucks({ count = 10, seed = 1337 } = {}) {
     // Marseille et environs
     { name: 'Marseille', lat: 43.2965, lng: 5.3698 },
     { name: 'Aix-en-Provence', lat: 43.5297, lng: 5.4474 },
-    // Annecy et environs
-    { name: 'Annecy', lat: 45.8992, lng: 6.1294 },
-    { name: 'Annecy-le-Vieux', lat: 45.9186, lng: 6.1447 },
     // Autres grandes villes
     { name: 'Toulouse', lat: 43.6047, lng: 1.4442 },
     { name: 'Nice', lat: 43.7102, lng: 7.262 },
@@ -278,7 +284,7 @@ export function useTrucks(options = {}) {
     })
     .filter((t) => {
       if (maxDistanceKm == null || Number.isNaN(maxDistanceKm)) return true;
-      if (t.distanceKm == null) return false;
+      if (t.distanceKm == null) return true; // Pas de position = on garde le camion
       return t.distanceKm <= maxDistanceKm;
     })
     .filter((t) => {

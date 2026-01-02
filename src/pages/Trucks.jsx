@@ -184,41 +184,58 @@ export default function TrucksNew() {
       const pos = await getBrowserPosition();
       if (!pos) {
         setGeoError('Impossible d\'accéder à votre localisation.');
+        setGeoLoading(false);
         return;
       }
-      setPosition(pos);
 
-      // Toujours mettre les coords dans l'URL pour le partage
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
-        next.set('lat', String(pos.lat));
-        next.set('lng', String(pos.lng));
-        return next;
-      }, { replace: false });
-
+      // IMPORTANT : On attend le reverse geocoding AVANT de mettre à jour position et URL
       try {
         const commune = await reverseGeocodeCommune(pos);
         const name = String(commune?.name || '').trim();
+        
         if (name) {
+          // Maintenant qu'on a le nom de la ville, on peut tout mettre à jour ensemble
           setWhereInput(name);
+          setPosition(pos);
           setSearchParams((prev) => {
             const next = new URLSearchParams(prev);
             next.set('where', name);
-            // Optionnel: code postal pour affichage / debug
+            next.set('lat', String(pos.lat));
+            next.set('lng', String(pos.lng));
             if (commune?.postcodes?.[0]) next.set('pc', String(commune.postcodes[0]));
             else next.delete('pc');
             return next;
           }, { replace: false });
+        } else {
+          // Pas de nom de ville, on utilise "Autour de moi"
+          setWhereInput('Autour de moi');
+          setPosition(pos);
+          setSearchParams((prev) => {
+            const next = new URLSearchParams(prev);
+            next.set('where', 'Autour de moi');
+            next.set('lat', String(pos.lat));
+            next.set('lng', String(pos.lng));
+            next.delete('pc');
+            return next;
+          }, { replace: false });
         }
-      } catch {
+      } catch (geoError) {
+        console.warn('Reverse geocoding failed:', geoError);
+        // En cas d'erreur de reverse geocoding, on utilise quand même les coordonnées
+        setWhereInput('Autour de moi');
+        setPosition(pos);
         setSearchParams((prev) => {
           const next = new URLSearchParams(prev);
           next.set('where', 'Autour de moi');
+          next.set('lat', String(pos.lat));
+          next.set('lng', String(pos.lng));
           next.delete('pc');
           return next;
         }, { replace: false });
-        setWhereInput('Autour de moi');
       }
+    } catch (error) {
+      console.error('GPS error:', error);
+      setGeoError('Impossible d\'accéder à votre localisation.');
     } finally {
       setGeoLoading(false);
     }
