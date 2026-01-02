@@ -4,50 +4,7 @@
     "users": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid",
-
-        "uid": {
-          ".validate": "newData.isString() && newData.val() === auth.uid"
-        },
-        "email": {
-          ".validate": "newData.isString() || newData.val() === null"
-        },
-        "displayName": {
-          ".validate": "newData.isString() || newData.val() === null"
-        },
-        "photoURL": {
-          ".validate": "newData.isString() || newData.val() === null"
-        },
-        "providerId": {
-          ".validate": "newData.isString() || newData.val() === null"
-        },
-
-        "phoneNumber": {
-          ".validate": "newData.isString() || newData.val() === null"
-        },
-        "phoneVerified": {
-          ".validate": "newData.isBoolean() && newData.val() === false"
-        },
-        "role": {
-          ".validate": "newData.isString() && (newData.val() === 'user' || newData.val() === 'pizzaiolo')"
-        },
-
-        "loyaltyPoints": {
-          ".validate": "newData.isNumber()"
-        },
-        "totalSpentCents": {
-          ".validate": "newData.isNumber()"
-        },
-        "address": {
-          ".validate": "newData.hasChildren()"
-        },
-
-        "createdAt": {
-          ".validate": "(!data.exists() && (newData.isNumber() || newData.child('.sv').val() === 'timestamp')) || (data.exists() && newData.val() === data.val())"
-        },
-        "updatedAt": {
-          ".validate": "newData.isNumber() || newData.child('.sv').val() === 'timestamp'"
-        }
+        ".write": "auth != null && auth.uid === $uid"
       }
     },
     "public": {
