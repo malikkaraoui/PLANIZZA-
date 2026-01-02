@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ref, get, set, push, update, remove } from 'firebase/database';
 import { Pause, Play, Pizza, Edit2, ArrowLeft, Trash2, Radio, ListOrdered, Utensils } from 'lucide-react';
+import QRCode from 'react-qr-code';
 import Card from '../../components/ui/Card';
 import { useAuth } from '../../app/providers/AuthProvider';
 import { useUserProfile } from '../../features/users/hooks/useUserProfile';
 import { db } from '../../lib/firebase';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import { generateSlug } from '../../lib/utils';
 import LocationPicker from '../../components/ui/LocationPicker';
 import ImageUploader from '../../components/ui/ImageUploader';
 import { useTruckPause } from '../../features/trucks/hooks/useTruckPause';
@@ -84,6 +86,7 @@ export default function PizzaioloProfile() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [truckId, setTruckId] = useState(null);
+  const [truckSlug, setTruckSlug] = useState(null);
   const [isPaused, setIsPaused] = useState(false);
   const { togglePause, isUpdating: isPauseUpdating } = useTruckPause(truckId);
   const { count: activeOrdersCount } = useActiveOrdersCount(truckId);
@@ -193,6 +196,7 @@ export default function PizzaioloProfile() {
             setDeliveryOptions(truck.deliveryOptions || {});
             setOpeningHours(truck.openingHours || openingHours);
             setPizzaPerHour(truck.capacity?.pizzaPerHour || 30);
+            setTruckSlug(truck.slug || null);
             
             console.log('[PLANIZZA] Données camion chargées:', truck);
           }
@@ -236,9 +240,26 @@ export default function PizzaioloProfile() {
       const existingTruckRef = ref(db, `public/trucks/${finalTruckId}`);
       const existingTruckSnap = await get(existingTruckRef);
       const existingMenu = existingTruckSnap.exists() ? existingTruckSnap.val().menu : null;
+      const existingSlug = existingTruckSnap.exists() ? existingTruckSnap.val().slug : null;
+
+      // Générer le slug si nouveau camion ou si pas de slug existant
+      let finalSlug = existingSlug;
+      if (!existingSlug) {
+        // Récupérer tous les slugs existants pour éviter les doublons
+        const allTrucksRef = ref(db, 'public/trucks');
+        const allTrucksSnap = await get(allTrucksRef);
+        const existingSlugs = [];
+        if (allTrucksSnap.exists()) {
+          Object.values(allTrucksSnap.val()).forEach(t => {
+            if (t.slug) existingSlugs.push(t.slug);
+          });
+        }
+        finalSlug = generateSlug(truckName.trim(), existingSlugs);
+      }
 
       // Sauvegarder les données du camion
       const truckData = {
+        slug: finalSlug,
         name: truckName.trim(),
         description: truckDescription.trim(),
         logoUrl: logoUrl.trim(),
@@ -293,6 +314,7 @@ export default function PizzaioloProfile() {
         setDeliveryOptions(truck.deliveryOptions || {});
         setOpeningHours(truck.openingHours || openingHours);
         setPizzaPerHour(truck.capacity?.pizzaPerHour || 30);
+        setTruckSlug(truck.slug || null);
       }
 
       // Basculer en mode visualisation
@@ -468,6 +490,33 @@ export default function PizzaioloProfile() {
               </Button>
             </div>
           </div>
+
+          {/* QR Code Section */}
+          {(truckSlug || truckId) && (
+            <div className="mt-6 p-6 glass-premium rounded-3xl border border-white/20">
+              <div className="text-center">
+                <p className="text-sm font-bold mb-4">📱 QR Code - Accès direct à votre camion</p>
+                <div className="inline-block p-4 bg-white rounded-2xl shadow-xl">
+                  <QRCode
+                    value={`${window.location.origin}${ROUTES.truck(truckSlug || truckId)}`}
+                    size={200}
+                    level="H"
+                  />
+                </div>
+                <p className="mt-4 text-xs text-muted-foreground font-medium">
+                  Scannez ce code pour accéder à votre page publique
+                </p>
+                <p className="mt-2 text-xs text-muted-foreground font-bold break-all">
+                  {window.location.origin}{ROUTES.truck(truckSlug || truckId)}
+                </p>
+                {!truckSlug && (
+                  <p className="mt-3 text-xs text-orange-500 font-medium">
+                    💡 Modifiez et sauvegardez votre profil pour obtenir une URL optimisée
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Photos */}
           {(logoUrl || photoUrl) && (

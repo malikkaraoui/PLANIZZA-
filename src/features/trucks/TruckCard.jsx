@@ -21,7 +21,7 @@ function formatKm(km) {
 
 export default function TruckCard({ truck }) {
   const hero = Array.isArray(truck.photos) && truck.photos.length ? truck.photos[0] : null;
-  const href = ROUTES.truck(truck.id);
+  const href = ROUTES.truck(truck.slug || truck.id);
   const kmText = formatKm(truck.distanceKm);
   const ratingAvg = typeof truck.ratingAvg === 'number' ? truck.ratingAvg : 0;
   const ratingCount = typeof truck.ratingCount === 'number' ? truck.ratingCount : 0;

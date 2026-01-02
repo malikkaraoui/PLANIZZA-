@@ -37,7 +37,6 @@ export const router = createBrowserRouter([
 
       // Public (navigation canon)
       { path: 'explore', element: <Trucks /> },
-      { path: 'truck/:truckId', element: <TruckDetails /> },
       { path: 'panier', element: <Cart /> },
       { path: 'checkout', element: <Checkout /> },
       { path: 'checkout/success', element: <CheckoutSuccess /> },
@@ -51,8 +50,9 @@ export const router = createBrowserRouter([
 
       // Legacy redirects (compat)
       { path: 'trucks', element: <Navigate to="/explore" replace /> },
-      { path: 'trucks/:truckId', element: <Navigate to="/truck/:truckId" replace /> },
-      { path: 't/:truckId', element: <Navigate to="/truck/:truckId" replace /> },
+      { path: 'trucks/:truckId', element: <TruckDetails /> },
+      { path: 'truck/:truckId', element: <TruckDetails /> },
+      { path: 't/:truckId', element: <TruckDetails /> },
       { path: 'pricing', element: <Navigate to="/explore" replace /> },
       { path: 'success', element: <Navigate to="/checkout/success" replace /> },
       { path: 'cancel', element: <Navigate to="/explore" replace /> },
@@ -86,6 +86,9 @@ export const router = createBrowserRouter([
           { path: 'live', element: <PizzaioloLive /> },
         ],
       },
+
+      // Route dynamique truck en DERNIER (catch-all pour les slugs)
+      { path: ':truckId', element: <TruckDetails /> },
     ],
   },
 ]);

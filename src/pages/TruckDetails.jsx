@@ -12,11 +12,11 @@ import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
 
 export default function TruckDetails() {
-  const { truckId } = useParams();
+  const { truckId: slugOrId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { truck, loading: loadingTruck } = useTruck(truckId);
-  const { items: menuItems, loading: loadingMenu } = useMenu(truckId);
+  const { truck, loading: loadingTruck } = useTruck(slugOrId);
+  const { items: menuItems, loading: loadingMenu } = useMenu(slugOrId);
   const { addItem, items } = useCart();
 
   const isLoading = loadingTruck || loadingMenu;

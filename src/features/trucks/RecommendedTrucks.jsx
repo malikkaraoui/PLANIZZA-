@@ -36,7 +36,7 @@ export default function RecommendedTrucks() {
                 {recommended.map((truck) => (
                     <Link
                         key={truck.id}
-                        to={ROUTES.truck(truck.id)}
+                        to={ROUTES.truck(truck.slug || truck.id)}
                         aria-label={`Voir le camion ${truck.name}`}
                         className="group relative block w-56 glass-premium glass-glossy rounded-[32px] p-4 transition-all duration-500 hover:scale-105 hover:-translate-y-2 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.3)] border-white/20 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary/60"
                     >

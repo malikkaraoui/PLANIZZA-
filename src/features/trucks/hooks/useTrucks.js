@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { kmBetween } from '../../../lib/geo';
+import { generateSlug } from '../../../lib/utils';
 
 const BADGES = ['Bio', 'Terroir', 'Sans gluten', 'Halal', 'Kasher', 'Sucré'];
 
@@ -114,9 +115,14 @@ function genTrucks({ count = 10, seed = 1337 } = {}) {
     const ovenType = pick(rng, ['Bois', 'Gaz', 'Électrique']);
 
     const name = `Pizza ${pick(rng, brandWords)} ${pick(rng, brandWords)}`.replace(/\s+/g, ' ').trim();
+    
+    // Générer le slug en collectant les slugs existants
+    const existingSlugs = trucks.map(t => t.slug);
+    const slug = generateSlug(name, existingSlugs);
 
     trucks.push({
       id: `truck-${i + 1}`,
+      slug,
       name,
       city: city.name,
       location: { lat, lng },
