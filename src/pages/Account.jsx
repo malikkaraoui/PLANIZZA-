@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { signOut, updateProfile, deleteUser } from 'firebase/auth';
+import { signOut, updateProfile, deleteUser, reauthenticateWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { ref, remove, get, set, query, orderByChild, equalTo } from 'firebase/database';
 import { ref as storageRef, deleteObject } from 'firebase/storage';
 import { Bike, Store, Trash2 } from 'lucide-react';
@@ -250,6 +250,29 @@ export default function Account() {
     try {
       const uid = user.uid;
 
+      // 0. Ré-authentification si nécessaire (Firebase exige une connexion récente)
+      try {
+        await deleteUser(auth.currentUser);
+      } catch (err) {
+        if (err.code === 'auth/requires-recent-login') {
+          // Forcer la ré-authentification
+          try {
+            const provider = new GoogleAuthProvider();
+            await reauthenticateWithPopup(auth.currentUser, provider);
+            // Réessayer la suppression
+            await deleteUser(auth.currentUser);
+          } catch (reauthErr) {
+            console.error('Erreur ré-authentification:', reauthErr);
+            alert('Vous devez vous reconnecter pour supprimer votre compte. Veuillez vous déconnecter puis vous reconnecter.');
+            setDeleting(false);
+            setShowDeleteConfirm(false);
+            return;
+          }
+        } else {
+          throw err;
+        }
+      }
+
       // 1. Supprimer la photo de profil dans Storage si elle existe
       if (user.photoURL && user.photoURL.includes('firebase')) {
         try {
@@ -293,8 +316,7 @@ export default function Account() {
         // Pas grave si ça n'existe pas
       }
 
-      // 4. Supprimer le compte Firebase Auth
-      await deleteUser(auth.currentUser);
+      // 4. Le compte Auth est déjà supprimé au début (avec ré-auth si nécessaire)
 
       // 5. Vider le localStorage et sessionStorage
       localStorage.clear();
