@@ -10,6 +10,7 @@ import { useCart } from '../features/cart/hooks/useCart.jsx';
 import { ROUTES } from '../app/routes';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
+import { isCurrentlyOpen } from '../lib/openingHours';
 
 export default function TruckDetails() {
   const { truckId: slugOrId } = useParams();
@@ -19,9 +20,12 @@ export default function TruckDetails() {
   const { items: menuItems, loading: loadingMenu } = useMenu(truck?.id);
   const { addItem, items } = useCart();
   const [zoomedImage, setZoomedImage] = useState(null);
+  const [showMap, setShowMap] = useState(false);
 
   const isLoading = loadingTruck || loadingMenu;
   const isPaused = truck?.isPaused === true;
+  const isOpen = isCurrentlyOpen(truck?.openingHours);
+  const canOrder = isOpen && !isPaused;
 
   const hasMenu = useMemo(() => (menuItems?.length ?? 0) > 0, [menuItems]);
 
@@ -119,6 +123,56 @@ export default function TruckDetails() {
                 </div>
               </div>
 
+              {/* Emplacement */}
+              {truck.location && (truck.location.address || (truck.location.lat && truck.location.lng)) && (
+                <div className="px-6 sm:px-8 py-6 border-t border-white/10 bg-white/5">
+                  <div className="flex items-center justify-between gap-4 mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-7 w-1.5 bg-primary/20 rounded-full" />
+                      <h2 className="text-sm font-black tracking-widest uppercase">Emplacement</h2>
+                    </div>
+                    <button
+                      onClick={() => setShowMap(!showMap)}
+                      className="px-4 py-2 rounded-full glass-premium border-white/30 text-xs font-black uppercase tracking-wider hover:bg-white/10 transition-all"
+                    >
+                      {showMap ? 'Réduire' : 'Agrandir'} 🗺️
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {/* Info adresse */}
+                    <div className="flex items-start gap-4 p-5 rounded-[24px] glass-premium border-white/20">
+                      <div className="p-3 rounded-2xl glass-premium border-white/30 text-primary shadow-lg">
+                        <MapPin className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <p className="font-black text-sm tracking-tight">
+                          {truck.location.address || 'Adresse non renseignée'}
+                        </p>
+                        {truck.location.lat && truck.location.lng && (
+                          <p className="text-xs text-muted-foreground/60 font-medium">
+                            {showMap ? 'Carte affichée ci-dessous' : 'Cliquez sur Agrandir pour voir la carte'}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Carte intégrée */}
+                    {showMap && truck.location.lat && truck.location.lng && (
+                      <div className="relative rounded-[24px] overflow-hidden shadow-2xl border-2 border-white/30 animate-in slide-in-from-top duration-500">
+                        <iframe
+                          src={`https://www.google.com/maps?q=${truck.location.lat},${truck.location.lng}&hl=fr&z=16&output=embed`}
+                          className="w-full h-[400px] border-0"
+                          loading="lazy"
+                          referrerPolicy="no-referrer-when-downgrade"
+                          title="Emplacement du camion"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Gallery (dans le même encart, sous les infos) */}
               {Array.isArray(truck.photos) && truck.photos.length > 0 && (
                 <div className="px-6 sm:px-8 py-6 border-t border-white/10 bg-white/5">
@@ -161,7 +215,7 @@ export default function TruckDetails() {
 
           {/* Sidebar / Sidebar "Control Center" */}
           <aside className="lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-24 h-fit space-y-8 animate-in slide-in-from-right-8 duration-700">
-            <CartDrawer onCheckout={handleCheckout} />
+            <CartDrawer onCheckout={handleCheckout} disabled={!canOrder} />
 
             {items.length > 0 && (
               <div className="glass-premium p-6 rounded-[24px] border-primary/20 text-center space-y-4 shadow-xl">
@@ -196,12 +250,24 @@ export default function TruckDetails() {
               </div>
             ) : (
               <div className="grid gap-8">
-                {isPaused && (
+                {!canOrder && (
                   <div className="p-8 text-center glass-premium border-amber-500/30 rounded-[32px] bg-amber-50/5">
-                    <p className="text-lg font-black text-amber-500 mb-2">☕ Pause en cours</p>
-                    <p className="text-muted-foreground font-medium">
-                      Le pizzaiolo prend un instant de repos. Les commandes sont temporairement suspendues.
-                    </p>
+                    {isPaused && (
+                      <>
+                        <p className="text-lg font-black text-amber-500 mb-2">☕ Pause en cours</p>
+                        <p className="text-muted-foreground font-medium">
+                          Le pizzaiolo prend un instant de repos. Les commandes sont temporairement suspendues.
+                        </p>
+                      </>
+                    )}
+                    {!isOpen && !isPaused && (
+                      <>
+                        <p className="text-lg font-black text-red-500 mb-2">🔒 Actuellement fermé</p>
+                        <p className="text-muted-foreground font-medium">
+                          Le camion est fermé. Consultez les horaires d'ouverture ci-dessus.
+                        </p>
+                      </>
+                    )}
                   </div>
                 )}
                 {menuItems.map((it) => (
@@ -209,7 +275,7 @@ export default function TruckDetails() {
                     key={it.id}
                     item={it}
                     onAdd={(item) => addItem(item, { truckId: truck.id })}
-                    isPaused={isPaused}
+                    isDisabled={!canOrder}
                   />
                 ))}
               </div>

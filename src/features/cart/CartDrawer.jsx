@@ -8,7 +8,7 @@ function formatEUR(cents) {
   return (cents / 100).toFixed(2).replace('.', ',') + ' €';
 }
 
-export default function CartDrawer({ onCheckout }) {
+export default function CartDrawer({ onCheckout, disabled = false }) {
   const { items, removeItem, updateItemQty, totalCents } = useCart();
 
   return (
@@ -84,7 +84,7 @@ export default function CartDrawer({ onCheckout }) {
         <Button
           className="w-full h-16 rounded-[24px] bg-linear-to-r from-primary to-orange-500 hover:shadow-2xl hover:shadow-primary/40 transition-all text-sm font-black tracking-widest uppercase gap-3 disabled:opacity-20 relative overflow-hidden group"
           onClick={onCheckout}
-          disabled={items.length === 0}
+          disabled={items.length === 0 || disabled}
         >
           <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
           <span className="relative z-10">Valider la commande</span>

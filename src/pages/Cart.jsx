@@ -11,6 +11,8 @@ import { useCreateOrder } from '../features/orders/hooks/useCreateOrder';
 import { ROUTES } from '../app/routes';
 import { ref, get } from 'firebase/database';
 import { db } from '../lib/firebase';
+import { useTruck } from '../features/trucks/hooks/useTruck';
+import { isCurrentlyOpen } from '../lib/openingHours';
 
 const TVA_RATE = 0.10; // 10% TVA restauration
 
@@ -36,6 +38,10 @@ export default function Cart() {
   });
 
   const truckId = location.state?.truckId ?? cartTruckId ?? null;
+  const { truck } = useTruck(truckId);
+  const isPaused = truck?.isPaused === true;
+  const isOpen = isCurrentlyOpen(truck?.openingHours);
+  const canOrder = isOpen && !isPaused;
 
   // Charger les préférences utilisateur
   useEffect(() => {
@@ -77,6 +83,14 @@ export default function Cart() {
     // Vérifier l'authentification
     if (!isAuthenticated || !user) {
       navigate(ROUTES.login);
+      return;
+    }
+
+    // Vérifier que le camion est ouvert
+    if (!canOrder) {
+      setError(isPaused 
+        ? 'Le camion est en pause. Les commandes sont temporairement suspendues.' 
+        : 'Le camion est actuellement fermé. Consultez les horaires d\'ouverture.');
       return;
     }
 
@@ -444,11 +458,21 @@ export default function Cart() {
                 className="w-full" 
                 size="lg" 
                 onClick={handleCheckout}
-                disabled={creatingOrder || !truckId}
+                disabled={creatingOrder || !truckId || !canOrder}
               >
                 {creatingOrder ? 'Préparation du paiement...' : 'Commander'}
               </Button>
             </CardFooter>
+
+            {!canOrder && truckId && (
+              <CardFooter className="pt-0">
+                <p className="text-xs text-destructive text-center w-full">
+                  {isPaused 
+                    ? '⏸️ Le camion est en pause. Les commandes sont temporairement suspendues.'
+                    : '🔒 Le camion est actuellement fermé. Consultez les horaires d\'ouverture.'}
+                </p>
+              </CardFooter>
+            )}
 
             {!truckId && (
               <CardFooter className="pt-0">

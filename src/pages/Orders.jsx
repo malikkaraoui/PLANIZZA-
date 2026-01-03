@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-import { ref, query, orderByChild, equalTo, onValue } from 'firebase/database';
+import { ArrowLeft, Store } from 'lucide-react';
+import { ref, query, orderByChild, equalTo, onValue, get } from 'firebase/database';
 import { db } from '../lib/firebase';
 import { useAuth } from '../app/providers/AuthProvider';
 
@@ -9,6 +9,7 @@ export default function Orders() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
+  const [trucks, setTrucks] = useState({});
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
 
@@ -24,11 +25,13 @@ export default function Orders() {
     const ordersRef = query(ref(db, 'orders'), orderByChild('userUid'), equalTo(user.uid));
     const unsub = onValue(
       ordersRef,
-      (snap) => {
+      async (snap) => {
         if (!snap.exists()) {
           setOrders([]);
         } else {
           const data = [];
+          const truckIds = new Set();
+          
           snap.forEach((child) => {
             const order = { id: child.key, ...child.val() };
             
@@ -39,9 +42,25 @@ export default function Orders() {
             if (order.payment?.paymentStatus !== 'paid' && !['received', 'accepted', 'delivered'].includes(order.status)) return;
             
             data.push(order);
+            if (order.truckId) truckIds.add(order.truckId);
           });
+          
           data.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
           setOrders(data.slice(0, 5));
+          
+          // Charger les infos des camions
+          const trucksData = {};
+          for (const truckId of truckIds) {
+            try {
+              const truckSnap = await get(ref(db, `public/trucks/${truckId}`));
+              if (truckSnap.exists()) {
+                trucksData[truckId] = truckSnap.val();
+              }
+            } catch (err) {
+              console.error(`Erreur chargement camion ${truckId}:`, err);
+            }
+          }
+          setTrucks(trucksData);
         }
         setLoading(false);
       },
@@ -130,36 +149,55 @@ export default function Orders() {
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredOrders.map((order) => (
-              <Link key={order.id} to={`/order/${order.id}`} className="block bg-white border border-gray-200 shadow-sm rounded-2xl p-6 hover:shadow-md transition-all">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-xl font-bold text-gray-900">Commande #{order.id.slice(0, 8)}</h3>
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold text-white shadow-sm ${statusColors[order.status] || 'bg-gray-500'}`}>
-                        {statusLabels[order.status] || order.status}
-                      </span>
+            {filteredOrders.map((order) => {
+              const truck = trucks[order.truckId];
+              
+              return (
+                <div key={order.id} className="bg-white border border-gray-200 shadow-sm rounded-2xl p-6 hover:shadow-md transition-all">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-xl font-bold text-gray-900">Commande #{order.id.slice(0, 8)}</h3>
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold text-white shadow-sm ${statusColors[order.status] || 'bg-gray-500'}`}>
+                          {statusLabels[order.status] || order.status}
+                        </span>
+                      </div>
+                      
+                      {/* Nom du camion cliquable */}
+                      {truck && (
+                        <Link 
+                          to={`/truck/${order.truckId}`}
+                          className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:text-primary/80 transition-colors mb-2 group"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Store className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                          {truck.name}
+                        </Link>
+                      )}
+                      
+                      <p className="text-gray-500 text-sm font-medium">
+                        {order.createdAt ? new Date(order.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Date inconnue'}
+                      </p>
                     </div>
-                    <p className="text-gray-500 text-sm font-medium">
-                      {order.createdAt ? new Date(order.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Date inconnue'}
-                    </p>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-gray-900">{((order.totalCents || 0) / 100).toFixed(2)} €</p>
+                      <p className="text-gray-500 text-sm font-medium">{order.items?.length || 0} article(s)</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-gray-900">{((order.totalCents || 0) / 100).toFixed(2)} €</p>
-                    <p className="text-gray-500 text-sm font-medium">{order.items?.length || 0} article(s)</p>
+                  <div className="border-t border-gray-100 pt-4">
+                    <p className="text-gray-600 text-sm font-medium">{order.items?.map(item => `${item.qty}x ${item.name}`).join(', ')}</p>
+                  </div>
+                  <div className="mt-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm">
+                      {order.paidAt && <span className="text-emerald-600 font-bold">✓ Payé</span>}
+                    </div>
+                    <Link to={`/order/${order.id}`} className="text-emerald-600 font-bold text-sm hover:text-emerald-700 transition-colors">
+                      Voir le suivi →
+                    </Link>
                   </div>
                 </div>
-                <div className="border-t border-gray-100 pt-4">
-                  <p className="text-gray-600 text-sm font-medium">{order.items?.map(item => `${item.qty}x ${item.name}`).join(', ')}</p>
-                </div>
-                <div className="mt-4 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm">
-                    {order.paidAt && <span className="text-emerald-600 font-bold">✓ Payé</span>}
-                  </div>
-                  <span className="text-emerald-600 font-bold text-sm">Voir le suivi →</span>
-                </div>
-              </Link>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

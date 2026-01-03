@@ -8,8 +8,8 @@ function formatEUR(cents) {
   return (cents / 100).toFixed(2).replace('.', ',') + ' €';
 }
 
-export default function MenuItemCard({ item, onAdd, isPaused = false }) {
-  const isAvailable = item.available !== false && !isPaused;
+export default function MenuItemCard({ item, onAdd, isDisabled = false }) {
+  const isAvailable = item.available !== false && !isDisabled;
   const hasSizes = item.type === 'pizza' && (item.sizes || (item.prices?.classic && item.prices?.large));
   const [selectedSize, setSelectedSize] = useState('s');
 
@@ -161,7 +161,7 @@ export default function MenuItemCard({ item, onAdd, isPaused = false }) {
           <div className="p-1.5 rounded-full bg-white/20">
             <Plus className="h-4 w-4" />
           </div>
-          {isPaused ? 'Pause' : 'Ajouter'}
+          Ajouter
         </Button>
       </CardFooter>
     </Card>
