@@ -126,36 +126,31 @@ export default function TruckDetails() {
               {/* Emplacement */}
               {truck.location && (truck.location.address || (truck.location.lat && truck.location.lng)) && (
                 <div className="px-6 sm:px-8 py-6 border-t border-white/10 bg-white/5">
-                  <div className="flex items-center justify-between gap-4 mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-7 w-1.5 bg-primary/20 rounded-full" />
-                      <h2 className="text-sm font-black tracking-widest uppercase">Emplacement</h2>
-                    </div>
-                    <button
-                      onClick={() => setShowMap(!showMap)}
-                      className="px-4 py-2 rounded-full glass-premium border-white/30 text-xs font-black uppercase tracking-wider hover:bg-white/10 transition-all"
-                    >
-                      {showMap ? 'Réduire' : 'Agrandir'} 🗺️
-                    </button>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="h-7 w-1.5 bg-primary/20 rounded-full" />
+                    <h2 className="text-sm font-black tracking-widest uppercase">Emplacement</h2>
                   </div>
                   
                   <div className="space-y-4">
-                    {/* Info adresse */}
-                    <div className="flex items-start gap-4 p-5 rounded-[24px] glass-premium border-white/20">
-                      <div className="p-3 rounded-2xl glass-premium border-white/30 text-primary shadow-lg">
+                    {/* Info adresse - Cliquable */}
+                    <button
+                      onClick={() => setShowMap(!showMap)}
+                      className="w-full flex items-start gap-4 p-5 rounded-[24px] glass-premium border-white/20 hover:border-primary/30 transition-all shadow-lg hover:shadow-xl group"
+                    >
+                      <div className="p-3 rounded-2xl glass-premium border-white/30 text-primary shadow-lg group-hover:scale-110 transition-transform">
                         <MapPin className="h-5 w-5" />
                       </div>
-                      <div className="flex-1 space-y-1">
-                        <p className="font-black text-sm tracking-tight">
+                      <div className="flex-1 text-left space-y-1">
+                        <p className="font-black text-sm tracking-tight group-hover:text-primary transition-colors">
                           {truck.location.address || 'Adresse non renseignée'}
                         </p>
                         {truck.location.lat && truck.location.lng && (
                           <p className="text-xs text-muted-foreground/60 font-medium">
-                            {showMap ? 'Carte affichée ci-dessous' : 'Cliquez sur Agrandir pour voir la carte'}
+                            {showMap ? '👆 Cliquez pour réduire la carte' : '👉 Cliquez pour voir sur la carte'}
                           </p>
                         )}
                       </div>
-                    </div>
+                    </button>
 
                     {/* Carte intégrée */}
                     {showMap && truck.location.lat && truck.location.lng && (
