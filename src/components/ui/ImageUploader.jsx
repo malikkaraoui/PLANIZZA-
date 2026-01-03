@@ -3,7 +3,63 @@ import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'fi
 import { storage } from '../../lib/firebase';
 import { Button } from './Button';
 
-export default function ImageUploader({ value, onChange, label, folder = 'uploads' }) {
+/**
+ * Redimensionne une image en conservant son ratio
+ * @param {File} file - Fichier image à redimensionner
+ * @param {number} maxWidth - Largeur maximale
+ * @param {number} maxHeight - Hauteur maximale
+ * @returns {Promise<Blob>} - Blob de l'image redimensionnée
+ */
+const resizeImage = (file, maxWidth, maxHeight) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      const img = new Image();
+      
+      img.onload = () => {
+        // Calculer les nouvelles dimensions en conservant le ratio
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        
+        // Créer un canvas pour redimensionner
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Convertir en blob
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error('Erreur lors de la conversion de l\'image'));
+            }
+          },
+          file.type,
+          0.9 // Qualité 90%
+        );
+      };
+      
+      img.onerror = () => reject(new Error('Erreur lors du chargement de l\'image'));
+      img.src = e.target.result;
+    };
+    
+    reader.onerror = () => reject(new Error('Erreur lors de la lecture du fichier'));
+    reader.readAsDataURL(file);
+  });
+};
+
+export default function ImageUploader({ value, onChange, label, folder = 'uploads', maxWidth = 1200, maxHeight = 1200 }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [preview, setPreview] = useState(value || '');
@@ -47,6 +103,11 @@ export default function ImageUploader({ value, onChange, label, folder = 'upload
         }
       }
 
+      // ✅ REDIMENSIONNER l'image en conservant le ratio
+      console.log(`[PLANIZZA] Redimensionnement de l'image (max: ${maxWidth}x${maxHeight})...`);
+      const resizedBlob = await resizeImage(file, maxWidth, maxHeight);
+      const resizedFile = new File([resizedBlob], file.name, { type: file.type });
+
       // Créer un nom unique pour le fichier
       const timestamp = Date.now();
       const randomId = Math.random().toString(36).substring(2, 9);
@@ -55,7 +116,7 @@ export default function ImageUploader({ value, onChange, label, folder = 'upload
 
       // Upload vers Firebase Storage
       const imageRef = storageRef(storage, path);
-      await uploadBytes(imageRef, file);
+      await uploadBytes(imageRef, resizedFile);
 
       // Récupérer l'URL publique
       const downloadUrl = await getDownloadURL(imageRef);

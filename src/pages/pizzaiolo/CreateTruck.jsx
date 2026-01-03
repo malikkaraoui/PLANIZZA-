@@ -638,6 +638,8 @@ export default function CreateTruck() {
               value={logoUrl}
               onChange={setLogoUrl}
               folder="trucks/logos"
+              maxWidth={500}
+              maxHeight={500}
             />
           </div>
 
@@ -649,6 +651,8 @@ export default function CreateTruck() {
               value={photoUrl}
               onChange={setPhotoUrl}
               folder="trucks/photos"
+              maxWidth={1200}
+              maxHeight={800}
             />
           </div>
 

@@ -865,6 +865,8 @@ export default function PizzaioloProfile() {
                   onChange={setPhotoUrl}
                   label=""
                   folder="trucks"
+                  maxWidth={1200}
+                  maxHeight={800}
                 />
                 <p className="text-xs text-muted-foreground mt-2 font-medium">
                   🍕 Photo principale visible sur votre fiche
@@ -878,6 +880,8 @@ export default function PizzaioloProfile() {
                   onChange={setLogoUrl}
                   label=""
                   folder="logos"
+                  maxWidth={500}
+                  maxHeight={500}
                 />
                 <p className="text-xs text-muted-foreground mt-2 font-medium">
                   🎨 Apparaît dans les résultats de recherche
