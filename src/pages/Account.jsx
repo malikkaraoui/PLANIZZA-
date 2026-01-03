@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { signOut } from 'firebase/auth';
+import { signOut, updateProfile } from 'firebase/auth';
 import { ref, remove, get, set } from 'firebase/database';
 import { Bike, Store } from 'lucide-react';
 import { useAuth } from '../app/providers/AuthProvider';
@@ -26,6 +26,8 @@ export default function Account() {
 
   // Profil éditable
   const [isEditing, setIsEditing] = useState(false);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [phonePrefix, setPhonePrefix] = useState('+33');
   
@@ -54,6 +56,13 @@ export default function Account() {
         
         if (snap.exists()) {
           const data = snap.val();
+          
+          // Charger le nom complet et le décomposer
+          const fullName = data.displayName || user.displayName || '';
+          const nameParts = fullName.split(' ');
+          setFirstName(nameParts[0] || '');
+          setLastName(nameParts.slice(1).join(' ') || '');
+          
           const fullPhone = data.phoneNumber || '';
           
           // Extraire l'indicatif et le numéro
@@ -86,7 +95,7 @@ export default function Account() {
     };
 
     loadProfile();
-  }, [user?.uid, isAuthenticated]);
+  }, [user?.uid, user?.displayName, isAuthenticated]);
 
   // Fonction pour changer la préférence de livraison instantanément
   const handleToggleDeliveryPreference = async (newValue) => {
@@ -153,9 +162,17 @@ export default function Account() {
       const fullPhoneNumber = phoneNumber.trim() 
         ? `${phonePrefix} ${phoneNumber.trim()}`
         : '';
+      
+      const displayName = `${firstName.trim()} ${lastName.trim()}`.trim();
 
+      // ✅ Mettre à jour Firebase Auth
+      if (auth.currentUser) {
+        await updateProfile(auth.currentUser, { displayName });
+      }
+
+      // ✅ Mettre à jour RTDB
       await set(ref(db, `users/${user.uid}`), {
-        displayName: user.displayName || '',
+        displayName,
         email: user.email || '',
         photoURL: user.photoURL || '',
         phoneNumber: fullPhoneNumber,
@@ -163,17 +180,20 @@ export default function Account() {
           streetNumber: streetNumber.trim(),
           street: street.trim(),
           postalCode: postalCode.trim(),
-        preferences: {
-          wantsDelivery: wantsDelivery
-        },
           city: city.trim(),
           country: country.trim()
+        },
+        preferences: {
+          wantsDelivery: wantsDelivery
         },
         updatedAt: Date.now()
       });
 
       setMessage('✅ Profil sauvegardé avec succès !');
       setIsEditing(false);
+      
+      // Forcer un rechargement pour mettre à jour l'affichage
+      window.location.reload();
       
       console.log('[PLANIZZA] Profil utilisateur mis à jour');
     } catch (err) {
@@ -270,7 +290,14 @@ export default function Account() {
 
           <div className="space-y-4">
             <div>
-              <p className="text-sm font-semibold text-gray-900">📱 Téléphone</p>
+              <p className="text-sm font-semibold text-gray-900">� Nom complet</p>
+              <p className="text-gray-700 mt-1">
+                {firstName || lastName ? `${firstName} ${lastName}`.trim() : 'Non renseigné'}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm font-semibold text-gray-900">�📱 Téléphone</p>
               <p className="text-gray-700 mt-1">
                 {phonePrefix && phoneNumber ? `${phonePrefix} ${phoneNumber}` : 'Non renseigné'}
               </p>
@@ -383,6 +410,30 @@ export default function Account() {
           </div>
 
           <form onSubmit={handleSaveProfile} className="space-y-6">
+            {/* Prénom et Nom */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">👤 Prénom</label>
+                <Input
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="Prénom"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">👤 Nom</label>
+                <Input
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Nom"
+                  required
+                />
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">📱 Numéro de téléphone</label>
               <div className="flex gap-2">
