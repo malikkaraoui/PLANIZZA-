@@ -296,8 +296,13 @@ export default function Account() {
       // 4. Supprimer le compte Firebase Auth
       await deleteUser(auth.currentUser);
 
-      // 5. Redirection vers l'accueil
-      navigate(ROUTES.home, { replace: true });
+      // 5. Vider le localStorage et sessionStorage
+      localStorage.clear();
+      sessionStorage.clear();
+
+      // 6. Forcer le rechargement complet de la page vers l'accueil
+      // Utiliser window.location pour forcer un rechargement complet
+      window.location.href = '/';
     } catch (err) {
       console.error('Erreur suppression compte:', err);
       alert('Erreur lors de la suppression du compte. Veuillez réessayer ou nous contacter.');

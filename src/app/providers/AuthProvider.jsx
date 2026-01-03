@@ -9,12 +9,22 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(() => Boolean(isFirebaseConfigured && auth));
+  const [previousUser, setPreviousUser] = useState(null);
 
   useEffect(() => {
     if (!isFirebaseConfigured || !auth) return;
 
     const unsub = onAuthStateChanged(auth, (u) => {
+      // Détection de suppression de compte : l'utilisateur était connecté et n'existe plus
+      if (previousUser && !u) {
+        // Le compte a été supprimé, forcer la redirection immédiate
+        console.log('[PLANIZZA] Compte supprimé détecté, redirection...');
+        window.location.href = '/';
+        return;
+      }
+
       setUser(u);
+      setPreviousUser(u);
       setLoading(false);
 
       // Best-effort: on crée/maj un profil RTDB (email + photoURL Google, etc.)
@@ -26,7 +36,7 @@ export function AuthProvider({ children }) {
     });
 
     return () => unsub();
-  }, []);
+  }, [previousUser]);
 
   const value = useMemo(
     () => ({
