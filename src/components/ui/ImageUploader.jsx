@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage } from '../../lib/firebase';
 import { Button } from './Button';
 
@@ -30,6 +30,23 @@ export default function ImageUploader({ value, onChange, label, folder = 'upload
     setUploading(true);
 
     try {
+      // ✅ SUPPRIMER L'ANCIENNE IMAGE si elle existe
+      if (value && value.includes('firebasestorage.googleapis.com')) {
+        try {
+          // Extraire le chemin depuis l'URL Firebase Storage
+          const urlParts = value.split('/o/')[1]?.split('?')[0];
+          if (urlParts) {
+            const oldPath = decodeURIComponent(urlParts);
+            const oldImageRef = storageRef(storage, oldPath);
+            await deleteObject(oldImageRef);
+            console.log('[PLANIZZA] Ancienne image supprimée:', oldPath);
+          }
+        } catch (deleteErr) {
+          console.warn('[PLANIZZA] Impossible de supprimer l\'ancienne image (peut-être déjà supprimée):', deleteErr);
+          // Ne pas bloquer l'upload si la suppression échoue
+        }
+      }
+
       // Créer un nom unique pour le fichier
       const timestamp = Date.now();
       const randomId = Math.random().toString(36).substring(2, 9);
@@ -55,8 +72,24 @@ export default function ImageUploader({ value, onChange, label, folder = 'upload
     }
   };
 
-  const handleRemove = (e) => {
+  const handleRemove = async (e) => {
     e.stopPropagation();
+    
+    // ✅ SUPPRIMER L'IMAGE du Storage Firebase
+    if (value && value.includes('firebasestorage.googleapis.com')) {
+      try {
+        const urlParts = value.split('/o/')[1]?.split('?')[0];
+        if (urlParts) {
+          const imagePath = decodeURIComponent(urlParts);
+          const imageRef = storageRef(storage, imagePath);
+          await deleteObject(imageRef);
+          console.log('[PLANIZZA] Image supprimée du Storage:', imagePath);
+        }
+      } catch (deleteErr) {
+        console.warn('[PLANIZZA] Impossible de supprimer l\'image:', deleteErr);
+      }
+    }
+    
     setPreview('');
     onChange('');
     if (fileInputRef.current) {

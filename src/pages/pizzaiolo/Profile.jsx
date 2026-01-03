@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ref, get, set, push, update, remove, query, orderByChild, equalTo } from 'firebase/database';
+import { ref as storageRef, deleteObject } from 'firebase/storage';
 import { Pause, Play, Pizza, Edit2, ArrowLeft, Trash2, Radio, ListOrdered, Utensils } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import Card from '../../components/ui/Card';
 import { useAuth } from '../../app/providers/AuthProvider';
 import { useUserProfile } from '../../features/users/hooks/useUserProfile';
-import { db } from '../../lib/firebase';
+import { db, storage } from '../../lib/firebase';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { generateSlug } from '../../lib/utils';
@@ -125,6 +126,44 @@ export default function PizzaioloProfile() {
     setIsDeleting(true);
 
     try {
+      // 0. Récupérer les URLs des images du camion pour les supprimer
+      const truckRef = ref(db, `public/trucks/${truckId}`);
+      const truckSnap = await get(truckRef);
+      
+      if (truckSnap.exists()) {
+        const truckData = truckSnap.val();
+        
+        // Supprimer le logo
+        if (truckData.logoUrl && truckData.logoUrl.includes('firebasestorage.googleapis.com')) {
+          try {
+            const urlParts = truckData.logoUrl.split('/o/')[1]?.split('?')[0];
+            if (urlParts) {
+              const logoPath = decodeURIComponent(urlParts);
+              const logoRef = storageRef(storage, logoPath);
+              await deleteObject(logoRef);
+              console.log('[PLANIZZA] Logo supprimé:', logoPath);
+            }
+          } catch (err) {
+            console.warn('[PLANIZZA] Impossible de supprimer le logo:', err);
+          }
+        }
+        
+        // Supprimer la photo du camion
+        if (truckData.photoUrl && truckData.photoUrl.includes('firebasestorage.googleapis.com')) {
+          try {
+            const urlParts = truckData.photoUrl.split('/o/')[1]?.split('?')[0];
+            if (urlParts) {
+              const photoPath = decodeURIComponent(urlParts);
+              const photoRef = storageRef(storage, photoPath);
+              await deleteObject(photoRef);
+              console.log('[PLANIZZA] Photo supprimée:', photoPath);
+            }
+          } catch (err) {
+            console.warn('[PLANIZZA] Impossible de supprimer la photo:', err);
+          }
+        }
+      }
+
       // 1. Supprimer TOUTES les commandes rattachées au camion
       const ordersRef = ref(db, 'orders');
       const ordersQuery = query(ordersRef, orderByChild('truckId'), equalTo(truckId));
@@ -158,7 +197,7 @@ export default function PizzaioloProfile() {
         });
       }
 
-      console.log('[PLANIZZA] Compte pro supprimé avec succès (camion + menu + commandes)');
+      console.log('[PLANIZZA] Compte pro supprimé avec succès (images + camion + menu + commandes)');
       
       // Fermer le dialog
       setShowDeleteDialog(false);
