@@ -96,12 +96,27 @@ export default function PizzaioloMenu() {
 
     // Validation des prix pour les pizzas
     if (itemType === 'pizza') {
-      const sPrice = parseFloat(priceS);
-      const mPrice = parseFloat(priceM);
-      const lPrice = parseFloat(priceL);
+      const sPrice = priceS ? parseFloat(priceS) : null;
+      const mPrice = priceM ? parseFloat(priceM) : null;
+      const lPrice = priceL ? parseFloat(priceL) : null;
       
-      if (mPrice < sPrice || lPrice < mPrice) {
-        setMessage('❌ Les prix doivent être croissants : S ≤ M ≤ L');
+      // Au moins une taille doit être renseignée
+      if (!sPrice && !mPrice && !lPrice) {
+        setMessage('❌ Vous devez renseigner au moins une taille de pizza');
+        return;
+      }
+      
+      // Si plusieurs tailles sont renseignées, vérifier que les prix sont croissants
+      if (sPrice && mPrice && mPrice < sPrice) {
+        setMessage('❌ Le prix M doit être supérieur ou égal au prix S');
+        return;
+      }
+      if (mPrice && lPrice && lPrice < mPrice) {
+        setMessage('❌ Le prix L doit être supérieur ou égal au prix M');
+        return;
+      }
+      if (sPrice && lPrice && lPrice < sPrice) {
+        setMessage('❌ Le prix L doit être supérieur ou égal au prix S');
         return;
       }
     }
@@ -122,20 +137,27 @@ export default function PizzaioloMenu() {
 
       // Gestion des prix selon le type
       if (itemType === 'pizza') {
-        itemData.sizes = {
-          s: { 
+        itemData.sizes = {};
+        
+        // Ajouter uniquement les tailles qui ont un prix
+        if (priceS && parseFloat(priceS) > 0) {
+          itemData.sizes.s = { 
             priceCents: parseFloat(priceS) * 100,
             diameter: parseInt(diameterS)
-          },
-          m: { 
+          };
+        }
+        if (priceM && parseFloat(priceM) > 0) {
+          itemData.sizes.m = { 
             priceCents: parseFloat(priceM) * 100,
             diameter: parseInt(diameterM)
-          },
-          l: { 
+          };
+        }
+        if (priceL && parseFloat(priceL) > 0) {
+          itemData.sizes.l = { 
             priceCents: parseFloat(priceL) * 100,
             diameter: parseInt(diameterL)
-          }
-        };
+          };
+        }
       } else {
         // Pour calzone et dessert, un seul prix
         itemData.priceCents = parseFloat(priceS) * 100;
@@ -390,15 +412,21 @@ export default function PizzaioloMenu() {
                   <div className="mt-3 flex items-center gap-4 flex-wrap">
                     {item.type === 'pizza' && item.sizes ? (
                       <>
-                        <span className="text-sm font-semibold text-gray-900">
-                          S ({item.sizes.s.diameter}cm): {formatPrice(item.sizes.s.priceCents)}
-                        </span>
-                        <span className="text-sm font-semibold text-gray-900">
-                          M ({item.sizes.m.diameter}cm): {formatPrice(item.sizes.m.priceCents)}
-                        </span>
-                        <span className="text-sm font-semibold text-gray-900">
-                          L ({item.sizes.l.diameter}cm): {formatPrice(item.sizes.l.priceCents)}
-                        </span>
+                        {item.sizes.s && (
+                          <span className="text-sm font-semibold text-gray-900">
+                            S ({item.sizes.s.diameter}cm): {formatPrice(item.sizes.s.priceCents)}
+                          </span>
+                        )}
+                        {item.sizes.m && (
+                          <span className="text-sm font-semibold text-gray-900">
+                            M ({item.sizes.m.diameter}cm): {formatPrice(item.sizes.m.priceCents)}
+                          </span>
+                        )}
+                        {item.sizes.l && (
+                          <span className="text-sm font-semibold text-gray-900">
+                            L ({item.sizes.l.diameter}cm): {formatPrice(item.sizes.l.priceCents)}
+                          </span>
+                        )}
                       </>
                     ) : item.type === 'pizza' && item.prices ? (
                       // Retro-compatibilité ancien format

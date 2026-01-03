@@ -31,9 +31,6 @@ export const ROUTES = {
 
   // Partenaires / Pro
   becomePartner: '/devenez_partenaire',
-  becomePartnerForm: '/devenez_partenaire/inscription',
-  becomePartnerValidation: '/devenez_partenaire/validation',
-  becomePartnerPricing: '/devenez_partenaire/tarifs',
 
   // Legacy (compat)
   legacyTrucks: '/trucks',

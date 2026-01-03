@@ -16,7 +16,7 @@ export default function TruckDetails() {
   const location = useLocation();
   const navigate = useNavigate();
   const { truck, loading: loadingTruck } = useTruck(slugOrId);
-  const { items: menuItems, loading: loadingMenu } = useMenu(slugOrId);
+  const { items: menuItems, loading: loadingMenu } = useMenu(truck?.id);
   const { addItem, items } = useCart();
 
   const isLoading = loadingTruck || loadingMenu;
@@ -47,7 +47,7 @@ export default function TruckDetails() {
 
   const handleCheckout = async () => {
     // Navigation MVP: passage par /cart puis /checkout
-    navigate(ROUTES.cart, { state: { truckId } });
+    navigate(ROUTES.cart, { state: { truckId: truck.id } });
   };
 
   return (
@@ -206,7 +206,7 @@ export default function TruckDetails() {
                   <MenuItemCard
                     key={it.id}
                     item={it}
-                    onAdd={(item) => addItem(item, { truckId })}
+                    onAdd={(item) => addItem(item, { truckId: truck.id })}
                     isPaused={isPaused}
                   />
                 ))}

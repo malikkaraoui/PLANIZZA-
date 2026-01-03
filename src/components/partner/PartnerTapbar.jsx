@@ -21,10 +21,13 @@ export default function PartnerTapbar() {
   return (
     <div className="border-b bg-white/80 backdrop-blur">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
-        <div className="flex justify-center">
-          <div className="bg-gray-900 text-white px-6 py-2 text-sm font-semibold rounded-xl">
+        <div className="flex justify-center gap-2">
+          <Tab to={ROUTES.becomePartner} end>
+            Professionnel
+          </Tab>
+          <Tab to={ROUTES.becomePartnerPricing}>
             Tarifs
-          </div>
+          </Tab>
         </div>
       </div>
     </div>

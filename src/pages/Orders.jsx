@@ -30,7 +30,15 @@ export default function Orders() {
         } else {
           const data = [];
           snap.forEach((child) => {
-            data.push({ id: child.key, ...child.val() });
+            const order = { id: child.key, ...child.val() };
+            
+            // ✅ FILTRER : Ne garder que les commandes VRAIMENT PAYÉES
+            // Exclure les commandes non payées (created ou pending sans confirmation)
+            if (order.status === 'created') return;
+            if (order.payment?.paymentStatus === 'pending' && order.status !== 'received') return;
+            if (order.payment?.paymentStatus !== 'paid' && !['received', 'accepted', 'delivered'].includes(order.status)) return;
+            
+            data.push(order);
           });
           data.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
           setOrders(data.slice(0, 5));
@@ -67,19 +75,23 @@ export default function Orders() {
   }
 
   const filteredOrders = orders.filter((order) => {
-    if (filter === 'active') return ['created', 'received', 'prep', 'cooking'].includes(order.status);
-    if (filter === 'completed') return ['ready', 'cancelled'].includes(order.status);
+    if (filter === 'active') return ['received', 'accepted'].includes(order.status);
+    if (filter === 'completed') return ['delivered', 'cancelled'].includes(order.status);
     return true;
   });
 
   const statusLabels = {
-    created: 'En attente', received: 'Reçue', prep: 'En préparation',
-    cooking: 'En cuisson', ready: 'Prête', cancelled: 'Annulée',
+    received: 'Non prise en charge',
+    accepted: 'Prise en charge',
+    delivered: 'Délivrée',
+    cancelled: 'Annulée',
   };
 
   const statusColors = {
-    created: 'bg-gray-500', received: 'bg-blue-500', prep: 'bg-yellow-500',
-    cooking: 'bg-orange-500', ready: 'bg-emerald-500', cancelled: 'bg-red-500',
+    received: 'bg-orange-500',
+    accepted: 'bg-blue-500',
+    delivered: 'bg-emerald-500',
+    cancelled: 'bg-red-500',
   };
 
   return (
@@ -105,7 +117,7 @@ export default function Orders() {
               onClick={() => setFilter(f)}
               className={`px-4 py-2 rounded-xl font-bold transition-all ${filter === f ? 'bg-emerald-500 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200 shadow-sm'}`}
             >
-              {f === 'all' ? `Toutes (${orders.length})` : f === 'active' ? `En cours (${orders.filter(o => ['created', 'received', 'prep', 'cooking'].includes(o.status)).length})` : `Terminées (${orders.filter(o => ['ready', 'cancelled'].includes(o.status)).length})`}
+              {f === 'all' ? `Toutes (${orders.length})` : f === 'active' ? `En cours (${orders.filter(o => ['received', 'accepted'].includes(o.status)).length})` : `Terminées (${orders.filter(o => ['delivered', 'cancelled'].includes(o.status)).length})`}
             </button>
           ))}
         </div>

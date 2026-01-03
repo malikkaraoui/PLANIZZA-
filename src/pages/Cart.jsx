@@ -4,6 +4,7 @@ import { ShoppingBag, ArrowLeft, Trash2, Minus, Plus, Bike, Store } from 'lucide
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/Card';
 import { Separator } from '../components/ui/separator';
+import { Input } from '../components/ui/Input';
 import { useCart } from '../features/cart/hooks/useCart.jsx';
 import { useAuth } from '../app/providers/AuthProvider';
 import { useCreateOrder } from '../features/orders/hooks/useCreateOrder';
@@ -25,7 +26,14 @@ export default function Cart() {
   const { createOrder, loading: creatingOrder } = useCreateOrder();
   const [error, setError] = useState(null);
   const [deliveryMethod, setDeliveryMethod] = useState('pickup'); // 'pickup' ou 'delivery'
-  const [deliveryAddress, setDeliveryAddress] = useState('');
+  
+  // Adresse structurée
+  const [deliveryAddress, setDeliveryAddress] = useState({
+    streetNumber: '',
+    street: '',
+    postalCode: '',
+    city: '',
+  });
 
   const truckId = location.state?.truckId ?? cartTruckId ?? null;
 
@@ -49,15 +57,12 @@ export default function Cart() {
           // Pré-remplir l'adresse si elle existe
           if (userData.address) {
             const addr = userData.address;
-            const fullAddress = [
-              addr.streetNumber,
-              addr.street,
-              addr.postalCode,
-              addr.city,
-              addr.country !== 'France' ? addr.country : ''
-            ].filter(Boolean).join(' ');
-            
-            setDeliveryAddress(fullAddress);
+            setDeliveryAddress({
+              streetNumber: addr.streetNumber || '',
+              street: addr.street || '',
+              postalCode: addr.postalCode || '',
+              city: addr.city || '',
+            });
           }
         }
       } catch (err) {
@@ -81,16 +86,42 @@ export default function Cart() {
       return;
     }
 
+    // Vérifier l'adresse de livraison si livraison à domicile
+    if (deliveryMethod === 'delivery') {
+      if (!deliveryAddress.streetNumber?.trim()) {
+        setError('Veuillez renseigner le numéro de rue.');
+        return;
+      }
+      if (!deliveryAddress.street?.trim()) {
+        setError('Veuillez renseigner le nom de la rue.');
+        return;
+      }
+      if (!deliveryAddress.postalCode?.trim()) {
+        setError('Veuillez renseigner le code postal.');
+        return;
+      }
+      if (!deliveryAddress.city?.trim()) {
+        setError('Veuillez renseigner la ville.');
+        return;
+      }
+    }
+
     setError(null);
     
     try {
+      // Formater l'adresse complète pour la commande
+      const fullAddress = deliveryMethod === 'delivery' 
+        ? `${deliveryAddress.streetNumber} ${deliveryAddress.street}, ${deliveryAddress.postalCode} ${deliveryAddress.city}`.trim()
+        : null;
+
       // Créer la commande avec le mode de livraison choisi
       await createOrder({
         truckId,
         items,
         userUid: user.uid,
         customerName: user.displayName || 'Client',
-        deliveryMethod: deliveryMethod, // Passer la vraie valeur choisie !
+        deliveryMethod: deliveryMethod,
+        deliveryAddress: fullAddress,
       });
       // La fonction createOrder redirige automatiquement vers Stripe Checkout
     } catch (err) {
@@ -298,15 +329,70 @@ export default function Cart() {
 
               {/* Adresse de livraison si livraison sélectionnée */}
               {deliveryMethod === 'delivery' && (
-                <div className="mt-6 p-4 rounded-2xl glass-deep border-white/10">
-                  <label className="block text-sm font-bold mb-2">Adresse de livraison</label>
-                  <input
-                    type="text"
-                    value={deliveryAddress}
-                    onChange={(e) => setDeliveryAddress(e.target.value)}
-                    placeholder="Ex: 15 Rue de la Pizza, 75001 Paris"
-                    className="w-full px-4 py-3 rounded-xl bg-white/50 border border-white/20 focus:border-primary focus:outline-none transition-colors"
-                  />
+                <div className="mt-6 p-4 rounded-2xl glass-deep border-white/10 space-y-4">
+                  <label className="block text-sm font-bold mb-3">Adresse de livraison</label>
+                  
+                  {/* Numéro et rue sur la même ligne */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <Input
+                        type="text"
+                        value={deliveryAddress.streetNumber}
+                        onChange={(e) => setDeliveryAddress(prev => ({ ...prev, streetNumber: e.target.value }))}
+                        placeholder="N°"
+                        className="bg-white/50 border-white/20"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Input
+                        type="text"
+                        value={deliveryAddress.street}
+                        onChange={(e) => setDeliveryAddress(prev => ({ ...prev, street: e.target.value }))}
+                        placeholder="Nom de la rue"
+                        className="bg-white/50 border-white/20"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Code postal et ville */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Input
+                        type="text"
+                        value={deliveryAddress.postalCode}
+                        onChange={async (e) => {
+                          const cp = e.target.value;
+                          setDeliveryAddress(prev => ({ ...prev, postalCode: cp }));
+                          
+                          // Auto-complétion ville depuis code postal
+                          if (cp.length === 5) {
+                            try {
+                              const res = await fetch(`https://geo.api.gouv.fr/communes?codePostal=${cp}&fields=nom`);
+                              const data = await res.json();
+                              if (data.length > 0) {
+                                setDeliveryAddress(prev => ({ ...prev, city: data[0].nom }));
+                              }
+                            } catch (err) {
+                              console.error('Erreur API commune:', err);
+                            }
+                          }
+                        }}
+                        placeholder="Code postal"
+                        maxLength={5}
+                        className="bg-white/50 border-white/20"
+                      />
+                    </div>
+                    <div>
+                      <Input
+                        type="text"
+                        value={deliveryAddress.city}
+                        onChange={(e) => setDeliveryAddress(prev => ({ ...prev, city: e.target.value }))}
+                        placeholder="Ville"
+                        className="bg-white/50 border-white/20"
+                      />
+                    </div>
+                  </div>
+
                   <p className="text-xs text-muted-foreground mt-2">
                     🚨 La livraison via Uber Direct sera implémentée prochainement
                   </p>

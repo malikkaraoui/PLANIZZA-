@@ -31,6 +31,13 @@ export function useTruckOrders(truckId) {
               id,
               ...order,
             }))
+            // ✅ FILTRER : Ne garder que les commandes VRAIMENT PAYÉES
+            .filter((order) => {
+              // Exclure les commandes non payées (created ou pending sans confirmation)
+              if (order.status === 'created') return false;
+              if (order.payment?.paymentStatus === 'pending' && order.status !== 'received') return false;
+              return true;
+            })
             .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); // Plus récentes en premier
 
           setOrders(ordersArray);

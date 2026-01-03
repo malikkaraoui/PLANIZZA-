@@ -177,6 +177,10 @@ export default function PizzaioloOrders() {
     const pizzaCounts = []; // Nombre réel de pizzas
     const now = new Date();
     
+    console.log('[getChartData] Calcul pour période:', filters.period);
+    console.log('[getChartData] Commandes filtrées disponibles:', filteredCompletedOrders.length);
+    console.log('[getChartData] Commandes delivered:', filteredCompletedOrders.filter(o => o.status === 'delivered').length);
+    
     switch (filters.period) {
       case 'today': {
         // Heure par heure (11h à 23h ou selon horaires)
@@ -189,6 +193,22 @@ export default function PizzaioloOrders() {
         
         // S'arrêter à l'heure actuelle (pas afficher les heures futures)
         const maxHour = Math.min(currentHour, endHour);
+        
+        console.log('[getChartData TODAY] Plage horaire:', startHour, 'à', maxHour);
+        console.log('[getChartData TODAY] Commandes delivered aujourd\'hui:', 
+          filteredCompletedOrders.filter(o => {
+            const orderDate = new Date(o.createdAt);
+            const orderToday = new Date();
+            orderToday.setHours(0, 0, 0, 0);
+            return o.status === 'delivered' && orderDate >= orderToday;
+          }).map(o => ({
+            id: o.id,
+            createdAt: new Date(o.createdAt).toLocaleString('fr-FR'),
+            hour: new Date(o.createdAt).getHours(),
+            totalCents: o.totalCents,
+            source: o.source
+          }))
+        );
         
         for (let hour = startHour; hour <= maxHour; hour++) {
           const hourStart = new Date(today);
@@ -286,6 +306,9 @@ export default function PizzaioloOrders() {
         break;
       }
     }
+    
+    console.log('[getChartData] Résultat:', { labels, revenues, pizzaCounts });
+    console.log('[getChartData] Total revenue calculé:', revenues.reduce((sum, val) => sum + val, 0));
     
     return { labels, revenues, pizzaCounts };
   };
@@ -601,6 +624,29 @@ export default function PizzaioloOrders() {
   const lostCount = filteredCompletedOrders.filter(o => isExpired(o)).length;
   const deliveredPickupCount = filteredCompletedOrders.filter(o => o.status === 'delivered' && o.deliveryMethod === 'pickup').length;
   const deliveredDeliveryCount = filteredCompletedOrders.filter(o => o.status === 'delivered' && o.deliveryMethod === 'delivery').length;
+
+  // DEBUG: Logs pour comprendre le problème
+  useEffect(() => {
+    const deliveredOrders = filteredCompletedOrders.filter(o => o.status === 'delivered');
+    console.log('[PizzaioloOrders DEBUG]', {
+      totalOrders: orders.length,
+      activeOrders: activeOrders.length,
+      completedOrders: completedOrders.length,
+      filteredCompletedOrders: filteredCompletedOrders.length,
+      deliveredCount: deliveredOrders.length,
+      totalRevenue,
+      filters,
+      deliveredOrders: deliveredOrders.map(o => ({
+        id: o.id,
+        status: o.status,
+        totalCents: o.totalCents,
+        createdAt: o.createdAt,
+        createdDate: new Date(o.createdAt).toISOString(),
+        source: o.source
+      })),
+      chartData: getChartData()
+    });
+  }, [orders, filteredCompletedOrders, totalRevenue, filters]);
 
   if (loadingTruck) {
     return (

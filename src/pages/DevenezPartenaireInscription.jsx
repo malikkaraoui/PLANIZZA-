@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { ROUTES } from '../app/routes';
-import PartnerTapbar from '../components/partner/PartnerTapbar';
 
 const COUNTRIES = [
   { code: 'FR', name: 'France', dial: '+33', flag: '🇫🇷', example: '06 86 26 44 44' },
@@ -59,7 +58,6 @@ export default function DevenezPartenaireInscription() {
 
   return (
     <div>
-      <PartnerTapbar />
       <div className="mx-auto max-w-3xl px-4 py-10">
         <Link to={ROUTES.becomePartner} className="inline-flex items-center gap-2 text-sm underline">
           ← Retour

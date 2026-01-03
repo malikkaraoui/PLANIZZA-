@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ref, get, set, push, update, remove } from 'firebase/database';
+import { ref, get, set, push, update, remove, query, orderByChild, equalTo } from 'firebase/database';
 import { Pause, Play, Pizza, Edit2, ArrowLeft, Trash2, Radio, ListOrdered, Utensils } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import Card from '../../components/ui/Card';
@@ -125,13 +125,27 @@ export default function PizzaioloProfile() {
     setIsDeleting(true);
 
     try {
-      // Supprimer le camion de public/trucks
+      // 1. Supprimer TOUTES les commandes rattachées au camion
+      const ordersRef = ref(db, 'orders');
+      const ordersQuery = query(ordersRef, orderByChild('truckId'), equalTo(truckId));
+      const ordersSnap = await get(ordersQuery);
+      
+      if (ordersSnap.exists()) {
+        const deletePromises = [];
+        ordersSnap.forEach((orderSnap) => {
+          deletePromises.push(remove(ref(db, `orders/${orderSnap.key}`)));
+        });
+        await Promise.all(deletePromises);
+        console.log('[PLANIZZA] Commandes supprimées:', deletePromises.length);
+      }
+
+      // 2. Supprimer le camion de public/trucks (qui contient aussi le menu)
       await remove(ref(db, `public/trucks/${truckId}`));
       
-      // Supprimer l'entrée pizzaiolos
+      // 3. Supprimer l'entrée pizzaiolos
       await remove(ref(db, `pizzaiolos/${user.uid}`));
       
-      // Mettre à jour le rôle dans users
+      // 4. Mettre à jour le rôle dans users
       const userRef = ref(db, `users/${user.uid}`);
       const userSnap = await get(userRef);
       
@@ -144,13 +158,13 @@ export default function PizzaioloProfile() {
         });
       }
 
-      console.log('[PLANIZZA] Compte pro supprimé avec succès');
+      console.log('[PLANIZZA] Compte pro supprimé avec succès (camion + menu + commandes)');
       
       // Fermer le dialog
       setShowDeleteDialog(false);
       
-      // Rediriger vers le dashboard client
-      navigate('/dashboard', { replace: true });
+      // Rediriger vers l'exploration (reload pour réinitialiser l'état)
+      window.location.href = '/explore';
     } catch (err) {
       console.error('[Profile] Erreur suppression compte pro:', err);
       alert('❌ Erreur lors de la suppression du compte pro. Réessayez.');
@@ -1005,21 +1019,23 @@ export default function PizzaioloProfile() {
 
       {/* Dialog de confirmation de suppression */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="glass-deep border-white/20 rounded-3xl">
+        <DialogContent className="bg-gray-900 border-red-500/50 border-2 rounded-3xl max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-black tracking-tight">Supprimer le compte professionnel ?</DialogTitle>
-            <DialogDescription className="text-base text-muted-foreground mt-4">
-              Cette action supprimera définitivement :
-              <ul className="list-disc list-inside mt-3 space-y-1">
-                <li>Votre camion et toutes ses informations</li>
-                <li>Votre menu et vos pizzas</li>
-                <li>Votre statut professionnel</li>
-              </ul>
-              <p className="mt-4 font-bold text-red-600">
-                Cette action est irréversible. Êtes-vous sûr de vouloir continuer ?
-              </p>
-            </DialogDescription>
+            <DialogTitle className="text-2xl font-black tracking-tight text-white">
+              ⚠️ Supprimer le compte professionnel ?
+            </DialogTitle>
           </DialogHeader>
+          <div className="text-base text-gray-200 mt-4 space-y-4">
+            <div className="font-semibold">Cette action supprimera définitivement :</div>
+            <ul className="list-disc list-inside space-y-2 text-gray-300">
+              <li>Votre camion et toutes ses informations</li>
+              <li>Votre menu et vos pizzas</li>
+              <li>Votre statut professionnel</li>
+            </ul>
+            <div className="font-bold text-red-500 bg-red-500/10 p-3 rounded-xl border border-red-500/30">
+              ⛔ Cette action est irréversible. Êtes-vous sûr de vouloir continuer ?
+            </div>
+          </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
               onClick={() => setShowDeleteDialog(false)}

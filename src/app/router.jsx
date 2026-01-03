@@ -12,9 +12,6 @@ import Orders from '../pages/Orders';
 import Login from '../pages/Login';
 import Register from '../pages/Register';
 import CompleteProfile from '../pages/CompleteProfile';
-import DevenezPartenaireInscription from '../pages/DevenezPartenaireInscription';
-import DevenezPartenaireValidation from '../pages/DevenezPartenaireValidation';
-import DevenezPartenaireTarifs from '../pages/DevenezPartenaireTarifs';
 
 import PizzaioloDashboard from '../pages/pizzaiolo/Dashboard';
 import PizzaioloProfile from '../pages/pizzaiolo/Profile';
@@ -22,6 +19,7 @@ import PizzaioloMenu from '../pages/pizzaiolo/Menu';
 import PizzaioloOrders from '../pages/pizzaiolo/Orders';
 import PizzaioloLive from '../pages/pizzaiolo/Live';
 import PizzaioloStart from '../pages/pizzaiolo/Start';
+import CreateTruck from '../pages/pizzaiolo/CreateTruck';
 
 import RootLayout from '../components/layout/RootLayout';
 import ProtectedRoute from './ProtectedRoute';
@@ -43,10 +41,7 @@ export const router = createBrowserRouter([
       { path: 'order/:orderId', element: <OrderTracking /> },
 
       // Partenaires / Pro
-      { path: 'devenez_partenaire', element: <Navigate to="/devenez_partenaire/tarifs" replace /> },
-      { path: 'devenez_partenaire/inscription', element: <DevenezPartenaireInscription /> },
-      { path: 'devenez_partenaire/validation', element: <DevenezPartenaireValidation /> },
-      { path: 'devenez_partenaire/tarifs', element: <DevenezPartenaireTarifs /> },
+      { path: 'devenez_partenaire', element: <PizzaioloStart /> },
 
       // Legacy redirects (compat)
       { path: 'trucks', element: <Navigate to="/explore" replace /> },
@@ -69,6 +64,16 @@ export const router = createBrowserRouter([
 
       // Pizzaiolo start (public pour découverte)
       { path: 'pizzaiolo/start', element: <PizzaioloStart /> },
+
+      // Création de camion (privé pizzaiolo)
+      { 
+        path: 'pro/creer-camion', 
+        element: (
+          <ProtectedRoute requirePizzaiolo={true}>
+            <CreateTruck />
+          </ProtectedRoute>
+        )
+      },
 
       // Pizzaiolo (dashboard) - RÉSERVÉ AUX PIZZAIOLOS
       {

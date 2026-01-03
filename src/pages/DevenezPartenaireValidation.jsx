@@ -1,7 +1,6 @@
 import { Link, useSearchParams } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { ROUTES } from '../app/routes';
-import PartnerTapbar from '../components/partner/PartnerTapbar';
 
 export default function DevenezPartenaireValidation() {
   const [searchParams] = useSearchParams();
@@ -9,7 +8,6 @@ export default function DevenezPartenaireValidation() {
 
   return (
     <div>
-      <PartnerTapbar />
       <div className="mx-auto max-w-3xl px-4 py-10">
         <div className="text-center">
           <div className="text-6xl mb-4">🎉</div>

@@ -164,9 +164,10 @@ exports.createCheckoutSession = onRequest(
           customer_email: order.email || undefined,
         });
 
+        // ✅ NE PAS changer le status en "pending" ici
+        // La commande reste "created" jusqu'à confirmation du webhook
         await orderRef.update({
           totalCents: totalCentsServer,
-          status: order.status === "paid" ? order.status : "pending",
           payment: {
             provider: "stripe",
             sessionId: session.id,
