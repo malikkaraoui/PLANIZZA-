@@ -333,7 +333,7 @@ export default function Dashboard() {
           </Link>
 
           {/* Mon Profil */}
-          <Link to="/complete-profile">
+          <Link to="/mon-compte">
             <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px] hover:scale-[1.02] hover:shadow-2xl transition-all group cursor-pointer h-full">
               <div className="space-y-3">
                 <div className="flex items-start justify-between">

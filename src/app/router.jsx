@@ -11,7 +11,6 @@ import Dashboard from '../pages/Dashboard';
 import Orders from '../pages/Orders';
 import Login from '../pages/Login';
 import Register from '../pages/Register';
-import CompleteProfile from '../pages/CompleteProfile';
 
 import PizzaioloDashboard from '../pages/pizzaiolo/Dashboard';
 import PizzaioloProfile from '../pages/pizzaiolo/Profile';
@@ -55,7 +54,7 @@ export const router = createBrowserRouter([
       // Auth
       { path: 'login', element: <Login /> },
       { path: 'register', element: <Register /> },
-      { path: 'complete-profile', element: <ProtectedRoute><CompleteProfile /></ProtectedRoute> },
+
 
       // Client (privé plus tard; navigation en place)
       { path: 'dashboard', element: <ProtectedRoute><Dashboard /></ProtectedRoute> },

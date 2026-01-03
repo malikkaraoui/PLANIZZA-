@@ -58,8 +58,8 @@ export default function Register() {
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
       await upsertUserProfile(cred.user);
-      // Toujours rediriger vers complete-profile pour les inscriptions email/mot de passe
-      navigate('/complete-profile');
+      // Rediriger vers mon compte pour compléter le profil
+      navigate('/mon-compte');
     } catch (err) {
       setError(err?.message || 'Inscription impossible');
     } finally {

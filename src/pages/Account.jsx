@@ -1,15 +1,16 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { signOut, updateProfile } from 'firebase/auth';
-import { ref, remove, get, set } from 'firebase/database';
-import { Bike, Store } from 'lucide-react';
+import { signOut, updateProfile, deleteUser } from 'firebase/auth';
+import { ref, remove, get, set, query, orderByChild, equalTo } from 'firebase/database';
+import { ref as storageRef, deleteObject } from 'firebase/storage';
+import { Bike, Store, Trash2 } from 'lucide-react';
 import { useAuth } from '../app/providers/AuthProvider';
 import { ROUTES } from '../app/routes';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import Card from '../components/ui/Card';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
-import { auth, db, isFirebaseConfigured } from '../lib/firebase';
+import { auth, db, storage, isFirebaseConfigured } from '../lib/firebase';
 import { useCart } from '../features/cart/hooks/useCart.jsx';
 import { useLoyaltyPoints } from '../features/users/hooks/useLoyaltyPoints';
 import LoyaltyProgressBar from '../components/loyalty/LoyaltyProgressBar';
@@ -44,6 +45,11 @@ export default function Account() {
   
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+
+  // Suppression de compte
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   // Charger les données du profil
   useEffect(() => {
@@ -231,6 +237,72 @@ export default function Account() {
       setSignOutError("Impossible de se déconnecter. Réessayez.");
     } finally {
       setSigningOut(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'SUPPRIMER') {
+      alert('Veuillez taper "SUPPRIMER" pour confirmer');
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      const uid = user.uid;
+
+      // 1. Supprimer la photo de profil dans Storage si elle existe
+      if (user.photoURL && user.photoURL.includes('firebase')) {
+        try {
+          const photoRef = storageRef(storage, `users/${uid}/profile.jpg`);
+          await deleteObject(photoRef);
+        } catch (err) {
+          console.warn('Erreur suppression photo profil:', err);
+        }
+      }
+
+      // 2. Récupérer et supprimer toutes les commandes de l'utilisateur
+      try {
+        const ordersSnapshot = await get(ref(db, 'orders'));
+        if (ordersSnapshot.exists()) {
+          const allOrders = ordersSnapshot.val();
+          const userOrdersToDelete = [];
+          
+          Object.entries(allOrders).forEach(([orderId, order]) => {
+            if (order.userUid === uid) {
+              userOrdersToDelete.push(orderId);
+            }
+          });
+
+          // Supprimer chaque commande
+          for (const orderId of userOrdersToDelete) {
+            await remove(ref(db, `orders/${orderId}`));
+          }
+        }
+      } catch (err) {
+        console.error('Erreur suppression commandes:', err);
+      }
+
+      // 3. Supprimer les données utilisateur dans RTDB
+      await remove(ref(db, `users/${uid}`));
+      await remove(ref(db, `carts/${uid}`));
+      
+      // Supprimer aussi de pizzaiolos si c'est un pizzaiolo
+      try {
+        await remove(ref(db, `pizzaiolos/${uid}`));
+      } catch (err) {
+        // Pas grave si ça n'existe pas
+      }
+
+      // 4. Supprimer le compte Firebase Auth
+      await deleteUser(auth.currentUser);
+
+      // 5. Redirection vers l'accueil
+      navigate(ROUTES.home, { replace: true });
+    } catch (err) {
+      console.error('Erreur suppression compte:', err);
+      alert('Erreur lors de la suppression du compte. Veuillez réessayer ou nous contacter.');
+      setDeleting(false);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -622,8 +694,92 @@ export default function Account() {
             {signingOut ? 'Déconnexion…' : '🚪 Se déconnecter'}
           </Button>
           {signOutError && <p className="text-sm text-red-600">{signOutError}</p>}
+
+          <Button 
+            variant="destructive" 
+            onClick={() => setShowDeleteConfirm(true)}
+            className="w-full mt-4"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Supprimer mon compte
+          </Button>
         </div>
       </Card>
+
+      {/* Modal de confirmation suppression */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300 p-4">
+          <div className="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-300">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="h-8 w-8 text-red-600" />
+              </div>
+              <h2 className="text-2xl font-black mb-2">Supprimer mon compte</h2>
+              <p className="text-muted-foreground text-sm">
+                Cette action est <strong>irréversible</strong>. Toutes vos données seront définitivement supprimées :
+              </p>
+            </div>
+
+            <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-6 space-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-red-500 rounded-full" />
+                <span>Informations personnelles (nom, prénom, téléphone)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-red-500 rounded-full" />
+                <span>Photo de profil</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-red-500 rounded-full" />
+                <span>Toutes vos commandes (en cours, payées, archivées)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-red-500 rounded-full" />
+                <span>Votre panier</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-red-500 rounded-full" />
+                <span>Points de fidélité</span>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-bold mb-2">
+                Pour confirmer, tapez <span className="text-red-600">SUPPRIMER</span>
+              </label>
+              <Input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="Tapez SUPPRIMER"
+                className="text-center font-bold"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDeleteConfirmText('');
+                }}
+                disabled={deleting}
+                className="flex-1"
+              >
+                Annuler
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteAccount}
+                disabled={deleting || deleteConfirmText !== 'SUPPRIMER'}
+                className="flex-1"
+              >
+                {deleting ? 'Suppression...' : 'Supprimer définitivement'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
