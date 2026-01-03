@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
-import { MapPin, Pizza } from 'lucide-react';
+import { MapPin, Pizza, X } from 'lucide-react';
 import TruckHeader from '../features/trucks/TruckHeader';
 import { useTruck } from '../features/trucks/hooks/useTruck';
 import { useMenu } from '../features/menu/hooks/useMenu';
@@ -18,6 +18,7 @@ export default function TruckDetails() {
   const { truck, loading: loadingTruck } = useTruck(slugOrId);
   const { items: menuItems, loading: loadingMenu } = useMenu(truck?.id);
   const { addItem, items } = useCart();
+  const [zoomedImage, setZoomedImage] = useState(null);
 
   const isLoading = loadingTruck || loadingMenu;
   const isPaused = truck?.isPaused === true;
@@ -135,6 +136,7 @@ export default function TruckDetails() {
                     {truck.photos.slice(0, 8).map((src, idx) => (
                       <div
                         key={src + idx}
+                        onClick={() => setZoomedImage(src)}
                         className="group relative snap-start shrink-0 w-60 sm:w-70 aspect-16/10 overflow-hidden rounded-[28px] glass-premium border-white/40 shadow-lg cursor-zoom-in transition-all duration-500 hover:scale-[1.02] hover:shadow-xl"
                       >
                         <img
@@ -145,8 +147,8 @@ export default function TruckDetails() {
                         />
                         <div className="absolute inset-0 bg-linear-to-tr from-primary/10 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                          <div className="w-11 h-11 rounded-full glass-premium border-white/50 flex items-center justify-center text-white font-black">
-                            +
+                          <div className="w-11 h-11 rounded-full glass-premium border-white/50 flex items-center justify-center text-white font-black text-xl">
+                            🔍
                           </div>
                         </div>
                       </div>
@@ -213,6 +215,34 @@ export default function TruckDetails() {
               </div>
             )}
           </section>
+        </div>
+      )}
+
+      {/* Modal de zoom pour les photos */}
+      {zoomedImage && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md animate-in fade-in duration-300"
+          onClick={() => setZoomedImage(null)}
+        >
+          {/* Bouton fermer */}
+          <button
+            onClick={() => setZoomedImage(null)}
+            className="absolute top-6 right-6 z-10 w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all shadow-lg"
+          >
+            <X className="h-6 w-6" />
+          </button>
+
+          {/* Image zoomée */}
+          <div 
+            className="relative max-w-[95vw] max-h-[95vh] animate-in zoom-in duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={zoomedImage}
+              alt="Photo du camion"
+              className="max-w-full max-h-[95vh] object-contain rounded-2xl shadow-2xl"
+            />
+          </div>
         </div>
       )}
     </div>
