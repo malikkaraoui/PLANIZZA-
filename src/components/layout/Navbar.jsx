@@ -87,7 +87,7 @@ export default function Navbar() {
             {isPizzaiolo ? (
               <Link to={ROUTES.pizzaioloLive} className="hidden lg:block">
                 <Button variant="outline" className="gap-2 glass-premium border-red-500/30 hover:border-red-500/50 bg-red-500/10 rounded-full px-8 h-11 font-bold transition-all hover:shadow-lg hover:shadow-red-500/20 relative overflow-hidden group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-red-500/0 via-red-500/10 to-red-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                  <div className="absolute inset-0 bg-linear-to-r from-red-500/0 via-red-500/10 to-red-500/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
                   <span className="relative flex items-center gap-2">
                     <span className="flex h-2 w-2">
                       <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-red-400 opacity-75"></span>

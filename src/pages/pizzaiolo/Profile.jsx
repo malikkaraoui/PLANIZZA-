@@ -926,7 +926,7 @@ export default function PizzaioloProfile() {
                 { key: 'sunday', label: 'Dim', fullLabel: 'Dimanche' }
               ].map(({ key, label, fullLabel }) => (
                 <div key={key} className={`flex items-center gap-4 p-4 rounded-2xl transition-all ${openingHours[key].enabled ? 'bg-emerald-500/5 border border-emerald-500/20' : 'bg-white/5 border border-white/10'}`}>
-                  <label className="flex items-center gap-3 cursor-pointer min-w-[120px]">
+                  <label className="flex items-center gap-3 cursor-pointer min-w-30">
                     <input
                       type="checkbox"
                       checked={openingHours[key].enabled}

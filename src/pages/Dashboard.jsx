@@ -273,8 +273,8 @@ export default function Dashboard() {
         {/* Téléphone */}
         {phoneNumber && (
           <div className="inline-flex items-center gap-2 text-sm text-gray-600 bg-white/50 px-4 py-2 rounded-full border border-gray-200 group hover:bg-white transition-all duration-300 cursor-default overflow-hidden">
-            <Phone className="h-4 w-4 text-primary transition-all duration-[2000ms] ease-linear group-hover:-rotate-[360deg] group-hover:translate-x-1" />
-            <span className="font-medium max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-[2000ms] ease-linear whitespace-nowrap">
+            <Phone className="h-4 w-4 text-primary transition-all duration-2000 ease-linear group-hover:-rotate-360 group-hover:translate-x-1" />
+            <span className="font-medium max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-2000 ease-linear whitespace-nowrap">
               {phoneNumber}
             </span>
           </div>
@@ -297,12 +297,12 @@ export default function Dashboard() {
       {/* Section Client */}
       <section className="space-y-6">
         <div className="flex items-center gap-4">
-          <div className="h-1 flex-1 bg-gradient-to-r from-transparent via-primary/30 to-transparent rounded-full" />
+          <div className="h-1 flex-1 bg-linear-to-r from-transparent via-primary/30 to-transparent rounded-full" />
           <h2 className="text-2xl font-black tracking-tight flex items-center gap-3">
             <Pizza className="h-7 w-7 text-primary" />
             Mon Espace Client
           </h2>
-          <div className="h-1 flex-1 bg-gradient-to-r from-transparent via-primary/30 to-transparent rounded-full" />
+          <div className="h-1 flex-1 bg-linear-to-r from-transparent via-primary/30 to-transparent rounded-full" />
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
@@ -607,12 +607,12 @@ export default function Dashboard() {
       {isPizzaiolo ? (
         <section className="space-y-6">
           <div className="flex items-center gap-4">
-            <div className="h-1 flex-1 bg-gradient-to-r from-transparent via-orange-500/30 to-transparent rounded-full" />
+            <div className="h-1 flex-1 bg-linear-to-r from-transparent via-orange-500/30 to-transparent rounded-full" />
             <h2 className="text-2xl font-black tracking-tight flex items-center gap-3">
               <ChefHat className="h-7 w-7 text-orange-500" />
               Mon Espace Pizzaiolo
             </h2>
-            <div className="h-1 flex-1 bg-gradient-to-r from-transparent via-orange-500/30 to-transparent rounded-full" />
+            <div className="h-1 flex-1 bg-linear-to-r from-transparent via-orange-500/30 to-transparent rounded-full" />
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">

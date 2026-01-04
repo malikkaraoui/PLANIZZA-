@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ref, set, push } from 'firebase/database';
+import { ref, set, push, get } from 'firebase/database';
 import { useAuth } from '../../app/providers/AuthProvider';
 import { db } from '../../lib/firebase';
 import { Input } from '../../components/ui/Input';
@@ -132,6 +132,24 @@ export default function CreateTruck() {
     setSiretChecking(true);
 
     try {
+      // PREMIÈRE VÉRIFICATION : Le SIRET existe-t-il déjà dans la base ?
+      const trucksRef = ref(db, 'public/trucks');
+      const trucksSnap = await get(trucksRef);
+      
+      if (trucksSnap.exists()) {
+        const trucks = trucksSnap.val();
+        const existingTruck = Object.values(trucks).find(
+          truck => truck.siret === cleanSiret
+        );
+        
+        if (existingTruck) {
+          setSiretValid('already_exists');
+          setSiretChecking(false);
+          return;
+        }
+      }
+
+      // DEUXIÈME VÉRIFICATION : API gouvernementale
       const response = await fetch(
         `https://recherche-entreprises.api.gouv.fr/search?q=${cleanSiret}`,
         {
@@ -339,6 +357,7 @@ export default function CreateTruck() {
         name: truckName.trim(),
         slug,
         description: truckDescription.trim(),
+        siret: siret.replace(/\s/g, ''), // SIRET au premier niveau pour faciliter la recherche
         location: {
           lat: location.lat,
           lng: location.lng,
@@ -491,6 +510,11 @@ export default function CreateTruck() {
               <p className="mt-1 text-sm text-red-600">
                 ✗ Le gérant de ce SIRET ne correspond pas à votre identité ({userDisplayName}). 
                 Vous ne pouvez créer un camion qu'avec votre propre entreprise.
+              </p>
+            )}
+            {siretValid === 'already_exists' && (
+              <p className="mt-1 text-sm text-red-600">
+                ✗ Ce SIRET est déjà utilisé par un autre camion sur PLANIZZA
               </p>
             )}
           </div>

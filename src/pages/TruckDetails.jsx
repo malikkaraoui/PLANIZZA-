@@ -157,7 +157,7 @@ export default function TruckDetails() {
                       <div className="relative rounded-[24px] overflow-hidden shadow-2xl border-2 border-white/30 animate-in slide-in-from-top duration-500">
                         <iframe
                           src={`https://www.google.com/maps?q=${truck.location.lat},${truck.location.lng}&hl=fr&z=16&output=embed`}
-                          className="w-full h-[400px] border-0"
+                          className="w-full h-100 border-0"
                           loading="lazy"
                           referrerPolicy="no-referrer-when-downgrade"
                           title="Emplacement du camion"
@@ -282,7 +282,7 @@ export default function TruckDetails() {
       {/* Modal de zoom pour les photos */}
       {zoomedImage && (
         <div 
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md animate-in fade-in duration-300"
+          className="fixed inset-0 z-100 flex items-center justify-center bg-black/90 backdrop-blur-md animate-in fade-in duration-300"
           onClick={() => setZoomedImage(null)}
         >
           {/* Bouton fermer */}

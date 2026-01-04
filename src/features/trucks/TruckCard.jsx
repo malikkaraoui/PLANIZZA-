@@ -35,7 +35,7 @@ export default function TruckCard({ truck }) {
   return (
     <Card className={`group glass-premium glass-glossy overflow-hidden border-white/30 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.2)] ${isPaused ? 'opacity-60 blur-[0.5px] backdrop-blur-xl' : ''}`}>
       {/* Image d'en-tête */}
-      <Link to={href} className="relative block aspect-[16/10] overflow-hidden">
+      <Link to={href} className="relative block aspect-16/10 overflow-hidden">
         {hero ? (
           <img
             src={hero}

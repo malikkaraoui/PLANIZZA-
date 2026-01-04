@@ -153,7 +153,11 @@ export default function Orders() {
               const truck = trucks[order.truckId];
               
               return (
-                <div key={order.id} className="bg-white border border-gray-200 shadow-sm rounded-2xl p-6 hover:shadow-md transition-all">
+                <Link 
+                  key={order.id} 
+                  to={`/order/${order.id}`}
+                  className="block bg-white border border-gray-200 shadow-sm rounded-2xl p-6 hover:shadow-md hover:border-emerald-200 transition-all cursor-pointer"
+                >
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
@@ -165,14 +169,17 @@ export default function Orders() {
                       
                       {/* Nom du camion cliquable */}
                       {truck && (
-                        <Link 
-                          to={`/truck/${order.truckId}`}
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            navigate(`/truck/${order.truckId}`);
+                          }}
                           className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:text-primary/80 transition-colors mb-2 group"
-                          onClick={(e) => e.stopPropagation()}
                         >
                           <Store className="h-4 w-4 group-hover:scale-110 transition-transform" />
                           {truck.name}
-                        </Link>
+                        </button>
                       )}
                       
                       <p className="text-gray-500 text-sm font-medium">
@@ -191,11 +198,11 @@ export default function Orders() {
                     <div className="flex items-center gap-2 text-sm">
                       {order.paidAt && <span className="text-emerald-600 font-bold">✓ Payé</span>}
                     </div>
-                    <Link to={`/order/${order.id}`} className="text-emerald-600 font-bold text-sm hover:text-emerald-700 transition-colors">
+                    <span className="text-emerald-600 font-bold text-sm hover:text-emerald-700 transition-colors">
                       Voir le suivi →
-                    </Link>
+                    </span>
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>

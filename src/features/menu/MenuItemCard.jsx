@@ -156,7 +156,7 @@ export default function MenuItemCard({ item, onAdd, isDisabled = false }) {
           size="lg"
           onClick={handleAdd}
           disabled={!isAvailable}
-          className="rounded-[20px] h-14 px-8 bg-linear-to-r from-primary to-orange-500 shadow-xl shadow-primary/10 hover:shadow-primary/30 transition-all font-black text-xs tracking-widest uppercase gap-3 w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+          className="rounded-4xl h-14 px-8 bg-linear-to-r from-primary to-orange-500 shadow-xl shadow-primary/10 hover:shadow-primary/30 transition-all font-black text-xs tracking-widest uppercase gap-3 w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <div className="p-1.5 rounded-full bg-white/20">
             <Plus className="h-4 w-4" />

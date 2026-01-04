@@ -31,10 +31,10 @@ export default function CartDrawer({ onCheckout, disabled = false }) {
             <Pizza className="h-10 w-10 text-primary/20 animate-pulse" />
           </div>
           <div className="text-sm font-black text-muted-foreground/40 uppercase tracking-[0.2em]">Votre panier est vide</div>
-          <p className="text-xs font-medium text-muted-foreground/60 max-w-[200px] mx-auto">Ajoutez une création artisanale pour commencer l'aventure.</p>
+          <p className="text-xs font-medium text-muted-foreground/60 max-w-50 mx-auto">Ajoutez une création artisanale pour commencer l'aventure.</p>
         </div>
       ) : (
-        <div className="space-y-4 max-h-[440px] overflow-y-auto pr-2 custom-scrollbar">
+        <div className="space-y-4 max-h-110 overflow-y-auto pr-2 custom-scrollbar">
           {items.map((it) => (
             <div key={it.id} className="group flex items-center justify-between gap-4 p-4 rounded-[28px] glass-premium hover:bg-white/10 transition-all border-white/10 shadow-sm relative overflow-hidden">
               <div className="flex-1 min-w-0">

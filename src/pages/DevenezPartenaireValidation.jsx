@@ -22,7 +22,7 @@ export default function DevenezPartenaireValidation() {
           )}
         </div>
 
-        <div className="mt-12 p-6 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-100 border border-emerald-200">
+        <div className="mt-12 p-6 rounded-xl bg-linear-to-r from-emerald-50 to-emerald-100 border border-emerald-200">
           <h2 className="text-xl font-bold text-gray-900">🚀 Étape suivante</h2>
           <p className="mt-2 text-gray-700">
             Configurez dès maintenant votre espace professionnel : créez votre camion, ajoutez votre menu et commencez à recevoir des commandes !

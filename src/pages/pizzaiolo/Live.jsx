@@ -434,7 +434,7 @@ export default function PizzaioloLive() {
             </div>
 
             {/* Items */}
-            <div className="space-y-2 mb-4 max-h-[300px] overflow-y-auto">
+            <div className="space-y-2 mb-4 max-h-75 overflow-y-auto">
               {cart.length === 0 ? (
                 <p className="text-center text-muted-foreground text-sm py-8">Panier vide</p>
               ) : (

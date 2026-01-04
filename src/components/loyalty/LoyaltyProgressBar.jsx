@@ -34,7 +34,7 @@ export default function LoyaltyProgressBar({ points, currentTier, nextTier, prog
             title={`${pointsInCurrentLevel}/10 points`}
           >
             <div
-              className="h-full bg-gradient-to-r from-orange-500 to-orange-400 rounded-full transition-all duration-500 ease-out shadow-sm"
+              className="h-full bg-linear-to-r from-orange-500 to-orange-400 rounded-full transition-all duration-500 ease-out shadow-sm"
               style={{ width: `${progressPercentage}%` }}
             />
           </div>
@@ -60,7 +60,7 @@ export default function LoyaltyProgressBar({ points, currentTier, nextTier, prog
       {/* Récompense du palier actuel */}
       {currentTier && (
         <div className="text-xs bg-orange-50 border border-orange-200 rounded-lg p-2 flex items-center gap-2">
-          <TrendingUp className="h-3 w-3 text-orange-500 flex-shrink-0" />
+          <TrendingUp className="h-3 w-3 text-orange-500 shrink-0" />
           <span className="text-orange-700 font-medium">
             <span className="font-bold">{currentTier.label}</span>
             {' '}débloqué{currentTier.description && ` · ${currentTier.description}`}

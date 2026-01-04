@@ -720,7 +720,7 @@ export default function PizzaioloOrders() {
         <div 
           className={`grid lg:grid-cols-2 gap-6 transition-all duration-500 ease-in-out ${
             chartsVisible 
-              ? 'opacity-100 max-h-[2000px] transform translate-y-0' 
+              ? 'opacity-100 max-h-500 transform translate-y-0' 
               : 'opacity-0 max-h-0 overflow-hidden transform -translate-y-4'
           }`}
         >
@@ -889,7 +889,7 @@ export default function PizzaioloOrders() {
         <div 
           className={`grid md:grid-cols-3 gap-4 transition-all duration-500 ease-in-out ${
             filtersVisible 
-              ? 'opacity-100 max-h-[1000px] transform translate-y-0' 
+              ? 'opacity-100 max-h-250 transform translate-y-0' 
               : 'opacity-0 max-h-0 overflow-hidden transform -translate-y-4'
           }`}
         >
