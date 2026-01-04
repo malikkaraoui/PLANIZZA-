@@ -154,6 +154,27 @@ export default function PizzaioloMenu() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
+  // Mise à jour automatique de la description pour pizza perso
+  useEffect(() => {
+    if (itemName === 'La Perso' && (selectedBase || selectedGarnitures.length > 0 || selectedFromages.length > 0)) {
+      const ingredients = [];
+      
+      if (selectedBase) {
+        ingredients.push(selectedBase);
+      }
+      
+      if (selectedFromages.length > 0) {
+        ingredients.push(...selectedFromages);
+      }
+      
+      if (selectedGarnitures.length > 0) {
+        ingredients.push(...selectedGarnitures);
+      }
+      
+      setItemDesc(ingredients.join(', '));
+    }
+  }, [itemName, selectedBase, selectedGarnitures, selectedFromages]);
+
   // Charger le truckId et les items du menu
   useEffect(() => {
     if (!user?.uid) return;
