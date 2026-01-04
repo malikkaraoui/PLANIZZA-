@@ -24,30 +24,87 @@ const PIZZA_SIZES = [
   { value: 'l', label: 'L (44cm)', defaultDiameter: 44 }
 ];
 
+const PIZZAS_PREDEFINES = [
+  { 
+    name: 'La Reine', 
+    ingredients: 'Sauce tomate, mozzarella, emmental, jambon, champignons, olives',
+    emoji: '👑'
+  },
+  { 
+    name: 'La Margarita', 
+    ingredients: 'Sauce tomate, mozzarella, emmental, olives',
+    emoji: '🌿'
+  },
+  { 
+    name: 'La Chèvre Miel', 
+    ingredients: 'Crème fraîche, mozzarella, emmental, chèvre, miel, olives',
+    emoji: '🐐'
+  },
+  { 
+    name: 'La Napoli', 
+    ingredients: 'Sauce tomate, mozzarella, emmental, anchois, olives',
+    emoji: '🐟'
+  },
+  { 
+    name: 'La Perso', 
+    ingredients: '',
+    emoji: '✨',
+    custom: true
+  }
+];
+
+const BASES = ['Crème fraîche', 'Base Tomate'];
+
+const GARNITURES = [
+  'Champignons de Paris',
+  'Oignons rouge',
+  'Tomates cerises',
+  'Poivrons'
+];
+
+const FROMAGES = [
+  'Reblochon',
+  'Emmental',
+  'Gruyère',
+  'Burrata',
+  'Gorgonzola',
+  'Parmesan',
+  'Cabécou'
+];
+
+const DESSERTS = [
+  { name: 'Tiramisu café', emoji: '☕', defaultPrice: 5.00 },
+  { name: 'Tiramisu Nutella', emoji: '🍫', defaultPrice: 5.50 },
+  { name: 'Tiramisu Spéculos', emoji: '🍪', defaultPrice: 5.50 },
+  { name: 'Fondant chocolat', emoji: '🍰', defaultPrice: 6.00 },
+  { name: 'Crumble pomme', emoji: '🍎', defaultPrice: 5.00 },
+  { name: 'Crumble poire', emoji: '🍐', defaultPrice: 5.00 }
+];
+
 const SODAS = [
-  'Coca Cola',
-  'Coca Cola Zéro',
-  'Fanta Orange',
-  'Fanta Citron',
-  'Oasis Fruits Rouges',
-  'Oasis Tropical'
+  { name: 'Coca Cola', emoji: '🥤' },
+  { name: 'Coca Cola Zéro', emoji: '🥤' },
+  { name: 'Fanta Orange', emoji: '🍊' },
+  { name: 'Fanta Citron', emoji: '🍋' },
+  { name: 'Oasis Fruits Rouges', emoji: '🍓' },
+  { name: 'Oasis Tropical', emoji: '🥭' }
 ];
 
 const EAUX = [
-  'Badoit',
-  'Cristalline',
-  'Evian'
+  { name: 'Badoit', emoji: '💧' },
+  { name: 'Cristalline', emoji: '💧' },
+  { name: 'Evian', emoji: '💧' }
 ];
 
 const BIERES = [
-  'Heineken',
-  'Affligem',
-  '1664'
+  { name: 'Heineken', emoji: '🍺' },
+  { name: 'Affligem', emoji: '🍺' },
+  { name: '1664', emoji: '🍺' }
 ];
 
 const VINS = [
-  { name: 'GÉRARD BERTRAND : GRIS BLANC - 2023', defaultPrice: 11.50 },
-  { name: 'CLOS DES FEES - LES SORCIERES 2024', defaultPrice: 15.00 }
+  { name: 'GÉRARD BERTRAND : GRIS BLANC - 2023', defaultPrice: 11.50, emoji: '🍷' },
+  { name: 'CLOS DES FEES - LES SORCIERES 2024', defaultPrice: 15.00, emoji: '🍷' }
 ];
 
 const DRINK_SIZES = {
@@ -88,6 +145,11 @@ export default function PizzaioloMenu() {
   // États pour les boissons
   const [drinkName, setDrinkName] = useState('');
   const [drinkSizes, setDrinkSizes] = useState({});
+  
+  // États pour les pizzas personnalisées
+  const [selectedBase, setSelectedBase] = useState('');
+  const [selectedGarnitures, setSelectedGarnitures] = useState([]);
+  const [selectedFromages, setSelectedFromages] = useState([]);
   
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -486,67 +548,246 @@ export default function PizzaioloMenu() {
         )}
 
         {showForm && (
-          <form onSubmit={handleAddItem} className="mt-6 space-y-4 border-t pt-6">
-            {['soda', 'eau', 'biere', 'vin'].includes(itemType) ? (
+          <form onSubmit={handleAddItem} className="mt-6 space-y-6 border-t pt-6">
+            {/* Sélection Pizza prédéfinie ou Dessert prédéfini */}
+            {selectedCategory === 'pizza' && !itemName && (
               <div>
-                <label className="block text-sm font-medium text-gray-700">Nom *</label>
-                <select
-                  value={itemName}
-                  onChange={(e) => {
-                    setItemName(e.target.value);
-                    // Pré-remplir le prix pour les vins
-                    if (itemType === 'vin') {
-                      const vin = VINS.find(v => v.name === e.target.value);
-                      if (vin) {
-                        setPriceS(vin.defaultPrice.toString());
-                      }
-                    }
-                    // Pré-remplir les prix par défaut pour les autres boissons
-                    if (['soda', 'eau', 'biere'].includes(itemType) && e.target.value) {
-                      const sizes = DRINK_SIZES[itemType];
-                      const defaultSizes = {};
-                      sizes?.forEach(size => {
-                        defaultSizes[size.value] = size.defaultPrice.toString();
-                      });
-                      setDrinkSizes(defaultSizes);
-                    }
-                  }}
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                  required
-                >
-                  <option value="">Sélectionnez...</option>
-                  {itemType === 'soda' && SODAS.map(s => <option key={s} value={s}>{s}</option>)}
-                  {itemType === 'eau' && EAUX.map(e => <option key={e} value={e}>{e}</option>)}
-                  {itemType === 'biere' && BIERES.map(b => <option key={b} value={b}>{b}</option>)}
-                  {itemType === 'vin' && VINS.map(v => <option key={v.name} value={v.name}>{v.name}</option>)}
-                </select>
-              </div>
-            ) : (
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Nom *</label>
-                <Input
-                  value={itemName}
-                  onChange={(e) => setItemName(e.target.value)}
-                  placeholder="Ex: Margherita, Tiramisu..."
-                  required
-                  className="mt-1"
-                />
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Choisissez une pizza</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {PIZZAS_PREDEFINES.map(pizza => (
+                    <button
+                      key={pizza.name}
+                      type="button"
+                      onClick={() => {
+                        setItemName(pizza.name);
+                        setItemDesc(pizza.ingredients);
+                      }}
+                      className="p-4 rounded-xl border-2 border-gray-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left"
+                    >
+                      <div className="text-3xl mb-2">{pizza.emoji}</div>
+                      <div className="font-semibold text-sm">{pizza.name}</div>
+                      {pizza.ingredients && (
+                        <div className="text-xs text-gray-500 mt-1 line-clamp-2">{pizza.ingredients}</div>
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Description</label>
-              <textarea
-                value={itemDesc}
-                onChange={(e) => setItemDesc(e.target.value)}
-                placeholder="Ex: Tomate, mozzarella, basilic frais..."
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                rows={2}
-              />
-            </div>
+            {selectedCategory === 'dessert' && !itemName && (
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Choisissez un dessert</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {DESSERTS.map(dessert => (
+                    <button
+                      key={dessert.name}
+                      type="button"
+                      onClick={() => {
+                        setItemName(dessert.name);
+                        setPriceS(dessert.defaultPrice.toString());
+                      }}
+                      className="p-4 rounded-xl border-2 border-gray-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-center"
+                    >
+                      <div className="text-4xl mb-2">{dessert.emoji}</div>
+                      <div className="font-semibold text-sm">{dessert.name}</div>
+                      <div className="text-xs text-emerald-600 mt-1">{dessert.defaultPrice.toFixed(2)}€</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
-            {itemType === 'pizza' ? (
+            {/* Sélection type de boisson puis boisson spécifique */}
+            {selectedCategory === 'boisson' && itemType && !itemName && (
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  {itemType === 'soda' && 'Choisissez un soda'}
+                  {itemType === 'eau' && 'Choisissez une eau'}
+                  {itemType === 'biere' && 'Choisissez une bière'}
+                  {itemType === 'vin' && 'Choisissez un vin'}
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {itemType === 'soda' && SODAS.map(soda => (
+                    <button
+                      key={soda.name}
+                      type="button"
+                      onClick={() => {
+                        setItemName(soda.name);
+                        const defaultSizes = {};
+                        DRINK_SIZES.soda.forEach(size => {
+                          defaultSizes[size.value] = size.defaultPrice.toString();
+                        });
+                        setDrinkSizes(defaultSizes);
+                      }}
+                      className="p-4 rounded-xl border-2 border-gray-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-center"
+                    >
+                      <div className="text-4xl mb-2">{soda.emoji}</div>
+                      <div className="font-semibold text-sm">{soda.name}</div>
+                    </button>
+                  ))}
+                  {itemType === 'eau' && EAUX.map(eau => (
+                    <button
+                      key={eau.name}
+                      type="button"
+                      onClick={() => {
+                        setItemName(eau.name);
+                        const defaultSizes = {};
+                        DRINK_SIZES.eau.forEach(size => {
+                          defaultSizes[size.value] = size.defaultPrice.toString();
+                        });
+                        setDrinkSizes(defaultSizes);
+                      }}
+                      className="p-4 rounded-xl border-2 border-gray-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-center"
+                    >
+                      <div className="text-4xl mb-2">{eau.emoji}</div>
+                      <div className="font-semibold text-sm">{eau.name}</div>
+                    </button>
+                  ))}
+                  {itemType === 'biere' && BIERES.map(biere => (
+                    <button
+                      key={biere.name}
+                      type="button"
+                      onClick={() => {
+                        setItemName(biere.name);
+                        const defaultSizes = {};
+                        DRINK_SIZES.biere.forEach(size => {
+                          defaultSizes[size.value] = size.defaultPrice.toString();
+                        });
+                        setDrinkSizes(defaultSizes);
+                      }}
+                      className="p-4 rounded-xl border-2 border-gray-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-center"
+                    >
+                      <div className="text-4xl mb-2">{biere.emoji}</div>
+                      <div className="font-semibold text-sm">{biere.name}</div>
+                    </button>
+                  ))}
+                  {itemType === 'vin' && VINS.map(vin => (
+                    <button
+                      key={vin.name}
+                      type="button"
+                      onClick={() => {
+                        setItemName(vin.name);
+                        setPriceS(vin.defaultPrice.toString());
+                      }}
+                      className="p-4 rounded-xl border-2 border-gray-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left"
+                    >
+                      <div className="text-3xl mb-2">{vin.emoji}</div>
+                      <div className="font-semibold text-xs">{vin.name}</div>
+                      <div className="text-xs text-emerald-600 mt-1">{vin.defaultPrice.toFixed(2)}€</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Pizza personnalisée : sélection ingrédients */}
+            {itemName === 'La Perso' && (
               <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900">Composez votre pizza</h3>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Base *</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {BASES.map(base => (
+                      <button
+                        key={base}
+                        type="button"
+                        onClick={() => setSelectedBase(base)}
+                        className={`p-3 rounded-lg border-2 transition-all text-sm ${
+                          selectedBase === base 
+                            ? 'border-emerald-500 bg-emerald-50 font-semibold' 
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        {base}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Garnitures</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {GARNITURES.map(garniture => (
+                      <button
+                        key={garniture}
+                        type="button"
+                        onClick={() => {
+                          setSelectedGarnitures(prev => 
+                            prev.includes(garniture) 
+                              ? prev.filter(g => g !== garniture)
+                              : [...prev, garniture]
+                          );
+                        }}
+                        className={`p-2 rounded-lg border-2 transition-all text-xs ${
+                          selectedGarnitures.includes(garniture)
+                            ? 'border-emerald-500 bg-emerald-50 font-semibold' 
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        {garniture}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Fromages *</label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {FROMAGES.map(fromage => (
+                      <button
+                        key={fromage}
+                        type="button"
+                        onClick={() => {
+                          setSelectedFromages(prev => 
+                            prev.includes(fromage) 
+                              ? prev.filter(f => f !== fromage)
+                              : [...prev, fromage]
+                          );
+                        }}
+                        className={`p-2 rounded-lg border-2 transition-all text-xs ${
+                          selectedFromages.includes(fromage)
+                            ? 'border-emerald-500 bg-emerald-50 font-semibold' 
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        {fromage}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Champs communs une fois le produit sélectionné */}
+            {itemName && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Nom</label>
+                  <Input
+                    value={itemName}
+                    onChange={(e) => setItemName(e.target.value)}
+                    className="mt-1"
+                    readOnly={selectedCategory !== 'calzone'}
+                  />
+                </div>
+
+                {(selectedCategory === 'pizza' || selectedCategory === 'calzone') && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Ingrédients</label>
+                    <textarea
+                      value={itemDesc}
+                      onChange={(e) => setItemDesc(e.target.value)}
+                      placeholder="Ex: Tomate, mozzarella, basilic frais..."
+                      className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                      rows={3}
+                    />
+                  </div>
+                )}
+
+                {(selectedCategory === 'pizza' || selectedCategory === 'calzone') && (
+                  <div className="space-y-4">
                 <p className="text-sm font-medium text-gray-700">Tailles et prix * (minimum 1, maximum 3)</p>
                 <p className="text-xs text-gray-500">Prix : S {'<'} M {'<'} L • Diamètres : S {'<'} M {'<'} L</p>
                 <div className="grid grid-cols-3 gap-4">
@@ -617,9 +858,11 @@ export default function PizzaioloMenu() {
                     </div>
                   </div>
                 </div>
-              </div>
-            ) : ['soda', 'eau', 'biere'].includes(itemType) ? (
-              <div className="space-y-3">
+                  </div>
+                )}
+
+                {['soda', 'eau', 'biere'].includes(itemType) && (
+                  <div className="space-y-3">
                 <p className="text-sm font-medium text-gray-700">Tailles et prix *</p>
                 {DRINK_SIZES[itemType]?.map(size => (
                   <div key={size.value} className="flex items-center gap-3">
@@ -638,9 +881,11 @@ export default function PizzaioloMenu() {
                     />
                   </div>
                 ))}
-              </div>
-            ) : (
-              <div>
+                  </div>
+                )}
+
+                {(itemType === 'vin' || itemType === 'dessert') && (
+                  <div>
                 <label className="block text-sm font-medium text-gray-700">Prix (€) *</label>
                 <Input
                   value={priceS}
@@ -655,7 +900,9 @@ export default function PizzaioloMenu() {
                   required
                   className="mt-1"
                 />
-              </div>
+                  </div>
+                )}
+              </>
             )}
 
             <Button type="submit" disabled={saving} className="w-full">
