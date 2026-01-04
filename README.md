@@ -1,5 +1,11 @@
 # 🍕 PLANIZZA
 
+[![Firebase Hosting (merge)](https://github.com/malikkaraoui/PLANIZZA-/actions/workflows/firebase-hosting-merge.yml/badge.svg)](https://github.com/malikkaraoui/PLANIZZA-/actions/workflows/firebase-hosting-merge.yml)
+[![Firebase Hosting (PR)](https://github.com/malikkaraoui/PLANIZZA-/actions/workflows/firebase-hosting-pull-request.yml/badge.svg)](https://github.com/malikkaraoui/PLANIZZA-/actions/workflows/firebase-hosting-pull-request.yml)
+[![Licence](https://img.shields.io/github/license/malikkaraoui/PLANIZZA-)](./LICENSE)
+[![Dernier commit](https://img.shields.io/github/last-commit/malikkaraoui/PLANIZZA-)](https://github.com/malikkaraoui/PLANIZZA-/commits/main)
+[![Stars](https://img.shields.io/github/stars/malikkaraoui/PLANIZZA-?style=flat)](https://github.com/malikkaraoui/PLANIZZA-/stargazers)
+
 Plateforme web de **commande** et **gestion** de pizzas itinérantes.
 
 **Stack**
