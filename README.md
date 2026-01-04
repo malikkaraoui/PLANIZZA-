@@ -1,10 +1,22 @@
-## 🍕 PLANIZZA
+# 🍕 PLANIZZA
 
-Plateforme web de commande et gestion de pizzas itinérantes.
+Plateforme web de **commande** et **gestion** de pizzas itinérantes.
+
+**Stack**
 
 - Front : **Vite + React + Tailwind**
 - Back : **Firebase Auth + Realtime Database (RTDB) + Cloud Functions**
 - Paiement : **Stripe Checkout** (validation réelle via **webhook**)
+
+## 🧭 Sommaire
+
+- [Démarrage rapide](#-démarrage-rapide-dev)
+- [Documentation](#-documentation-minimal--à-jour)
+- [Routes](#-routes-canon--à-connaître)
+- [RTDB (modèle)](#️-rtdb--modèle-mvp)
+- [Paiement Stripe](#-paiement-stripe--flow-réel)
+- [Architecture](#-architecture-où-vit-quoi)
+- [Troubleshooting](#-troubleshooting-les-classiques)
 
 ## 🎯 Principes non négociables (sécurité & cohérence)
 
@@ -40,7 +52,7 @@ Plateforme web de commande et gestion de pizzas itinérantes.
 
 - `npm run firebase:emulators`
 
-Tout le détail (Firebase Console + CLI + secrets Stripe) est dans `SETUP.md`.
+> Tout le détail (Firebase Console + CLI + secrets Stripe) est dans `SETUP.md`.
 
 ## 🧭 Routes (canon) — à connaître
 
@@ -120,20 +132,14 @@ Le gros de la logique d’édition menu a été sorti de la page :
 
 ## 🛟 Troubleshooting (les classiques)
 
-- **Loader infini sur une page camion** :
+- **Loader infini sur une page camion**
   - Vérifier que RTDB a un index sur `slug` (voir `database.rules.json`).
   - Vérifier `VITE_FIREBASE_DATABASE_URL`.
   - La route canon est `/:truckId` (slug ou clé).
 
-- **Checkout appelle la mauvaise région** :
+- **Checkout appelle la mauvaise région**
   - Par défaut, le front cible `https://us-central1-<PROJECT_ID>.cloudfunctions.net`.
   - Si vous déployez vos Functions ailleurs, définir `VITE_FUNCTIONS_ORIGIN` dans `.env.local`.
-
-## 🧪 Filet anti-régression
-
-Après un refactor, exécuter :
-
-- `CHECKLIST_SMOKE_TEST.md`
 
 ## 📦 Scripts utiles
 
