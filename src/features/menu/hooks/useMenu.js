@@ -12,19 +12,11 @@ export function useMenu(truckId) {
   useEffect(() => {
     if (!enabled) return;
 
-    // Éviter les setState synchrones dans le corps de l'effet (lint)
-    // -> on bascule en "loading" dans une microtask.
-    if (typeof queueMicrotask === 'function') {
-      queueMicrotask(() => {
-        setLoading(true);
-        setError(null);
-      });
-    } else {
-      Promise.resolve().then(() => {
-        setLoading(true);
-        setError(null);
-      });
-    }
+    // IMPORTANT: setLoading(true) DOIT être synchrone au début de l'effet
+    // pour éviter race condition: si snapshot arrive avant microtask,
+    // le setLoading(true) différé arrive APRÈS setLoading(false) → bloqué pour toujours.
+    setLoading(true);
+    setError(null);
 
     const menuRef = ref(db, rtdbPaths.truckMenuItems(truckId));
     const unsub = onValue(

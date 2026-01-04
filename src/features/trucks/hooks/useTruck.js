@@ -5,14 +5,6 @@ import { rtdbPaths } from '../../../lib/rtdbPaths';
 import { devError, devWarn } from '../../../lib/devLog';
 import { useTrucks } from './useTrucks';
 
-function schedule(fn) {
-  if (typeof queueMicrotask === 'function') {
-    queueMicrotask(fn);
-    return;
-  }
-  Promise.resolve().then(fn);
-}
-
 function isLikelyRtdbKey(value) {
   // Clés push RTDB typiques: commencent par '-' et contiennent des caractères URL-safe.
   // On reste permissif pour ne pas casser d'IDs métiers.
@@ -78,22 +70,22 @@ export function useTruck(slugOrId) {
     let unsub = () => {};
 
     if (!firebaseEnabled) {
-      schedule(() => {
-        setTruck(null);
-        setLoading(false);
-        setError(null);
-      });
+      // Mode DEV sans Firebase: pas de listener RTDB, on expose le fallback (liste mock).
+      setTruck(null);
+      setLoading(false);
+      setError(null);
 
       return () => {
         cancelled = true;
       };
     }
 
-    schedule(() => {
-      setLoading(true);
-      setTruck(null);
-      setError(null);
-    });
+    // IMPORTANT: setState synchrone pour éviter race condition.
+    // Si on diffère setLoading(true) avec microtask/Promise, un re-render rapide
+    // peut lancer un 2e listener avant que le 1er ne se nettoie → crash Firebase.
+    setLoading(true);
+    setTruck(null);
+    setError(null);
 
     const trucksRootRef = ref(db, rtdbPaths.publicTrucksRoot());
     const byKey = isLikelyRtdbKey(slugOrId);

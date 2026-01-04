@@ -14,21 +14,41 @@ export function useUserProfile() {
   useEffect(() => {
     if (!isFirebaseConfigured || !db || !uid) return;
 
+    // Évite les loaders infinis quand la connexion RTDB ne répond pas.
+    // (ex: réseau coupé / websocket Firebase instable)
+    const LOAD_TIMEOUT_MS = 8000;
+    let finished = false;
+
     const userRef = ref(db, `users/${uid}`);
+    const timeoutId = setTimeout(() => {
+      if (finished) return;
+      finished = true;
+      setError(new Error('Timeout lors du chargement du profil utilisateur.'));
+      setLoadedUid(uid);
+    }, LOAD_TIMEOUT_MS);
+
     const unsub = onValue(
       userRef,
       (snap) => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timeoutId);
         setProfile(snap.exists() ? snap.val() : null);
         setError(null);
         setLoadedUid(uid);
       },
       (err) => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timeoutId);
         setError(err);
         setLoadedUid(uid);
       }
     );
 
     return () => {
+      finished = true;
+      clearTimeout(timeoutId);
       unsub();
     };
   }, [uid]);

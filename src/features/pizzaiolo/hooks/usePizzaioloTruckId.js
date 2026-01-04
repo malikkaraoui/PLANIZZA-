@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { onValue, ref } from 'firebase/database';
 import { db, isFirebaseConfigured } from '../../../lib/firebase';
 import { rtdbPaths } from '../../../lib/rtdbPaths';
+import { devLog, devWarn } from '../../../lib/devLog';
 
 /**
  * Récupère le truckId associé à un pizzaiolo.
@@ -17,21 +18,20 @@ export function usePizzaioloTruckId(userId) {
 
   useEffect(() => {
     let cancelled = false;
+    const LOAD_TIMEOUT_MS = 8000;
+    let finished = false;
 
-    const schedule = (fn) => {
-      if (typeof queueMicrotask === 'function') {
-        queueMicrotask(fn);
-        return;
-      }
-      Promise.resolve().then(fn);
+    const finish = (next) => {
+      if (cancelled || finished) return;
+      finished = true;
+      next();
     };
 
     if (!userId) {
-      schedule(() => {
-        setTruckId(null);
-        setError(null);
-        setLoading(false);
-      });
+      devLog('[usePizzaioloTruckId] no userId');
+      setTruckId(null);
+      setError(null);
+      setLoading(false);
       return () => {
         cancelled = true;
       };
@@ -39,40 +39,57 @@ export function usePizzaioloTruckId(userId) {
 
     if (!isFirebaseConfigured || !db) {
       // Mode DEV sans Firebase (ou config manquante)
-      schedule(() => {
-        setTruckId(null);
-        setError(null);
-        setLoading(false);
-      });
+      devWarn('[usePizzaioloTruckId] firebase not configured');
+      setTruckId(null);
+      setError(null);
+      setLoading(false);
       return () => {
         cancelled = true;
       };
     }
 
-    schedule(() => {
-      setLoading(true);
-      setError(null);
-    });
+    // IMPORTANT: ne pas différer ce setState.
+    // Le callback initial de onValue peut arriver immédiatement et sinon on risque
+    // de remettre loading=true après avoir déjà reçu le snapshot.
+    setLoading(true);
+    setError(null);
+
+    const timeoutId = setTimeout(() => {
+      finish(() => {
+        devWarn('[usePizzaioloTruckId] timeout', { userId, path: rtdbPaths.pizzaiolo(userId) });
+        setTruckId(null);
+        setError(new Error('Timeout lors du chargement de votre camion (truckId).'));
+        setLoading(false);
+      });
+    }, LOAD_TIMEOUT_MS);
 
     const pizzaioloRef = ref(db, rtdbPaths.pizzaiolo(userId));
+    devLog('[usePizzaioloTruckId] subscribe', { userId, path: rtdbPaths.pizzaiolo(userId) });
     const unsub = onValue(
       pizzaioloRef,
       (snap) => {
-        if (cancelled) return;
-        const tid = snap.exists() ? snap.val()?.truckId ?? null : null;
-        setTruckId(tid);
-        setLoading(false);
+        finish(() => {
+          clearTimeout(timeoutId);
+          const tid = snap.exists() ? snap.val()?.truckId ?? null : null;
+          devLog('[usePizzaioloTruckId] snapshot', { exists: snap.exists(), truckId: tid });
+          setTruckId(tid);
+          setLoading(false);
+        });
       },
       (err) => {
-        if (cancelled) return;
-        setTruckId(null);
-        setError(err instanceof Error ? err : new Error(String(err)));
-        setLoading(false);
+        finish(() => {
+          clearTimeout(timeoutId);
+          devWarn('[usePizzaioloTruckId] error', err);
+          setTruckId(null);
+          setError(err instanceof Error ? err : new Error(String(err)));
+          setLoading(false);
+        });
       }
     );
 
     return () => {
       cancelled = true;
+      clearTimeout(timeoutId);
       unsub();
     };
   }, [userId]);

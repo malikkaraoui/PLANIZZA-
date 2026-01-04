@@ -13,6 +13,7 @@ import { ref, get } from 'firebase/database';
 import { db } from '../lib/firebase';
 import { useTruck } from '../features/trucks/hooks/useTruck';
 import { isCurrentlyOpen } from '../lib/openingHours';
+import { devLog } from '../lib/devLog';
 
 const TVA_RATE = 0.10; // 10% TVA restauration
 
@@ -38,10 +39,35 @@ export default function Cart() {
   });
 
   const truckId = location.state?.truckId ?? cartTruckId ?? null;
-  const { truck } = useTruck(truckId);
+  const { truck, loading: loadingTruck, error: truckError } = useTruck(truckId);
+
+  // Les données historiques peuvent stocker les horaires sous différentes clés.
+  const openingHours = truck?.openingHours || truck?.schedule || truck?.hours || null;
   const isPaused = truck?.isPaused === true;
-  const isOpen = isCurrentlyOpen(truck?.openingHours);
-  const canOrder = isOpen && !isPaused;
+  const isOpenByHours = openingHours ? isCurrentlyOpen(openingHours) : null;
+  const isOpen = typeof isOpenByHours === 'boolean'
+    ? isOpenByHours
+    : typeof truck?.isOpenNow === 'boolean'
+      ? truck.isOpenNow
+      : true; // fallback UX (le back doit de toute façon valider si besoin)
+
+  // Important: ne pas déclarer "fermé" tant que le camion n'est pas chargé.
+  const canOrder = !loadingTruck && !truckError && Boolean(truckId) && isOpen && !isPaused;
+
+  useEffect(() => {
+    devLog('[Cart]', {
+      truckId,
+      loadingTruck,
+      hasTruck: Boolean(truck),
+      hasTruckError: Boolean(truckError),
+      hasOpeningHours: Boolean(openingHours),
+      openKeys: openingHours ? Object.keys(openingHours) : null,
+      isOpenByHours,
+      isOpenNow: typeof truck?.isOpenNow === 'boolean' ? truck.isOpenNow : null,
+      isPaused,
+      canOrder,
+    });
+  }, [truckId, loadingTruck, truck, truckError, openingHours, isOpenByHours, isPaused, canOrder]);
 
   // Charger les préférences utilisateur
   useEffect(() => {
@@ -83,6 +109,21 @@ export default function Cart() {
     // Vérifier l'authentification
     if (!isAuthenticated || !user) {
       navigate(ROUTES.login);
+      return;
+    }
+
+    // ❌ NE PAS traiter loadingTruck comme une erreur.
+    // Si le truck charge encore, le bouton sera disabled (voir disabled ci-dessous).
+    // On vérifie seulement les vraies erreurs + état final.
+
+    if (truckError) {
+      setError('Impossible de vérifier le statut du camion (réseau). Réessayez.');
+      return;
+    }
+
+    // Si on n'a pas encore fini de charger, on ne fait rien (bouton disabled).
+    // L'utilisateur ne devrait pas pouvoir cliquer de toute façon.
+    if (loadingTruck) {
       return;
     }
 
@@ -458,18 +499,26 @@ export default function Cart() {
                 className="w-full" 
                 size="lg" 
                 onClick={handleCheckout}
-                disabled={creatingOrder || !truckId || !canOrder}
+                disabled={creatingOrder || loadingTruck || !truckId || !canOrder}
               >
-                {creatingOrder ? 'Préparation du paiement...' : 'Commander'}
+                {creatingOrder ? 'Préparation du paiement...' : loadingTruck ? 'Vérification...' : 'Commander'}
               </Button>
             </CardFooter>
 
-            {!canOrder && truckId && (
+            {!loadingTruck && !truckError && !canOrder && truckId && (
               <CardFooter className="pt-0">
                 <p className="text-xs text-destructive text-center w-full">
                   {isPaused 
                     ? '⏸️ Le camion est en pause. Les commandes sont temporairement suspendues.'
                     : '🔒 Le camion est actuellement fermé. Consultez les horaires d\'ouverture.'}
+                </p>
+              </CardFooter>
+            )}
+
+            {(loadingTruck || truckError) && truckId && (
+              <CardFooter className="pt-0">
+                <p className="text-xs text-muted-foreground text-center w-full">
+                  {loadingTruck ? '⏳ Vérification du statut du camion…' : '⚠️ Statut du camion indisponible (réseau).'}
                 </p>
               </CardFooter>
             )}
