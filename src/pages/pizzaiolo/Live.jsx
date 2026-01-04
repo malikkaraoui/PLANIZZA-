@@ -1,16 +1,27 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Minus, Trash2, User, ShoppingCart, Check, Pizza, Wine, IceCream, ArrowRight } from 'lucide-react';
-import { ref, get, push, set, remove } from 'firebase/database';
+import { ArrowLeft, Plus, Minus, Trash2, User, ShoppingCart, Check, Pizza, Wine, IceCream } from 'lucide-react';
+import { ref, get as getDb, push, set } from 'firebase/database';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../app/providers/AuthProvider';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 
-const STORAGE_KEY_CART = 'planizza_live_cart';
-const STORAGE_KEY_CUSTOMER = 'planizza_live_customer';
-const TVA_RATE = 0.10; // 10% TVA restauration
+// Hooks et utilitaires menu
+import { useLiveCart } from '../../features/menu/hooks/useLiveCart';
+import { usePizzaCustomization } from '../../features/menu/hooks/usePizzaCustomization';
+import { useMenuItem } from '../../features/menu/hooks/useMenuItem';
+import { useLiveOrder } from '../../features/menu/hooks/useLiveOrder';
+import { ALL_INGREDIENTS } from '../../features/menu/constants/ingredients';
+import { filterMenuByCategory, hasMultipleSizes, getSingleSize } from '../../features/menu/utils/menuHelpers';
+import { 
+  calculateTVA, 
+  calculateTotalTTC, 
+  formatPrice,
+  getDisplayPrice,
+  hasValidPrice 
+} from '../../features/menu/utils/priceCalculations';
 
 export default function PizzaioloLive() {
   const { user } = useAuth();
@@ -18,32 +29,45 @@ export default function PizzaioloLive() {
   const [truckId, setTruckId] = useState(null);
   const [menu, setMenu] = useState([]);
   const [loadingTruck, setLoadingTruck] = useState(true);
-
-  // Navigation
-  const [selectedCategory, setSelectedCategory] = useState(null); // 'pizza', 'boisson', 'dessert'
-  
-  // Panier
-  const [cart, setCart] = useState([]);
-  const [customerName, setCustomerName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Navigation entre catégories
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const pizzaRef = useRef(null);
+  const boissonRef = useRef(null);
+  const dessertRef = useRef(null);
   
-  // Item sélectionné pour choisir la taille (pizzas uniquement)
-  const [selectedItem, setSelectedItem] = useState(null);
+  // Hooks métier
+  const { 
+    cart, 
+    customerName, 
+    setCustomerName, 
+    addToCart, 
+    removeFromCart, 
+    deleteFromCart, 
+    clearCart,
+    totalCents,
+    itemCount 
+  } = useLiveCart();
   
-  // Personnalisation pizza (pour vue customize-pizza)
-  const [customizingPizza, setCustomizingPizza] = useState(null); // {item, size, removedIngredients: [], addedIngredients: []}
+  const {
+    customizingPizza,
+    startCustomization,
+    cancelCustomization,
+    toggleRemoveIngredient,
+    toggleAddIngredient,
+    getCustomization
+  } = usePizzaCustomization();
   
-  // Ingrédients disponibles (depuis les pizzas prédéfinies)
-  const availableIngredients = [
-    'Crème fraîche', 'Base Tomate',
-    'Champignons', 'Oignons rouge', 'Tomates cerises', 'Poivrons',
-    'Reblochon', 'Emmental', 'Gruyère', 'Burrata', 'Gorgonzola', 'Parmesan', 'Cabécou',
-    'Jambon', 'Chorizo', 'Lardons', 'Saucisse', 'Poulet',
-    'Mozzarella', 'Olives', 'Basilic', 'Roquette', 'Tomate', 'Chèvre', 'Miel'
-  ];
+  const {
+    toggleItemSelection,
+    clearSelection,
+    flashItem,
+    isItemSelected,
+    isItemFlashing
+  } = useMenuItem();
   
-  // ID de la commande en cours (pour Firebase sync)
-  const liveOrderIdRef = useRef(null);
+  const { clearLiveOrder } = useLiveOrder(truckId, user?.uid, cart, customerName);
 
   // Charger le truckId et le menu
   useEffect(() => {
@@ -52,7 +76,7 @@ export default function PizzaioloLive() {
     const loadTruckData = async () => {
       try {
         const pizzaioloRef = ref(db, `pizzaiolos/${user.uid}`);
-        const snap = await get(pizzaioloRef);
+        const snap = await getDb(pizzaioloRef);
         
         if (snap.exists() && snap.val().truckId) {
           const tid = snap.val().truckId;
@@ -60,27 +84,19 @@ export default function PizzaioloLive() {
           
           // Charger le menu du camion
           const truckRef = ref(db, `public/trucks/${tid}/menu/items`);
-          const menuSnap = await get(truckRef);
-          
-          console.log('[Live] Menu snapshot exists:', menuSnap.exists());
+          const menuSnap = await getDb(truckRef);
           
           if (menuSnap.exists()) {
             const menuData = menuSnap.val();
-            console.log('[Live] Menu data:', menuData);
             
-            // Firebase stocke le menu comme un objet, pas un array
+            // Firebase stocke le menu comme un objet
             if (typeof menuData === 'object' && menuData !== null) {
               const menuArray = Object.entries(menuData).map(([id, data]) => ({
                 id,
                 ...data
               }));
-              console.log('[Live] Menu array:', menuArray);
               setMenu(menuArray);
-            } else {
-              setMenu([]);
             }
-          } else {
-            console.log('[Live] Aucun menu trouvé');
           }
         }
       } catch (err) {
@@ -93,211 +109,47 @@ export default function PizzaioloLive() {
     loadTruckData();
   }, [user?.uid]);
 
-  // Restaurer depuis localStorage au chargement
+  // Scroll automatique vers la catégorie ouverte
   useEffect(() => {
-    try {
-      const savedCart = localStorage.getItem(STORAGE_KEY_CART);
-      const savedCustomer = localStorage.getItem(STORAGE_KEY_CUSTOMER);
-      
-      if (savedCart) {
-        setCart(JSON.parse(savedCart));
+    if (selectedCategory) {
+      const refMap = {
+        pizza: pizzaRef,
+        boisson: boissonRef,
+        dessert: dessertRef
+      };
+      const targetRef = refMap[selectedCategory];
+      if (targetRef?.current) {
+        setTimeout(() => {
+          targetRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
       }
-      if (savedCustomer) {
-        setCustomerName(savedCustomer);
-      }
-    } catch (err) {
-      console.error('[Live] Erreur restauration localStorage:', err);
     }
-  }, []);
+  }, [selectedCategory]);
 
-  // Sauvegarder dans localStorage à chaque changement
-  useEffect(() => {
-    if (cart.length > 0 || customerName) {
-      localStorage.setItem(STORAGE_KEY_CART, JSON.stringify(cart));
-      localStorage.setItem(STORAGE_KEY_CUSTOMER, customerName);
-    }
-  }, [cart, customerName]);
-
-  // Synchroniser avec Firebase en temps réel
-  useEffect(() => {
-    if (!truckId || !user?.uid) return;
-    if (cart.length === 0 && !customerName) return;
-
-    const syncToFirebase = async () => {
-      try {
-        // Créer un ID unique pour cette commande en cours si pas déjà existant
-        if (!liveOrderIdRef.current) {
-          liveOrderIdRef.current = push(ref(db, 'liveOrders')).key;
-        }
-
-        const totalCents = cart.reduce((sum, item) => sum + (item.priceCents * item.qty), 0);
-
-        const liveOrderRef = ref(db, `liveOrders/${truckId}/${liveOrderIdRef.current}`);
-        await set(liveOrderRef, {
-          items: cart,
-          customerName: customerName.trim(),
-          totalCents,
-          truckId,
-          pizzaioloUid: user.uid,
-          updatedAt: Date.now(),
-          status: 'draft' // Pas encore validée
-        });
-
-        console.log('[Live] Synced to Firebase:', liveOrderIdRef.current);
-      } catch (err) {
-        console.error('[Live] Erreur sync Firebase:', err);
-      }
-    };
-
-    // Debounce pour éviter trop d'écritures
-    const timer = setTimeout(syncToFirebase, 500);
-    return () => clearTimeout(timer);
-  }, [cart, customerName, truckId, user?.uid]);
-
-  // Ajouter au panier (avec taille pour pizzas)
-  const addToCart = (item, size = null, customization = null) => {
-    // Pour les pizzas, size est obligatoire (s/m/l)
-    // Pour desserts/calzones/boissons, size peut être null ou la taille de boisson
-    
-    let cartItemId, cartItemName, cartItemPrice;
-    
-    if (item.type === 'pizza' && size && item.sizes?.[size]) {
-      cartItemId = `${item.id}-${size}`;
-      cartItemName = `${item.name} (${size.toUpperCase()})`;
-      cartItemPrice = item.sizes[size].priceCents;
-      
-      // Ajouter personnalisation au nom si présente
-      if (customization && (customization.removedIngredients.length > 0 || customization.addedIngredients.length > 0)) {
-        const changes = [];
-        if (customization.removedIngredients.length > 0) {
-          changes.push(`Sans: ${customization.removedIngredients.join(', ')}`);
-        }
-        if (customization.addedIngredients.length > 0) {
-          changes.push(`Avec: ${customization.addedIngredients.join(', ')}`);
-        }
-        cartItemName += ` [${changes.join(' | ')}]`;
-      }
-    } else if (['soda', 'eau', 'biere'].includes(item.type) && size && item.sizes?.[size]) {
-      // Boisson avec taille
-      cartItemId = `${item.id}-${size}`;
-      const sizeLabels = { '33cl': '33cL', '75cl': '75cL', '1l': '1L', '1.5l': '1,5L', '50cl': '50cL', '25cl': '25cL' };
-      cartItemName = `${item.name} (${sizeLabels[size] || size})`;
-      cartItemPrice = item.sizes[size].priceCents;
-    } else if (item.priceCents) {
-      // Dessert, vin, ou calzone avec prix unique
-      cartItemId = item.id;
-      cartItemName = item.name;
-      cartItemPrice = item.priceCents;
-    } else {
-      console.error('[Live] Prix manquant pour', item);
-      return;
-    }
-    
-    const existingIndex = cart.findIndex((i) => i.id === cartItemId);
-    
-    if (existingIndex >= 0) {
-      const newCart = [...cart];
-      newCart[existingIndex].qty += 1;
-      setCart(newCart);
-    } else {
-      setCart([...cart, { 
-        id: cartItemId,
-        name: cartItemName,
-        priceCents: cartItemPrice,
-        qty: 1 
-      }]);
-    }
-    
-    // Fermer la sélection de taille après ajout
-    setSelectedItem(null);
-    setCustomizingPizza(null);
+  // Gestionnaire d'ajout au panier avec feedback visuel
+  const handleAddToCart = (item, size = null, customization = null) => {
+    flashItem(item.id);
+    addToCart(item, size, customization);
+    clearSelection();
   };
 
-  // Ouvrir la vue de personnalisation pour une pizza
-  const startCustomizingPizza = (item, size) => {
-    // Extraire les ingrédients actuels depuis la description
-    const ingredients = item.description ? 
-      item.description.split(',').map(i => i.trim()).filter(i => i.length > 0) : 
-      [];
-    
-    setCustomizingPizza({
-      item,
-      size,
-      currentIngredients: ingredients,
-      removedIngredients: [],
-      addedIngredients: []
-    });
-  };
-
-  // Toggle un ingrédient actuel (le retirer ou le remettre)
-  const toggleRemoveIngredient = (ingredient) => {
-    if (!customizingPizza) return;
-    
-    const isRemoved = customizingPizza.removedIngredients.includes(ingredient);
-    
-    setCustomizingPizza({
-      ...customizingPizza,
-      removedIngredients: isRemoved
-        ? customizingPizza.removedIngredients.filter(i => i !== ingredient)
-        : [...customizingPizza.removedIngredients, ingredient]
-    });
-  };
-
-  // Toggle un ingrédient supplémentaire
-  const toggleAddIngredient = (ingredient) => {
-    if (!customizingPizza) return;
-    
-    const isAdded = customizingPizza.addedIngredients.includes(ingredient);
-    
-    setCustomizingPizza({
-      ...customizingPizza,
-      addedIngredients: isAdded
-        ? customizingPizza.addedIngredients.filter(i => i !== ingredient)
-        : [...customizingPizza.addedIngredients, ingredient]
-    });
-  };
-
-  // Finaliser la personnalisation
+  // Finaliser la personnalisation d'une pizza
   const finishCustomization = () => {
     if (!customizingPizza) return;
     
-    addToCart(
+    handleAddToCart(
       customizingPizza.item,
       customizingPizza.size,
-      {
-        removedIngredients: customizingPizza.removedIngredients,
-        addedIngredients: customizingPizza.addedIngredients
-      }
+      getCustomization()
     );
-  };
-
-  // Retirer du panier
-  const removeFromCart = (itemId) => {
-    const existingIndex = cart.findIndex((i) => i.id === itemId);
     
-    if (existingIndex >= 0) {
-      const newCart = [...cart];
-      if (newCart[existingIndex].qty > 1) {
-        newCart[existingIndex].qty -= 1;
-      } else {
-        newCart.splice(existingIndex, 1);
-      }
-      setCart(newCart);
-    }
-  };
-
-  // Supprimer du panier
-  const deleteFromCart = (itemId) => {
-    setCart(cart.filter((i) => i.id !== itemId));
+    cancelCustomization();
   };
 
   // Filtrer le menu par catégorie
-  const pizzas = menu.filter(item => item.type === 'pizza' || item.type === 'calzone');
-  const boissons = menu.filter(item => ['soda', 'eau', 'biere', 'vin'].includes(item.type));
-  const desserts = menu.filter(item => item.type === 'dessert');
-
-  // Calculer le total
-  const totalCents = cart.reduce((sum, item) => sum + (item.priceCents * item.qty), 0);
+  const pizzas = filterMenuByCategory(menu, 'pizza');
+  const boissons = filterMenuByCategory(menu, 'boisson');
+  const desserts = filterMenuByCategory(menu, 'dessert');
 
   // Valider la commande
   const handleSubmitOrder = async () => {
@@ -320,7 +172,7 @@ export default function PizzaioloLive() {
       
       const orderData = {
         truckId,
-        uid: user.uid, // Uid du pizzaiolo qui crée la commande
+        uid: user.uid,
         items: cart.map(item => ({
           id: item.id,
           name: item.name,
@@ -328,41 +180,28 @@ export default function PizzaioloLive() {
           qty: item.qty
         })),
         totalCents,
-        status: 'received', // Commande manuelle = à prendre en charge
+        status: 'received',
         createdAt: Date.now(),
-        timeline: {
-          // Pas de timeline pour le moment, sera remplie lors de la prise en charge
-        },
+        timeline: {},
         payment: {
           provider: 'manual',
-          paymentStatus: 'paid', // Payée à la main
+          paymentStatus: 'paid',
           paidAt: Date.now()
         },
         deliveryMethod: 'pickup',
         customerName: customerName.trim(),
-        source: 'manual' // Flag pour identifier les commandes manuelles
+        source: 'manual'
       };
 
       await set(newOrderRef, orderData);
 
       // 2. Supprimer de liveOrders (brouillon)
-      if (liveOrderIdRef.current && truckId) {
-        const liveOrderRef = ref(db, `liveOrders/${truckId}/${liveOrderIdRef.current}`);
-        await remove(liveOrderRef);
-        liveOrderIdRef.current = null;
-      }
+      await clearLiveOrder();
 
-      // 3. Nettoyer localStorage
-      localStorage.removeItem(STORAGE_KEY_CART);
-      localStorage.removeItem(STORAGE_KEY_CUSTOMER);
-
-      // 4. Réinitialiser l'état
-      setCart([]);
-      setCustomerName('');
+      // 3. Nettoyer le panier
+      clearCart();
       
       alert(`✅ Commande créée pour ${customerName}`);
-      
-      console.log('[Live] Commande validée et transférée vers orders');
       
     } catch (err) {
       console.error('[Live] Erreur création commande:', err);
@@ -396,7 +235,7 @@ export default function PizzaioloLive() {
         <button
           onClick={() => {
             if (customizingPizza) {
-              setCustomizingPizza(null);
+              cancelCustomization();
             } else {
               navigate(-1);
             }
@@ -458,7 +297,7 @@ export default function PizzaioloLive() {
                 <div>
                   <h4 className="text-sm font-black text-muted-foreground mb-3 uppercase">Ajouter des ingrédients</h4>
                   <div className="flex flex-wrap gap-2">
-                    {availableIngredients
+                    {ALL_INGREDIENTS
                       .filter(ing => !customizingPizza.currentIngredients.includes(ing))
                       .map((ingredient) => {
                         const isAdded = customizingPizza.addedIngredients.includes(ingredient);
@@ -491,11 +330,11 @@ export default function PizzaioloLive() {
             ) : (
               /* Vue principale avec catégories */
               <div className="space-y-6">
-                {/* 3 grosses tuiles principales */}
-                <div className="grid md:grid-cols-3 gap-4">
+                {/* Pizza */}
+                <div ref={pizzaRef}>
                   <button
                     onClick={() => setSelectedCategory(selectedCategory === 'pizza' ? null : 'pizza')}
-                    className={`glass-premium glass-glossy p-8 rounded-[24px] hover:scale-105 transition-all group ${
+                    className={`w-full glass-premium glass-glossy p-8 rounded-[24px] hover:scale-105 transition-all group ${
                       selectedCategory === 'pizza' ? 'border-2 border-orange-500' : 'border-white/20'
                     }`}
                   >
@@ -510,73 +349,28 @@ export default function PizzaioloLive() {
                     </div>
                   </button>
 
-                  <button
-                    onClick={() => setSelectedCategory(selectedCategory === 'boisson' ? null : 'boisson')}
-                    className={`glass-premium glass-glossy p-8 rounded-[24px] hover:scale-105 transition-all group ${
-                      selectedCategory === 'boisson' ? 'border-2 border-blue-500' : 'border-white/20'
-                    }`}
-                  >
-                    <div className="text-center space-y-4">
-                      <div className="w-20 h-20 mx-auto rounded-full bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/30 transition">
-                        <Wine className="h-10 w-10 text-blue-500" />
-                      </div>
-                      <div>
-                        <h3 className="text-2xl font-black">Boisson</h3>
-                        <p className="text-sm text-muted-foreground mt-1">{boissons.length} produits</p>
-                      </div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => setSelectedCategory(selectedCategory === 'dessert' ? null : 'dessert')}
-                    className={`glass-premium glass-glossy p-8 rounded-[24px] hover:scale-105 transition-all group ${
-                      selectedCategory === 'dessert' ? 'border-2 border-pink-500' : 'border-white/20'
-                    }`}
-                  >
-                    <div className="text-center space-y-4">
-                      <div className="w-20 h-20 mx-auto rounded-full bg-pink-500/20 flex items-center justify-center group-hover:bg-pink-500/30 transition">
-                        <IceCream className="h-10 w-10 text-pink-500" />
-                      </div>
-                      <div>
-                        <h3 className="text-2xl font-black">Dessert</h3>
-                        <p className="text-sm text-muted-foreground mt-1">{desserts.length} produits</p>
-                      </div>
-                    </div>
-                  </button>
-                </div>
-
-                {/* Contenu selon la catégorie sélectionnée */}
-                {selectedCategory === 'pizza' && (
-              <div className="grid md:grid-cols-2 gap-3">
+                  {/* Contenu pizzas */}
+                  {selectedCategory === 'pizza' && (
+                    <div className="grid md:grid-cols-2 gap-3 mt-4">
                 {pizzas.length === 0 ? (
                   <p className="col-span-2 text-center text-muted-foreground py-8">Aucune pizza dans le menu</p>
                 ) : (
                   pizzas
-                    .filter((item) => {
-                      // Ne pas afficher les pizzas sans prix défini
-                      if (item.type === 'pizza' && item.sizes) {
-                        // Vérifier si au moins une taille a un prix
-                        return Object.values(item.sizes).some(size => size.priceCents > 0);
-                      }
-                      // Pour les autres types, vérifier le prix direct
-                      return item.priceCents && item.priceCents > 0;
-                    })
+                    .filter(item => hasValidPrice(item))
                     .map((item) => {
                     const isPizza = item.type === 'pizza';
-                    const isExpanded = selectedItem?.id === item.id;
+                    const isExpanded = isItemSelected(item.id);
                     
-                    const displayPrice = isPizza && item.sizes?.m?.priceCents
-                      ? item.sizes.m.priceCents
-                      : item.priceCents;
+                    const displayPrice = getDisplayPrice(item);
                     
                     return (
                       <div key={item.id} className={`transition-all ${isExpanded ? 'md:col-span-2' : ''}`}>
                         <button
                           onClick={() => {
                             if (isPizza) {
-                              setSelectedItem(isExpanded ? null : item);
+                              toggleItemSelection(item);
                             } else {
-                              addToCart(item);
+                              handleAddToCart(item);
                             }
                           }}
                           className={`glass-premium glass-glossy border-white/20 p-4 rounded-2xl hover:border-primary/50 transition-all text-left group w-full ${
@@ -593,7 +387,7 @@ export default function PizzaioloLive() {
                             <div className="text-right">
                               {displayPrice ? (
                                 <div className="text-xl font-black text-primary">
-                                  {isPizza && '≈ '}{(displayPrice / 100).toFixed(2)}€
+                                  {isPizza && '≈ '}{formatPrice(displayPrice)}
                                 </div>
                               ) : (
                                 <div className="text-sm text-muted-foreground">Prix non défini</div>
@@ -615,7 +409,7 @@ export default function PizzaioloLive() {
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        addToCart(item, size);
+                                        handleAddToCart(item, size);
                                       }}
                                       className="w-full glass-premium glass-glossy border-white/20 p-3 rounded-xl hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-all group"
                                     >
@@ -627,7 +421,7 @@ export default function PizzaioloLive() {
                                           {sizeData.diameter}cm
                                         </div>
                                         <div className="text-lg font-bold mt-2">
-                                          {(sizeData.priceCents / 100).toFixed(2)}€
+                                          {formatPrice(sizeData.priceCents)}
                                         </div>
                                       </div>
                                     </button>
@@ -636,7 +430,7 @@ export default function PizzaioloLive() {
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        startCustomizingPizza(item, size);
+                                        startCustomization(item, size);
                                       }}
                                       className="w-full glass-premium glass-glossy border-orange-500/30 bg-orange-500/5 p-2 rounded-xl hover:border-orange-500/50 hover:bg-orange-500/10 transition-all text-xs font-bold text-orange-500"
                                     >
@@ -654,65 +448,80 @@ export default function PizzaioloLive() {
                 )}
               </div>
             )}
+                </div>
 
-                {/* Contenu boissons */}
-                {selectedCategory === 'boisson' && (
-                  <div className="grid md:grid-cols-2 gap-3">
+                {/* Boisson */}
+                <div ref={boissonRef}>
+                  <button
+                    onClick={() => setSelectedCategory(selectedCategory === 'boisson' ? null : 'boisson')}
+                    className={`w-full glass-premium glass-glossy p-8 rounded-[24px] hover:scale-105 transition-all group ${
+                      selectedCategory === 'boisson' ? 'border-2 border-blue-500' : 'border-white/20'
+                    }`}
+                  >
+                    <div className="text-center space-y-4">
+                      <div className="w-20 h-20 mx-auto rounded-full bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/30 transition">
+                        <Wine className="h-10 w-10 text-blue-500" />
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-black">Boisson</h3>
+                        <p className="text-sm text-muted-foreground mt-1">{boissons.length} produits</p>
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Contenu boissons */}
+                  {selectedCategory === 'boisson' && (
+                    <div className="grid md:grid-cols-2 gap-3 mt-4">
                     {boissons.length === 0 ? (
                       <p className="col-span-2 text-center text-muted-foreground py-8">Aucune boisson dans le menu</p>
                     ) : (
                       boissons.map((item) => {
-                        const hasSizes = item.sizes && Object.keys(item.sizes).length > 0;
-                        const singleSize = hasSizes && Object.keys(item.sizes).length === 1;
-                        const isExpanded = selectedItem?.id === item.id;
-                        
-                        // Si une seule taille, récupérer le prix et la taille
-                        let singleSizeKey = null;
-                        let singleSizeData = null;
-                        if (singleSize) {
-                          singleSizeKey = Object.keys(item.sizes)[0];
-                          singleSizeData = item.sizes[singleSizeKey];
-                        }
+                        const multipleSizes = hasMultipleSizes(item);
+                        const singleSizeData = getSingleSize(item);
+                        const isExpanded = isItemSelected(item.id);
+                        const isFlashing = isItemFlashing(item.id);
                         
                         return (
                           <div key={item.id} className={`transition-all ${isExpanded ? 'md:col-span-2' : ''}`}>
                             <button
                               onClick={() => {
-                                if (singleSize) {
-                                  // Une seule taille : ajouter directement au panier
-                                  addToCart(item, singleSizeKey);
-                                } else if (hasSizes) {
-                                  // Plusieurs tailles : afficher le sélecteur
-                                  setSelectedItem(isExpanded ? null : item);
+                                if (singleSizeData) {
+                                  // Une seule taille : ajouter directement
+                                  handleAddToCart(item, singleSizeData.size);
+                                } else if (multipleSizes) {
+                                  // Plusieurs tailles : afficher sélecteur
+                                  toggleItemSelection(item);
                                 } else {
                                   // Pas de taille : ajouter directement
-                                  addToCart(item);
+                                  handleAddToCart(item);
                                 }
                               }}
                               className={`glass-premium glass-glossy border-white/20 p-4 rounded-2xl hover:border-primary/50 transition-all text-left group w-full ${
                                 isExpanded ? 'border-primary/50' : ''
+                              } ${
+                                isFlashing ? 'bg-emerald-500/30 border-emerald-500 scale-105' : ''
                               }`}
                             >
                               <div className="flex items-center justify-between">
                                 <h3 className="font-black text-lg group-hover:text-primary transition">{item.name}</h3>
-                                {singleSize && singleSizeData ? (
+                                {singleSizeData ? (
                                   <div className="text-xl font-black text-primary">
-                                    {(singleSizeData.priceCents / 100).toFixed(2)}€
+                                    {formatPrice(singleSizeData.data.priceCents)}
                                   </div>
-                                ) : !hasSizes && item.priceCents ? (
+                                ) : !multipleSizes && item.priceCents ? (
                                   <div className="text-xl font-black text-primary">
-                                    {(item.priceCents / 100).toFixed(2)}€
+                                    {formatPrice(item.priceCents)}
                                   </div>
                                 ) : null}
                               </div>
                             </button>
                             
-                            {isExpanded && hasSizes && !singleSize && (
+                            {isExpanded && multipleSizes && (
                               <div className="mt-3 grid grid-cols-4 gap-2">
                                 {Object.entries(item.sizes).map(([size, sizeData]) => (
                                   <button
                                     key={size}
-                                    onClick={() => addToCart(item, size)}
+                                    onClick={() => handleAddToCart(item, size)}
                                     className="glass-premium glass-glossy border-white/20 p-3 rounded-xl hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-all"
                                   >
                                     <div className="text-center">
@@ -720,7 +529,7 @@ export default function PizzaioloLive() {
                                         {size}
                                       </div>
                                       <div className="text-lg font-bold mt-1">
-                                        {(sizeData.priceCents / 100).toFixed(2)}€
+                                        {formatPrice(sizeData.priceCents)}
                                       </div>
                                     </div>
                                   </button>
@@ -732,19 +541,43 @@ export default function PizzaioloLive() {
                       })
                     )}
                   </div>
-                )}
+                  )}
+                </div>
 
-                {/* Contenu desserts */}
-                {selectedCategory === 'dessert' && (
-                  <div className="grid md:grid-cols-2 gap-3">
+                {/* Dessert */}
+                <div ref={dessertRef}>
+                  <button
+                    onClick={() => setSelectedCategory(selectedCategory === 'dessert' ? null : 'dessert')}
+                    className={`w-full glass-premium glass-glossy p-8 rounded-[24px] hover:scale-105 transition-all group ${
+                      selectedCategory === 'dessert' ? 'border-2 border-pink-500' : 'border-white/20'
+                    }`}
+                  >
+                    <div className="text-center space-y-4">
+                      <div className="w-20 h-20 mx-auto rounded-full bg-pink-500/20 flex items-center justify-center group-hover:bg-pink-500/30 transition">
+                        <IceCream className="h-10 w-10 text-pink-500" />
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-black">Dessert</h3>
+                        <p className="text-sm text-muted-foreground mt-1">{desserts.length} produits</p>
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Contenu desserts */}
+                  {selectedCategory === 'dessert' && (
+                    <div className="grid md:grid-cols-2 gap-3 mt-4">
                     {desserts.length === 0 ? (
                       <p className="col-span-2 text-center text-muted-foreground py-8">Aucun dessert dans le menu</p>
                     ) : (
-                      desserts.map((item) => (
+                      desserts.map((item) => {
+                        const isFlashing = isItemFlashing(item.id);
+                        return (
                         <button
                           key={item.id}
-                          onClick={() => addToCart(item)}
-                          className="glass-premium glass-glossy border-white/20 p-4 rounded-2xl hover:border-primary/50 transition-all text-left group"
+                          onClick={() => handleAddToCart(item)}
+                          className={`glass-premium glass-glossy border-white/20 p-4 rounded-2xl hover:border-primary/50 transition-all text-left group ${
+                            isFlashing ? 'bg-emerald-500/30 border-emerald-500 scale-105' : ''
+                          }`}
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1">
@@ -756,7 +589,7 @@ export default function PizzaioloLive() {
                             <div className="text-right">
                               {item.priceCents ? (
                                 <div className="text-xl font-black text-primary">
-                                  {(item.priceCents / 100).toFixed(2)}€
+                                  {formatPrice(item.priceCents)}
                                 </div>
                               ) : (
                                 <div className="text-sm text-muted-foreground">Prix non défini</div>
@@ -764,10 +597,12 @@ export default function PizzaioloLive() {
                             </div>
                           </div>
                         </button>
-                      ))
+                        );
+                      })
                     )}
                   </div>
-                )}
+                  )}
+                </div>
               </div>
             )}
           </Card>
@@ -779,9 +614,9 @@ export default function PizzaioloLive() {
             <div className="flex items-center gap-2 mb-4">
               <ShoppingCart className="h-5 w-5 text-primary" />
               <h2 className="text-xl font-black">Panier</h2>
-              {cart.length > 0 && (
+              {itemCount > 0 && (
                 <span className="ml-auto bg-primary text-white text-xs font-bold px-2 py-1 rounded-full">
-                  {cart.reduce((sum, item) => sum + item.qty, 0)}
+                  {itemCount}
                 </span>
               )}
             </div>
@@ -827,7 +662,7 @@ export default function PizzaioloLive() {
                         </button>
                         <span className="font-black text-lg w-8 text-center">{item.qty}</span>
                         <button
-                          onClick={() => addToCart(item)}
+                          onClick={() => handleAddToCart({ id: item.id, name: item.name, priceCents: item.priceCents })}
                           className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 transition flex items-center justify-center"
                         >
                           <Plus className="h-4 w-4" />
@@ -835,7 +670,7 @@ export default function PizzaioloLive() {
                       </div>
                       
                       <span className="font-bold text-primary">
-                        {((item.priceCents * item.qty) / 100).toFixed(2)}€
+                        {formatPrice(item.priceCents * item.qty)}
                       </span>
                     </div>
                   </div>
@@ -848,19 +683,19 @@ export default function PizzaioloLive() {
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Total HT</span>
                 <span className="font-bold">
-                  {(totalCents / 100).toFixed(2)}€
+                  {formatPrice(totalCents)}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">TVA (10%)</span>
                 <span className="font-bold">
-                  {(totalCents * TVA_RATE / 100).toFixed(2)}€
+                  {formatPrice(calculateTVA(totalCents))}
                 </span>
               </div>
               <div className="flex items-center justify-between pt-2 border-t border-white/10">
                 <span className="font-black text-xl">Total TTC</span>
                 <span className="font-black text-3xl text-primary">
-                  {(totalCents * (1 + TVA_RATE) / 100).toFixed(2)}€
+                  {formatPrice(calculateTotalTTC(totalCents))}
                 </span>
               </div>
             </div>
