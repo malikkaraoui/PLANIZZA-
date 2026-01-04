@@ -1,315 +1,157 @@
-# 🍕 PLANIZZA
+## 🍕 PLANIZZA
 
-Plateforme web moderne de commande et gestion de pizzas itinérantes. Une application complète permettant aux clients de commander auprès de camions pizzas, et aux pizzaiolos de gérer leur activité (menu, commandes en temps réel, tableau de bord).
+Plateforme web de commande et gestion de pizzas itinérantes.
 
-**Stack technique** : Vite + React 19 + TailwindCSS + Firebase (Auth, Realtime Database, Functions) + Stripe
+- Front : **Vite + React + Tailwind**
+- Back : **Firebase Auth + Realtime Database (RTDB) + Cloud Functions**
+- Paiement : **Stripe Checkout** (validation réelle via **webhook**)
 
-## ✨ Fonctionnalités
+## 🎯 Principes non négociables (sécurité & cohérence)
 
-### 👥 Côté Client
-- 🔍 Exploration des camions pizzas (géolocalisation, filtres, badges)
-- 🍕 Consultation des menus avec personnalisation des pizzas
-- 🛒 Panier intelligent avec sauvegarde automatique
-- 💳 Paiement sécurisé via Stripe Checkout
-- 📱 Suivi de commande en temps réel
-- 🎁 Programme de fidélité
+- **Aucun secret Stripe côté front** (jamais de `sk_...` ni `whsec_...`).
+- Le front **n’écrit jamais** un statut `paid` : seul `stripeWebhook` (Functions) le fait après vérif de signature.
+- Les prix sont **toujours en cents** (int) dans la data.
+- Le détail camion doit marcher par **clé RTDB** *ou* par **slug** (ex : `/TEST_04_01`).
 
-### 🚚 Côté Pizzaiolo
-- 📊 Dashboard complet avec statistiques
-- 📋 Gestion du menu (création, modification, prix par taille)
-- 🎨 Personnalisation avancée des pizzas (ingrédients)
-- 📱 Mode Live pour commandes manuelles sur place
-- ⏸️ Gestion des pauses et disponibilité
-- 📦 Suivi des commandes en temps réel
-- 💰 Historique des ventes
+## 📚 Documentation (minimal & à jour)
 
-## 📁 Structure du projet
+- Setup / env / Firebase / Stripe : `SETUP.md`
+- Filet anti-régression : `CHECKLIST_SMOKE_TEST.md`
+
+## 🚀 Démarrage rapide (dev)
+
+1) Installer les dépendances (front + functions)
+
+- `npm install`
+- `npm --prefix functions install`
+
+2) Créer `.env.local` depuis `.env.example` puis renseigner :
+
+- `VITE_FIREBASE_*`
+- **RTDB** : `VITE_FIREBASE_DATABASE_URL` (obligatoire)
+- `VITE_STRIPE_PUBLISHABLE_KEY`
+- (Optionnel) `VITE_FUNCTIONS_ORIGIN` si vos Functions ne sont pas en `us-central1`
+
+3) Lancer le front
+
+- `npm run dev`
+
+4) (Optionnel) Lancer les émulateurs Firebase
+
+- `npm run firebase:emulators`
+
+Tout le détail (Firebase Console + CLI + secrets Stripe) est dans `SETUP.md`.
+
+## 🧭 Routes (canon) — à connaître
+
+Les routes sont centralisées dans `src/app/routes.jsx`.
+
+| Fonction | Route |
+|---|---|
+| Explore (public) | `/explore` |
+| Panier (public) | `/panier` |
+| Checkout (public UI, auth requise au paiement) | `/checkout` |
+| Success checkout | `/checkout/success` |
+| Tracking commande | `/order/:orderId` |
+| Détail camion (slug **ou** id RTDB) | `/:truckId` |
+| Pro (pizzaiolo) | `/pro/*` (ex: `/pro/menu`, `/pro/live`) |
+
+Routes legacy compatibles : `/truck/:truckId`, `/t/:truckId`, `/trucks/:truckId`.
+
+## 🗄️ RTDB — modèle (MVP)
+
+Paths principaux :
+
+```txt
+public/trucks/{truckId}
+public/trucks/{truckId}/menu/items
+
+orders/{orderId}
+truckOrders/{truckId}/{orderId} = true
+
+pizzaiolos/{uid}/truckId
 
 ```
-PLANIZZA/
-├── src/
-│   ├── app/              # Router et configuration app principale
-│   │   ├── App.jsx       # Composant racine avec RouterProvider
-│   │   ├── router.jsx    # Configuration des routes
-│   │   └── providers/    # Providers React (Auth, etc.)
-│   ├── components/       # Composants réutilisables
-│   │   ├── layout/       # Layout (Header, Footer, etc.)
-│   │   ├── loyalty/      # Composants fidélité
-│   │   ├── partner/      # Composants partenaires
-│   │   └── ui/           # Composants UI réutilisables
-│   ├── features/         # 🆕 Modules métier (logique réutilisable)
-│   │   ├── cart/         # Gestion du panier utilisateur
-│   │   ├── menu/         # 🔥 Logique menu (hooks, utils, constants)
-│   │   ├── orders/       # Gestion des commandes
-│   │   ├── trucks/       # Gestion des camions
-│   │   └── users/        # Gestion des utilisateurs
-│   ├── lib/              # Utilitaires et configurations
-│   │   ├── firebase.js   # Configuration Firebase
-│   │   ├── stripe.js     # Configuration Stripe
-│   │   └── utils.js      # Utilitaires généraux
-│   ├── pages/            # Pages de l'application
-│   │   ├── pizzaiolo/    # Pages pizzaiolo (Dashboard, Live, Menu, etc.)
-│   │   └── ...           # Autres pages (Home, Login, etc.)
-│   └── styles/           # Styles personnalisés
-├── functions/            # Firebase Cloud Functions (backend)
-│   ├── index.js          # Functions (createCheckoutSession, stripeWebhook)
-│   └── package.json      # Dépendances Functions (stripe, firebase-admin)
-├── .env.example          # Template des variables d'environnement
-├── .env.local            # Variables d'environnement locales (NON COMMITÉ)
-├── firebase.json         # Configuration Firebase (hosting, functions, emulators)
-└── package.json          # Dépendances frontend et scripts npm
-```
 
-### 🔥 Module Menu (`src/features/menu/`)
+Notes importantes :
 
-Module réutilisable contenant toute la logique métier pour la gestion du menu, du panier et de la personnalisation.
+- Les camions sont stockés sous une **clé RTDB** (ex : `-Oi6p2NbOfSJ2gI3atRg`).
+- Le champ `slug` (ex : `TEST_04_01`) est utilisé pour la route `/:truckId`.
+- Dans certains jeux de données, `id` peut être `null` en base : côté front, l’ID canonique est **la clé RTDB**.
 
-```
-src/features/menu/
-├── constants/           # Constantes et configuration
-│   ├── ingredients.js   # 50+ ingrédients organisés par catégories
-│   ├── menuConfig.js    # Configuration (TVA, types, catégories, tailles)
-│   └── index.js         # Export centralisé
-├── hooks/               # Hooks React réutilisables
-│   ├── useLiveCart.js   # Gestion panier mode Live (pizzaiolo)
-│   ├── useLiveOrder.js  # Sync Firebase temps réel
-│   ├── useMenuItem.js   # État et interactions d'un item
-│   ├── usePizzaCustomization.js # Personnalisation pizzas
-│   └── index.js         # Export centralisé
-├── utils/               # Utilitaires purs
-│   ├── menuHelpers.js   # Filtrage, formatage, helpers menu
-│   ├── priceCalculations.js # Calculs de prix (TVA, TTC, etc.)
-│   └── index.js         # Export centralisé
-├── README.md            # Documentation complète du module
-└── index.js             # Export centralisé du module complet
-```
+## 💳 Paiement Stripe — flow réel
 
-**Documentation complète** : [`src/features/menu/README.md`](src/features/menu/README.md)
+### 1) Créer la session Checkout
 
-## 🚀 Démarrage rapide
+Le front appelle une Function HTTP `createCheckoutSession` en envoyant :
 
-### 1. Prérequis
+- `Authorization: Bearer <Firebase ID token>`
+- `orderId` en body
 
-- Node.js LTS (recommandé via [nvm](https://github.com/nvm-sh/nvm))
-- npm ou yarn
-- Firebase CLI : `npm i -g firebase-tools`
+La Function :
 
-### 2. Installation
+- reconstruit les line items côté serveur
+- crée la session Stripe Checkout
+- écrit `paymentStatus = "pending"` + `sessionId` sur la commande
 
-```bash
-# Cloner le projet
-git clone https://github.com/malikkaraoui/PLANIZZA-.git
-cd PLANIZZA
+### 2) Confirmer le paiement
 
-# Installer les dépendances frontend
-npm install
+Le webhook `stripeWebhook` :
 
-# Installer les dépendances Firebase Functions
-cd functions && npm install && cd ..
-```
+- vérifie la signature Stripe
+- sur `checkout.session.completed` : écrit `paymentStatus = "paid"` et `status = "received"`
 
-### 3. Configuration Firebase
+> Important : le workflow d’avancement des statuts est **manuel** côté pizzaiolo (les anciennes transitions automatiques sont désactivées).
 
-#### a) Créer un projet Firebase
-1. Aller sur [Firebase Console](https://console.firebase.google.com/)
-2. Créer un nouveau projet
-3. Activer **Authentication**, **Realtime Database** et **Hosting**
+## 🧱 Architecture (où vit quoi)
 
-#### b) Configurer les variables d'environnement
-```bash
-# Copier le template
-cp .env.example .env.local
+- `src/app/` : router, guards, providers
+- `src/pages/` : pages (orchestrateurs)
+- `src/features/` : logique métier (hooks/utils/components) réutilisable
 
-# Remplir avec vos vraies valeurs Firebase depuis Project Settings
-# VITE_FIREBASE_API_KEY=...
-# VITE_FIREBASE_PROJECT_ID=...
-# etc.
-```
+### Menu pizzaiolo (refactor)
 
-#### c) Connecter le projet Firebase
-```bash
-firebase login
-firebase use --add  # Sélectionner votre projet
-```
+Le gros de la logique d’édition menu a été sorti de la page :
 
-### 4. Configuration Stripe
+- Hook d’édition : `src/features/menu/hooks/usePizzaioloMenuEditor.js`
+- Draft UI/state : `src/features/menu/hooks/pizzaiolo/usePizzaioloMenuDraft.js`
+- Builder payload RTDB : `src/features/menu/utils/buildMenuItemData.js`
+- UI découpée : `src/features/menu/components/pizzaiolo/*` (barrel export)
 
-#### a) Créer un compte Stripe
-1. Aller sur [Stripe Dashboard](https://dashboard.stripe.com/register)
-2. Récupérer les clés API (mode test)
+## 🛟 Troubleshooting (les classiques)
 
-#### b) Configurer Stripe
-```bash
-# Frontend (dans .env.local)
-VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
+- **Loader infini sur une page camion** :
+  - Vérifier que RTDB a un index sur `slug` (voir `database.rules.json`).
+  - Vérifier `VITE_FIREBASE_DATABASE_URL`.
+  - La route canon est `/:truckId` (slug ou clé).
 
-# Backend (Firebase Functions)
-firebase functions:config:set stripe.secret_key="YOUR_STRIPE_SECRET_KEY"
-firebase functions:config:set stripe.webhook_secret="YOUR_STRIPE_WEBHOOK_SECRET" # Pour les webhooks
-```
+- **Checkout appelle la mauvaise région** :
+  - Par défaut, le front cible `https://us-central1-<PROJECT_ID>.cloudfunctions.net`.
+  - Si vous déployez vos Functions ailleurs, définir `VITE_FUNCTIONS_ORIGIN` dans `.env.local`.
 
-## 💻 Scripts disponibles
+## 🧪 Filet anti-régression
 
-### Frontend
-```bash
-npm run dev                    # Démarrer le serveur de développement Vite
-npm run build                  # Build de production
-npm run preview                # Prévisualiser le build
-npm run lint                   # Linter le code
-```
+Après un refactor, exécuter :
 
-### Firebase
-```bash
-npm run emulators              # Alias: démarrer les émulateurs locaux
-npm run deploy                 # Alias: deploy Firebase
-npm run firebase:emulators     # Démarrer les émulateurs locaux
-npm run firebase:deploy        # Build + deploy complet (hosting + functions)
-npm run firebase:functions     # Deploy uniquement les functions
-npm run firebase:hosting       # Build + deploy uniquement le hosting
-```
+- `CHECKLIST_SMOKE_TEST.md`
 
-## 🧪 Développement local avec émulateurs
+## 📦 Scripts utiles
 
-Les émulateurs Firebase permettent de tester localement sans toucher à la production :
+- `npm run dev` : dev server
+- `npm run build` : build prod
+- `npm run lint` : eslint
+- `npm run firebase:emulators` : émulateurs
+- `npm run firebase:deploy` : build + deploy
 
-```bash
-# Démarrer tous les émulateurs
-npm run firebase:emulators
-```
+## 🔐 Sécurité (rappel)
 
-Émulateurs disponibles :
-- **Auth** : http://localhost:9099
-- **Realtime Database** : http://localhost:9000
-- **Functions** : http://localhost:5001
-- **Firestore** : http://localhost:8080
-- **Hosting** : http://localhost:5000
-- **UI Emulators** : http://localhost:4000
+- Ne jamais commiter `.env*` (sauf `.env.example`).
+- Front : uniquement `VITE_STRIPE_PUBLISHABLE_KEY`.
+- Back (Functions) : secrets Stripe via Secrets Manager.
 
-## 🔐 Sécurité
+## 🔗 Références
 
-### ✅ Bonnes pratiques
-- ✅ Variables d'environnement avec préfixe `VITE_` pour le frontend
-- ✅ Clés Firebase publiques exposées côté client (normal)
-- ✅ Clé secrète Stripe **uniquement côté backend** (Functions)
-- ✅ `.env.local` dans `.gitignore`
-- ✅ `.env.example` commité pour documentation
-
-### ❌ À ne JAMAIS faire
-- ❌ Commiter `.env.local` ou `.env`
-- ❌ Mettre la clé secrète Stripe dans le code frontend
-- ❌ Commiter `serviceAccountKey.json`
-- ❌ Exposer les secrets dans les logs
-
-## 📦 Technologies
-
-### Frontend
-- **Vite** : Build tool ultra-rapide
-- **React 19** : Framework UI
-- **React Router** : Routing côté client
-- **TailwindCSS** : Utility-first CSS
-- **Lucide React** : Icônes modernes
-- **@stripe/stripe-js** : Intégration Stripe frontend
-
-### Backend
-- **Firebase Functions** : Serverless backend
-- **Firebase Auth** : Authentification (Google OAuth)
-- **Realtime Database (RTDB)** : Base de données temps réel
-- **Firebase Hosting** : Hébergement web
-- **Stripe API** : Paiements sécurisés
-
-### Architecture
-- **Feature-based** : Organisation par modules métier (`src/features/`)
-- **Hooks personnalisés** : Logique réutilisable et testable
-- **Utilitaires purs** : Fonctions isolées sans effets de bord
-- **Constants centralisées** : Configuration unique et partagée
-
-## 🔄 Workflow Git
-
-```bash
-# Créer une branche feature
-git checkout -b feature/nom-feature
-
-# Commiter vos changements
-git add .
-git commit -m "feat: description du changement"
-
-# Pousser vers GitHub
-git push origin feature/nom-feature
-
-# Créer une Pull Request sur GitHub
-```
-
-## 📝 TODOs
-
-### 🔥 Récemment complété
-- [x] ♻️ **Refactoring module Menu** : Extraction de toute la logique métier
-  - [x] 4 hooks réutilisables (`useLiveCart`, `usePizzaCustomization`, `useMenuItem`, `useLiveOrder`)
-  - [x] 2 fichiers d'utilitaires (calculs prix, helpers menu)
-  - [x] 2 fichiers de constantes (ingrédients, configuration)
-  - [x] Documentation complète + exemples d'utilisation
-  - [x] Architecture scalable et testable
-
-### Backend (Functions)
-- [x] Implémenter `createCheckoutSession` avec authentification
-- [x] Valider les paramètres d'entrée
-- [x] Configurer les webhooks Stripe pour les confirmations
-- [ ] Enregistrer les sessions Stripe dans Firestore
-- [ ] Ajouter plus de logs pour le debugging
-- [ ] Gérer plus de cas limites
-
-### Frontend
-- [x] Créer un contexte AuthContext pour gérer l'authentification
-- [x] Implémenter les pages Login/Register
-- [x] Créer un Dashboard pizzaiolo complet
-- [x] Intégrer le flow Stripe Checkout
-- [x] Ajouter une page de succès/échec de paiement
-- [x] Page Live pour commandes manuelles (pizzaiolo)
-- [x] Gestion du menu avec personnalisation pizzas
-- [x] Gestion des commandes temps réel
-- [ ] Refactoriser la page Menu.jsx avec les nouveaux hooks
-- [ ] Implémenter la gestion d'état globale (Context API)
-- [ ] Ajouter la gestion de fidélité complète
-
-### DevOps
-- [ ] Configurer GitHub Actions pour CI/CD
-- [ ] Mettre en place les tests (Jest + React Testing Library)
-- [x] Configurer les règles de sécurité Realtime Database
-- [ ] Optimiser les performances (lazy loading, code splitting)
-
-## 📚 Documentation
-
-### Projet
-- [📖 Module Menu - Architecture complète](src/features/menu/README.md)
-- [📋 Refactoring Live.jsx - Synthèse](REFACTORING_LIVE.md)
-
-### Technologies externes
-- [Vite](https://vite.dev/)
-- [React](https://react.dev/)
-- [TailwindCSS](https://tailwindcss.com/)
-- [React Router](https://reactrouter.com/)
-- [Firebase](https://firebase.google.com/docs)
-- [Stripe](https://stripe.com/docs)
-
-## 🤝 Contribution
-
-Les contributions sont les bienvenues ! N'hésitez pas à :
-1. Fork le projet
-2. Créer une branche feature
-3. Commiter vos changements
-4. Pousser vers la branche
-5. Ouvrir une Pull Request
-
-## 📄 Licence
-
-MIT © 2025 PLANIZZA
-
-## 👤 Auteur
-
-**Malik Karaoui**
-- GitHub: [@malikkaraoui](https://github.com/malikkaraoui)
-- Repo: [PLANIZZA-](https://github.com/malikkaraoui/PLANIZZA-)
-
----
-
-**🚀 Bon développement avec PLANIZZA !**
+- Vite : https://vite.dev/
+- Firebase (Auth, RTDB, Functions) : https://firebase.google.com/docs
+- Stripe Checkout + webhooks : https://stripe.com/docs
 

@@ -10,6 +10,7 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { useTruckOrders } from '../../features/orders/hooks/useTruckOrders';
 import { useUpdateOrderStatus } from '../../features/orders/hooks/useUpdateOrderStatus';
+import { usePizzaioloTruckId } from '../../features/pizzaiolo/hooks/usePizzaioloTruckId';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import {
@@ -56,11 +57,18 @@ const TVA_RATE = 0.10; // 10% TVA restauration
 export default function PizzaioloOrders() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [truckId, setTruckId] = useState(null);
-  const [loadingTruck, setLoadingTruck] = useState(true);
+
+  const {
+    truckId,
+    loading: loadingTruckId,
+    error: truckIdError,
+  } = usePizzaioloTruckId(user?.uid);
+
+  const [loadingTruckDetails, setLoadingTruckDetails] = useState(false);
+  const loadingTruck = loadingTruckId || loadingTruckDetails;
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [pizzaPerHour, setPizzaPerHour] = useState(30); // Cadence du pizzaiolo
-  const [openingHours, setOpeningHours] = useState(null); // Horaires d'ouverture
+  const [_openingHours, setOpeningHours] = useState(null); // Horaires d'ouverture
   const { orders, loading: ordersLoading } = useTruckOrders(truckId);
   const { updateStatus, loading: updating } = useUpdateOrderStatus();
 
@@ -80,44 +88,68 @@ export default function PizzaioloOrders() {
   // Modal de détails de commande
   const [selectedOrder, setSelectedOrder] = useState(null);
 
-  // Charger le truckId et la cadence du pizzaiolo
+  // Charger les détails du camion (cadence + horaires) dès que truckId est connu.
   useEffect(() => {
-    if (!user?.uid) return;
+    let cancelled = false;
 
-    const loadTruckId = async () => {
+    // Si on n'a pas encore de truck, on évite d'afficher un loader infini.
+    if (!truckId) {
+      setLoadingTruckDetails(false);
+      setOpeningHours(null);
+      setPizzaPerHour(30);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    if (!db) {
+      // Mode DEV sans Firebase (on ne bloque pas l'UI)
+      setLoadingTruckDetails(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setLoadingTruckDetails(true);
+
+    (async () => {
       try {
-        const pizzaioloRef = ref(db, `pizzaiolos/${user.uid}`);
-        const snap = await get(pizzaioloRef);
-        if (snap.exists() && snap.val().truckId) {
-          const tid = snap.val().truckId;
-          setTruckId(tid);
-          
-          // Charger la cadence et les horaires du camion
-          const truckRef = ref(db, `public/trucks/${tid}`);
-          const truckSnap = await get(truckRef);
-          if (truckSnap.exists()) {
-            const truckData = truckSnap.val();
-            console.log('[PizzaioloOrders] Données camion complètes:', truckData);
-            console.log('[PizzaioloOrders] Horaires bruts:', truckData.openingHours);
-            console.log('[PizzaioloOrders] Horaires schedule:', truckData.schedule);
-            console.log('[PizzaioloOrders] Horaires hours:', truckData.hours);
-            setPizzaPerHour(truckData.capacity?.pizzaPerHour || 30);
-            
-            // Essayer différentes clés possibles pour les horaires
-            const hours = truckData.openingHours || truckData.schedule || truckData.hours || null;
-            console.log('[PizzaioloOrders] Horaires finalement utilisés:', hours);
-            setOpeningHours(hours);
-          }
+        const truckRef = ref(db, `public/trucks/${truckId}`);
+        const truckSnap = await get(truckRef);
+        if (cancelled) return;
+
+        if (truckSnap.exists()) {
+          const truckData = truckSnap.val();
+          console.log('[PizzaioloOrders] Données camion complètes:', truckData);
+          console.log('[PizzaioloOrders] Horaires bruts:', truckData.openingHours);
+          console.log('[PizzaioloOrders] Horaires schedule:', truckData.schedule);
+          console.log('[PizzaioloOrders] Horaires hours:', truckData.hours);
+
+          setPizzaPerHour(truckData.capacity?.pizzaPerHour || 30);
+
+          // Essayer différentes clés possibles pour les horaires
+          const hours = truckData.openingHours || truckData.schedule || truckData.hours || null;
+          console.log('[PizzaioloOrders] Horaires finalement utilisés:', hours);
+          setOpeningHours(hours);
         }
       } catch (err) {
-        console.error('[PizzaioloOrders] Erreur chargement truckId:', err);
+        if (cancelled) return;
+        console.error('[PizzaioloOrders] Erreur chargement détails camion:', err);
       } finally {
-        setLoadingTruck(false);
+        if (!cancelled) setLoadingTruckDetails(false);
       }
-    };
+    })();
 
-    loadTruckId();
-  }, [user?.uid]);
+    return () => {
+      cancelled = true;
+    };
+  }, [truckId]);
+
+  // Remonter l'erreur truckId si besoin (sans casser l'UI).
+  useEffect(() => {
+    if (!truckIdError) return;
+    console.error('[PizzaioloOrders] Erreur chargement truckId:', truckIdError);
+  }, [truckIdError]);
 
   // Mettre à jour le timer toutes les secondes
   useEffect(() => {
@@ -183,7 +215,6 @@ export default function PizzaioloOrders() {
     const labels = [];
     const revenues = [];
     const pizzaCounts = []; // Nombre réel de pizzas
-    const now = new Date();
     
     console.log('[getChartData] Calcul pour période:', filters.period);
     console.log('[getChartData] Commandes filtrées disponibles:', filteredCompletedOrders.length);
@@ -575,7 +606,6 @@ export default function PizzaioloOrders() {
       
       // Filtre période
       const orderDate = new Date(order.createdAt);
-      const now = new Date();
       
       switch (filters.period) {
         case 'today': {
@@ -611,19 +641,6 @@ export default function PizzaioloOrders() {
     });
   };
 
-  // Filtrer les commandes
-  const activeOrders = orders.filter((o) => {
-    if (['delivered', 'cancelled'].includes(o.status)) return false;
-    if (isExpired(o)) return false;
-    return true;
-  });
-
-  const completedOrders = orders.filter((o) => {
-    if (['delivered', 'cancelled'].includes(o.status)) return true;
-    if (isExpired(o)) return true;
-    return false;
-  });
-
   // Appliquer les filtres sur TOUTES les commandes (actives + historique)
   const allFilteredOrders = getFilteredOrders(orders);
   const filteredActiveOrders = allFilteredOrders.filter((o) => {
@@ -638,35 +655,9 @@ export default function PizzaioloOrders() {
   });
 
   // Calculer les stats
-  const totalRevenue = filteredCompletedOrders
-    .filter(o => o.status === 'delivered')
-    .reduce((sum, o) => sum + (o.totalCents || 0), 0) / 100;
   const lostCount = filteredCompletedOrders.filter(o => isExpired(o)).length;
   const deliveredPickupCount = filteredCompletedOrders.filter(o => o.status === 'delivered' && o.deliveryMethod === 'pickup').length;
   const deliveredDeliveryCount = filteredCompletedOrders.filter(o => o.status === 'delivered' && o.deliveryMethod === 'delivery').length;
-
-  // DEBUG: Logs pour comprendre le problème
-  useEffect(() => {
-    const deliveredOrders = filteredCompletedOrders.filter(o => o.status === 'delivered');
-    console.log('[PizzaioloOrders DEBUG]', {
-      totalOrders: orders.length,
-      activeOrders: activeOrders.length,
-      completedOrders: completedOrders.length,
-      filteredCompletedOrders: filteredCompletedOrders.length,
-      deliveredCount: deliveredOrders.length,
-      totalRevenue,
-      filters,
-      deliveredOrders: deliveredOrders.map(o => ({
-        id: o.id,
-        status: o.status,
-        totalCents: o.totalCents,
-        createdAt: o.createdAt,
-        createdDate: new Date(o.createdAt).toISOString(),
-        source: o.source
-      })),
-      chartData: getChartData()
-    });
-  }, [orders, filteredCompletedOrders, totalRevenue, filters]);
 
   if (loadingTruck) {
     return (
@@ -714,7 +705,7 @@ export default function PizzaioloOrders() {
         <div>
           <h1 className="text-4xl font-black tracking-tight">Commandes Reçues</h1>
           <p className="text-muted-foreground font-medium mt-2">
-            {activeOrders.length} commande{activeOrders.length > 1 ? 's' : ''} en cours
+            {filteredActiveOrders.length} commande{filteredActiveOrders.length > 1 ? 's' : ''} en cours
           </p>
         </div>
       </div>

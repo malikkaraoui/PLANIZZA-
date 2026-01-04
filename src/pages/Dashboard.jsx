@@ -18,16 +18,24 @@ import { useTruckPause } from '../features/trucks/hooks/useTruckPause';
 import { useActiveOrdersCount } from '../features/orders/hooks/useActiveOrdersCount';
 import LoyaltyProgressBar from '../components/loyalty/LoyaltyProgressBar';
 import AddressAutocomplete from '../components/ui/AddressAutocomplete';
+import { usePizzaioloTruckId } from '../features/pizzaiolo/hooks/usePizzaioloTruckId';
 
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { orders, loading: ordersLoading } = useMyOrders();
+  const { orders, loading: _ordersLoading } = useMyOrders();
   const { flushToStorage } = useCart();
-  const [isPizzaiolo, setIsPizzaiolo] = useState(false);
   const [truckData, setTruckData] = useState(null);
   const [loadingTruck, setLoadingTruck] = useState(false);
-  const [truckId, setTruckId] = useState(null);
+
+  const {
+    truckId,
+    loading: _loadingTruckId,
+    error: truckIdError,
+  } = usePizzaioloTruckId(user?.uid);
+
+  const isPizzaiolo = Boolean(truckId);
+
   const { togglePause, isUpdating: isPauseUpdating } = useTruckPause(truckId);
   const { count: activeOrdersCount } = useActiveOrdersCount(truckId);
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -50,44 +58,60 @@ export default function Dashboard() {
   // Carte de fidélité
   const { points, currentTier, nextTier, progress, maxTierReached, loading: loyaltyLoading } = useLoyaltyPoints(user?.uid);
 
-  // Vérifier si l'utilisateur est pizzaiolo
+  // Charger les infos du camion (si pizzaiolo)
   useEffect(() => {
-    if (!user?.uid) {
-      setIsPizzaiolo(false);
-      return;
+    let cancelled = false;
+
+    // Reset si pas pizzaiolo / pas de camion
+    if (!truckId) {
+      setTruckData(null);
+      setLoadingTruck(false);
+      return () => {
+        cancelled = true;
+      };
     }
 
-    const checkPizzaiolo = async () => {
+    if (!db) {
+      // Mode DEV sans Firebase : ne pas bloquer l'UI
+      setTruckData(null);
+      setLoadingTruck(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setLoadingTruck(true);
+
+    (async () => {
       try {
-        const pizzaioloRef = ref(db, `pizzaiolos/${user.uid}`);
-        const snap = await get(pizzaioloRef);
-        
-        if (snap.exists() && snap.val().truckId) {
-          setIsPizzaiolo(true);
-          const tid = snap.val().truckId;
-          setTruckId(tid);
-          
-          // Charger les infos du camion
-          setLoadingTruck(true);
-          const truckRef = ref(db, `public/trucks/${tid}`);
-          const truckSnap = await get(truckRef);
-          
-          if (truckSnap.exists()) {
-            setTruckData({ id: snap.val().truckId, ...truckSnap.val() });
-          }
-          setLoadingTruck(false);
+        const truckRef = ref(db, `public/trucks/${truckId}`);
+        const truckSnap = await get(truckRef);
+        if (cancelled) return;
+
+        if (truckSnap.exists()) {
+          setTruckData({ id: truckId, ...truckSnap.val() });
         } else {
-          setIsPizzaiolo(false);
+          setTruckData(null);
         }
       } catch (err) {
-        console.error('[PLANIZZA] Erreur vérification pizzaiolo:', err);
-        setIsPizzaiolo(false);
-        setLoadingTruck(false);
+        if (cancelled) return;
+        console.error('[PLANIZZA] Erreur chargement camion:', err);
+        setTruckData(null);
+      } finally {
+        if (!cancelled) setLoadingTruck(false);
       }
-    };
+    })();
 
-    checkPizzaiolo();
-  }, [user?.uid]);
+    return () => {
+      cancelled = true;
+    };
+  }, [truckId]);
+
+  // Log ciblé en cas d'erreur truckId (n'impacte pas l'UX)
+  useEffect(() => {
+    if (!truckIdError) return;
+    console.error('[PLANIZZA] Erreur récupération truckId pizzaiolo:', truckIdError);
+  }, [truckIdError]);
 
   // Charger le numéro de téléphone et l'adresse
   useEffect(() => {

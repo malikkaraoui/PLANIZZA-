@@ -1,22 +1,26 @@
 import { useState, useEffect } from 'react';
-import { ref, query, orderByChild, equalTo, onValue, off } from 'firebase/database';
+import { ref, query, orderByChild, equalTo, onValue } from 'firebase/database';
 import { db } from '../../../lib/firebase';
+import { rtdbPaths } from '../../../lib/rtdbPaths';
 
 // Durée max avant de considérer une commande comme perdue (120 min après prise en charge)
 const MAX_ORDER_DURATION = 120 * 60 * 1000;
 
 export function useActiveOrdersCount(truckId) {
+  const enabled = Boolean(truckId);
   const [count, setCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
 
   useEffect(() => {
-    if (!truckId) {
-      setCount(0);
-      setLoading(false);
-      return;
-    }
+    if (!enabled) return;
 
-    const ordersRef = ref(db, 'orders');
+    // Reset asynchrone pour éviter le setState synchrone dans l'effect.
+    queueMicrotask(() => {
+      setCount(0);
+      setLoading(true);
+    });
+
+    const ordersRef = ref(db, rtdbPaths.ordersRoot());
     const ordersQuery = query(ordersRef, orderByChild('truckId'), equalTo(truckId));
 
     const unsubscribe = onValue(ordersQuery, (snapshot) => {
@@ -47,8 +51,8 @@ export function useActiveOrdersCount(truckId) {
       setLoading(false);
     });
 
-    return () => off(ordersRef, 'value', unsubscribe);
-  }, [truckId]);
+    return () => unsubscribe();
+  }, [enabled, truckId]);
 
-  return { count, loading };
+  return enabled ? { count, loading } : { count: 0, loading: false };
 }

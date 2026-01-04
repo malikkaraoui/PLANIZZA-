@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { kmBetween } from '../../../lib/geo';
 import { generateSlug } from '../../../lib/utils';
+import { devError } from '../../../lib/devLog';
+import { rtdbPaths } from '../../../lib/rtdbPaths';
+import { isFirebaseConfigured } from '../../../lib/firebase';
 
 const BADGES = ['Bio', 'Terroir', 'Sans gluten', 'Halal', 'Kasher', 'Sucré'];
 
@@ -158,7 +161,7 @@ export function useTrucks(options = {}) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!db) {
+    if (!isFirebaseConfigured || !db) {
       const t = setTimeout(() => {
         setBaseTrucks(genTrucks({ count: mockCount, seed: 1337 }));
         setLoading(false);
@@ -166,69 +169,105 @@ export function useTrucks(options = {}) {
       return () => clearTimeout(t);
     }
 
+    let cancelled = false;
     let unsubscribe = null;
 
+    const normalizeTruck = (id, val) => {
+      const badgesArray = val.badges && typeof val.badges === 'object'
+        ? Object.entries(val.badges)
+            .filter(([_, v]) => v === true)
+            .map(([k, _]) => {
+              const map = {
+                bio: 'Bio',
+                terroir: 'Terroir',
+                sansGluten: 'Sans gluten',
+                halal: 'Halal',
+                kasher: 'Kasher',
+                sucre: 'Sucré',
+              };
+              return map[k] || k;
+            })
+        : [];
+
+      return {
+        ...val,
+        // IMPORTANT: on force l'id = clé RTDB (ne pas laisser un éventuel val.id = null écraser).
+        id,
+        badges: badgesArray,
+        tags: badgesArray,
+        isOpenNow: val.isOpenNow ?? true,
+        openingToday: val.openingToday || 'Ouvert maintenant',
+        photos: val.photoUrl ? [val.photoUrl] : [],
+        estimatedPrepMin: val.estimatedPrepMin || 15,
+        capacity: val.capacity || { minPerPizza: 10, pizzaPerHour: 30 },
+        distanceKm: val.distanceKm,
+      };
+    };
+
     const initTrucks = async () => {
-      const trucksRef = ref(db, 'public/trucks');
-      
-      // Vérifier d'abord si la DB contient des données
-      const snapshot = await get(trucksRef);
-      
-      if (!snapshot.exists()) {
-        // DB vide : on seed une seule fois
-        const initialTrucks = genTrucks({ count: mockCount, seed: 1337 });
-        const updates = {};
-        initialTrucks.forEach(t => {
-          updates[t.id] = t;
-        });
-        await set(trucksRef, updates);
-        setBaseTrucks(initialTrucks);
+      const trucksRef = ref(db, rtdbPaths.publicTrucksRoot());
+
+      try {
+        // Vérifier d'abord si la DB contient des données (one-shot)
+        const snapshot = await get(trucksRef);
+        if (cancelled) return;
+
+        if (!snapshot.exists()) {
+          // DB vide (ou lecture non autorisée / path absent).
+          // Tentative de seed (best-effort). Si ça échoue (règles), on fallback en local.
+          const initialTrucks = genTrucks({ count: mockCount, seed: 1337 });
+          const updates = {};
+          initialTrucks.forEach((t) => {
+            updates[t.id] = t;
+          });
+
+          try {
+            await set(trucksRef, updates);
+          } catch (err) {
+            devError('[useTrucks] Seed DB impossible (fallback local):', err);
+          }
+
+          if (!cancelled) {
+            setBaseTrucks(initialTrucks);
+            setLoading(false);
+          }
+        }
+
+        // Maintenant on écoute les changements
+        unsubscribe = onValue(
+          trucksRef,
+          (snap) => {
+            if (cancelled) return;
+
+            if (snap.exists()) {
+              const data = snap.val();
+              const list = Object.entries(data).map(([id, val]) => normalizeTruck(id, val));
+              setBaseTrucks(list);
+            } else {
+              setBaseTrucks([]);
+            }
+
+            setLoading(false);
+          },
+          (err) => {
+            if (cancelled) return;
+            devError('[useTrucks] RTDB onValue error:', err);
+            setBaseTrucks([]);
+            setLoading(false);
+          }
+        );
+      } catch (err) {
+        if (cancelled) return;
+        devError('[useTrucks] RTDB init error (fallback local):', err);
+        setBaseTrucks(genTrucks({ count: mockCount, seed: 1337 }));
         setLoading(false);
       }
-
-      // Maintenant on écoute les changements
-      unsubscribe = onValue(trucksRef, (snap) => {
-        if (snap.exists()) {
-          const data = snap.val();
-          const list = Object.entries(data).map(([id, val]) => {
-            const badgesArray = val.badges && typeof val.badges === 'object'
-              ? Object.entries(val.badges)
-                  .filter(([_, v]) => v === true)
-                  .map(([k, _]) => {
-                    const map = {
-                      bio: 'Bio',
-                      terroir: 'Terroir',
-                      sansGluten: 'Sans gluten',
-                      halal: 'Halal',
-                      kasher: 'Kasher',
-                      sucre: 'Sucré'
-                    };
-                    return map[k] || k;
-                  })
-              : [];
-
-            return { 
-              id, 
-              ...val,
-              badges: badgesArray,
-              tags: badgesArray,
-              isOpenNow: val.isOpenNow ?? true,
-              openingToday: val.openingToday || 'Ouvert maintenant',
-              photos: val.photoUrl ? [val.photoUrl] : [],
-              estimatedPrepMin: val.estimatedPrepMin || 15,
-              capacity: val.capacity || { minPerPizza: 10, pizzaPerHour: 30 },
-              distanceKm: val.distanceKm
-            };
-          });
-          setBaseTrucks(list);
-          setLoading(false);
-        }
-      });
     };
 
     initTrucks();
 
     return () => {
+      cancelled = true;
       if (unsubscribe) unsubscribe();
     };
   }, [mockCount]);

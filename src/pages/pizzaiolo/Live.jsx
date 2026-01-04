@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Minus, Trash2, User, ShoppingCart, Check, Pizza, Wine, IceCream } from 'lucide-react';
-import { ref, get as getDb, push, set } from 'firebase/database';
+import { ref, push, set } from 'firebase/database';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../app/providers/AuthProvider';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { usePizzaioloTruckId } from '../../features/pizzaiolo/hooks/usePizzaioloTruckId';
+import { useMenu } from '../../features/menu/hooks/useMenu';
 
 // Hooks et utilitaires menu
 import { useLiveCart } from '../../features/menu/hooks/useLiveCart';
@@ -26,9 +28,10 @@ import {
 export default function PizzaioloLive() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [truckId, setTruckId] = useState(null);
+  const { truckId, loading: loadingTruckId, error: truckIdError } = usePizzaioloTruckId(user?.uid);
+  const { items: menuItems, loading: loadingMenu, error: menuError } = useMenu(truckId);
+
   const [menu, setMenu] = useState([]);
-  const [loadingTruck, setLoadingTruck] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Navigation entre catégories
@@ -69,45 +72,14 @@ export default function PizzaioloLive() {
   
   const { clearLiveOrder } = useLiveOrder(truckId, user?.uid, cart, customerName);
 
-  // Charger le truckId et le menu
+  // Synchroniser le menu local (format attendu par l'écran Live)
   useEffect(() => {
-    if (!user?.uid) return;
-
-    const loadTruckData = async () => {
-      try {
-        const pizzaioloRef = ref(db, `pizzaiolos/${user.uid}`);
-        const snap = await getDb(pizzaioloRef);
-        
-        if (snap.exists() && snap.val().truckId) {
-          const tid = snap.val().truckId;
-          setTruckId(tid);
-          
-          // Charger le menu du camion
-          const truckRef = ref(db, `public/trucks/${tid}/menu/items`);
-          const menuSnap = await getDb(truckRef);
-          
-          if (menuSnap.exists()) {
-            const menuData = menuSnap.val();
-            
-            // Firebase stocke le menu comme un objet
-            if (typeof menuData === 'object' && menuData !== null) {
-              const menuArray = Object.entries(menuData).map(([id, data]) => ({
-                id,
-                ...data
-              }));
-              setMenu(menuArray);
-            }
-          }
-        }
-      } catch (err) {
-        console.error('[Live] Erreur chargement:', err);
-      } finally {
-        setLoadingTruck(false);
-      }
-    };
-
-    loadTruckData();
-  }, [user?.uid]);
+    if (!menuItems || !Array.isArray(menuItems)) {
+      setMenu([]);
+      return;
+    }
+    setMenu(menuItems);
+  }, [menuItems]);
 
   // Scroll automatique vers la catégorie ouverte
   useEffect(() => {
@@ -211,11 +183,32 @@ export default function PizzaioloLive() {
     }
   };
 
+  const loadingTruck = loadingTruckId || loadingMenu;
+
   if (loadingTruck) {
     return (
       <div className="flex items-center justify-center h-96">
         <p className="text-muted-foreground font-medium">Chargement...</p>
       </div>
+    );
+  }
+
+  if (truckIdError || menuError) {
+    return (
+      <Card className="glass-premium glass-glossy border-white/20 p-12 rounded-[32px] text-center">
+        <h2 className="text-2xl font-black mb-2">Erreur de chargement</h2>
+        <p className="text-muted-foreground">
+          {truckIdError ? 'Impossible de déterminer votre camion.' : 'Impossible de charger le menu.'}
+        </p>
+        <p className="text-xs text-muted-foreground/70 font-mono break-all mt-3">
+          {String((truckIdError || menuError)?.message || (truckIdError || menuError))}
+        </p>
+        <div className="mt-6">
+          <Button className="rounded-2xl px-8 h-12 font-black bg-primary" onClick={() => window.location.reload()}>
+            RECHARGER
+          </Button>
+        </div>
+      </Card>
     );
   }
 

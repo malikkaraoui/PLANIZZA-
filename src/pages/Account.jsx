@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { signOut, updateProfile, deleteUser, reauthenticateWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { ref, remove, get, set, query, orderByChild, equalTo } from 'firebase/database';
+import { ref, remove, get, set } from 'firebase/database';
 import { ref as storageRef, deleteObject } from 'firebase/storage';
 import { Bike, Store, Trash2 } from 'lucide-react';
 import { useAuth } from '../app/providers/AuthProvider';
@@ -312,7 +312,7 @@ export default function Account() {
       // Supprimer aussi de pizzaiolos si c'est un pizzaiolo
       try {
         await remove(ref(db, `pizzaiolos/${uid}`));
-      } catch (err) {
+      } catch {
         // Pas grave si ça n'existe pas
       }
 

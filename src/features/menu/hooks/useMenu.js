@@ -1,52 +1,75 @@
 import { useEffect, useState } from 'react';
 import { ref, onValue } from 'firebase/database';
-import { db } from '../../../lib/firebase';
+import { db, isFirebaseConfigured } from '../../../lib/firebase';
+import { rtdbPaths } from '../../../lib/rtdbPaths';
 
 export function useMenu(truckId) {
+  const enabled = Boolean(truckId && isFirebaseConfigured && db);
   const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!truckId) {
-      setItems([]);
-      setLoading(false);
-      return;
+    if (!enabled) return;
+
+    // Éviter les setState synchrones dans le corps de l'effet (lint)
+    // -> on bascule en "loading" dans une microtask.
+    if (typeof queueMicrotask === 'function') {
+      queueMicrotask(() => {
+        setLoading(true);
+        setError(null);
+      });
+    } else {
+      Promise.resolve().then(() => {
+        setLoading(true);
+        setError(null);
+      });
     }
 
-    if (!db) {
-      // Mode dev sans Firebase
-      setItems([]);
-      setLoading(false);
-      return;
-    }
-
-    const menuRef = ref(db, `public/trucks/${truckId}/menu/items`);
-    const unsub = onValue(menuRef, (snapshot) => {
-      console.log('[PLANIZZA] useMenu - Snapshot exists:', snapshot.exists(), 'truckId:', truckId);
-      
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        console.log('[PLANIZZA] useMenu - Raw data:', data);
-        
-        const itemsList = Object.entries(data).map(([id, item]) => ({
-          id,
-          ...item,
-          // Convertir les prix en centimes si nécessaire
-          priceCents: item.priceCents || (item.prices?.classic || 0),
-          available: item.available !== false
-        }));
-        
-        console.log('[PLANIZZA] useMenu - Items list:', itemsList);
-        setItems(itemsList);
-      } else {
-        console.log('[PLANIZZA] useMenu - Aucun menu trouvé pour:', truckId);
+    const menuRef = ref(db, rtdbPaths.truckMenuItems(truckId));
+    const unsub = onValue(
+      menuRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.val() || {};
+          const itemsList = Object.entries(data).map(([id, item]) => {
+            const safe = item && typeof item === 'object' ? item : {};
+            return {
+              id,
+              ...safe,
+              // Retro-compat: certains items anciens stockaient un prix sous prices.classic
+              // (sans casser les items modernes utilisant sizes.*.priceCents).
+              priceCents:
+                safe.priceCents != null
+                  ? Number(safe.priceCents)
+                  : safe.prices?.classic != null
+                    ? Number(safe.prices.classic)
+                    : undefined,
+              available: safe.available !== false,
+            };
+          });
+          setItems(itemsList);
+        } else {
+          setItems([]);
+        }
+        setLoading(false);
+      },
+      (err) => {
+        setError(err instanceof Error ? err : new Error(String(err)));
         setItems([]);
+        setLoading(false);
       }
-      setLoading(false);
-    });
+    );
 
-    return () => unsub();
-  }, [truckId]);
+    return () => {
+      unsub();
+    };
+  }, [enabled, truckId]);
 
-  return { items, loading };
+  // Valeurs dérivées : si on n'a pas de truckId (ou pas de Firebase), on expose un état neutre.
+  return {
+    items: enabled ? items : [],
+    loading: enabled ? loading : false,
+    error: enabled ? error : null,
+  };
 }

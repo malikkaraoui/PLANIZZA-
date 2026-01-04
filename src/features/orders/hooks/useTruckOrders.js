@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { ref, query, orderByChild, equalTo, onValue, off } from 'firebase/database';
+import { ref, query, orderByChild, equalTo, onValue } from 'firebase/database';
 import { db, isFirebaseConfigured } from '../../../lib/firebase';
+import { rtdbPaths } from '../../../lib/rtdbPaths';
 
 /**
  * Hook pour récupérer les commandes d'un camion spécifique
@@ -8,17 +9,20 @@ import { db, isFirebaseConfigured } from '../../../lib/firebase';
  * @returns {object} { orders, loading, error }
  */
 export function useTruckOrders(truckId) {
+  const enabled = Boolean(isFirebaseConfigured && db && truckId);
   const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!isFirebaseConfigured || !db || !truckId) {
-      setLoading(false);
-      return;
-    }
+    if (!enabled) return;
 
-    const ordersRef = ref(db, 'orders');
+    queueMicrotask(() => {
+      setLoading(true);
+      setError(null);
+    });
+
+    const ordersRef = ref(db, rtdbPaths.ordersRoot());
     const ordersQuery = query(ordersRef, orderByChild('truckId'), equalTo(truckId));
 
     const unsubscribe = onValue(
@@ -54,11 +58,8 @@ export function useTruckOrders(truckId) {
       }
     );
 
-    return () => {
-      off(ordersQuery);
-      if (unsubscribe) unsubscribe();
-    };
-  }, [truckId]);
+    return () => unsubscribe();
+  }, [enabled, truckId]);
 
-  return { orders, loading, error };
+  return enabled ? { orders, loading, error } : { orders: [], loading: false, error: null };
 }

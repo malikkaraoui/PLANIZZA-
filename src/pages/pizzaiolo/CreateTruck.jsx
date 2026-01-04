@@ -16,7 +16,7 @@ export default function CreateTruck() {
 
   // Récupérer le nom de l'utilisateur connecté
   const userDisplayName = user?.displayName || '';
-  const [userFirstName, userLastName] = userDisplayName.split(' ').length >= 2 
+  const [_userFirstName, userLastName] = userDisplayName.split(' ').length >= 2 
     ? [userDisplayName.split(' ')[0], userDisplayName.split(' ').slice(1).join(' ')]
     : ['', userDisplayName];
 
@@ -31,7 +31,6 @@ export default function CreateTruck() {
   const [managerLastName, setManagerLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [siretValid, setSiretValid] = useState(null); // null | 'incomplete' | 'checking' | 'valid' | 'invalid' | 'name_mismatch'
-  const [siretChecking, setSiretChecking] = useState(false);
 
   // Étape 2: Informations du camion
   const [truckName, setTruckName] = useState('');
@@ -52,7 +51,7 @@ export default function CreateTruck() {
   });
 
   // Livraison
-  const [deliveryOptions, setDeliveryOptions] = useState({
+  const [deliveryOptions] = useState({
     deliveroo: false,
     uber: false
   });
@@ -126,8 +125,6 @@ export default function CreateTruck() {
       return;
     }
 
-    setSiretChecking(true);
-
     try {
       // PREMIÈRE VÉRIFICATION : Le SIRET existe-t-il déjà dans la base ?
       const trucksRef = ref(db, 'public/trucks');
@@ -142,7 +139,6 @@ export default function CreateTruck() {
         if (existingTruck) {
           console.log('[PLANIZZA] SIRET déjà utilisé:', cleanSiret);
           setSiretValid('already_exists');
-          setSiretChecking(false);
           return;
         }
       }
@@ -188,7 +184,6 @@ export default function CreateTruck() {
           }
           
           // Pré-remplir le nom du dirigeant si disponible
-          let siretFirstName = '';
           let siretLastName = '';
           
           if (entreprise.dirigeants && entreprise.dirigeants.length > 0) {
@@ -198,7 +193,6 @@ export default function CreateTruck() {
             if (dirigeant.prenom && dirigeant.nom) {
               setManagerFirstName(dirigeant.prenom.trim());
               setManagerLastName(dirigeant.nom.trim());
-              siretFirstName = dirigeant.prenom.trim().toLowerCase();
               siretLastName = dirigeant.nom.trim().toLowerCase();
             }
             // Cas 2: prenoms (pluriel) et nom
@@ -207,7 +201,6 @@ export default function CreateTruck() {
               const prenom = dirigeant.prenoms.trim().split(' ')[0];
               setManagerFirstName(prenom);
               setManagerLastName(dirigeant.nom.trim());
-              siretFirstName = prenom.toLowerCase();
               siretLastName = dirigeant.nom.trim().toLowerCase();
             }
             // Cas 3: nom complet dans un seul champ
@@ -219,7 +212,6 @@ export default function CreateTruck() {
                 // Premier mot = prénom, reste = nom
                 setManagerFirstName(parts[0]);
                 setManagerLastName(parts.slice(1).join(' '));
-                siretFirstName = parts[0].toLowerCase();
                 siretLastName = parts.slice(1).join(' ').toLowerCase();
               } else {
                 // Si un seul mot, le mettre dans nom de famille
@@ -235,7 +227,6 @@ export default function CreateTruck() {
               if (parts.length >= 2) {
                 setManagerFirstName(parts[0]);
                 setManagerLastName(parts.slice(1).join(' '));
-                siretFirstName = parts[0].toLowerCase();
                 siretLastName = parts.slice(1).join(' ').toLowerCase();
               } else {
                 setManagerLastName(nomComplet);
@@ -245,7 +236,6 @@ export default function CreateTruck() {
           }
           
           // Vérifier que le gérant du SIRET correspond à l'utilisateur connecté
-          const userFirstLower = userFirstName.toLowerCase().trim();
           const userLastLower = userLastName.toLowerCase().trim();
           
           // Vérifier que les noms correspondent (au moins le nom de famille doit correspondre)
@@ -272,8 +262,6 @@ export default function CreateTruck() {
     } catch (err) {
       console.error('Erreur vérification SIRET:', err);
       setSiretValid('invalid');
-    } finally {
-      setSiretChecking(false);
     }
   };
 
@@ -297,27 +285,6 @@ export default function CreateTruck() {
                     pizzaPerHour >= 10;
 
   // Menu sera créé plus tard depuis le dashboard pizzaiolo
-
-  const updateMenuItem = (id, field, value) => {
-    setMenuItems(menuItems.map(item => 
-      item.id === id ? { ...item, [field]: value } : item
-    ));
-  };
-
-  const updateMenuItemSize = (itemId, sizeIndex, field, value) => {
-    setMenuItems(menuItems.map(item => {
-      if (item.id === itemId) {
-        const newSizes = [...item.sizes];
-        newSizes[sizeIndex] = { ...newSizes[sizeIndex], [field]: value };
-        return { ...item, sizes: newSizes };
-      }
-      return item;
-    }));
-  };
-
-  const removeMenuItem = (id) => {
-    setMenuItems(menuItems.filter(item => item.id !== id));
-  };
 
   const handleSubmit = async () => {
     if (!user?.uid) {

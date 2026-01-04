@@ -1,46 +1,38 @@
-import { useEffect, useState } from 'react';
-import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { ref, get } from 'firebase/database';
-import { db } from '../../lib/firebase';
+import { useEffect } from 'react';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../app/providers/AuthProvider';
+import { usePizzaioloTruckId } from '../../features/pizzaiolo/hooks/usePizzaioloTruckId';
 
 export default function PizzaioloDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [hasTruck, setHasTruck] = useState(false);
-  const [loading, setLoading] = useState(true);
+
+  const { truckId, loading, error } = usePizzaioloTruckId(user?.uid);
 
   useEffect(() => {
     if (!user?.uid) return;
+    if (loading) return;
 
-    const checkTruck = async () => {
-      try {
-        const pizzaioloRef = ref(db, `pizzaiolos/${user.uid}`);
-        const snap = await get(pizzaioloRef);
-        
-        if (snap.exists() && snap.val().truckId) {
-          setHasTruck(true);
-        } else {
-          setHasTruck(false);
-          
-          // Si pas de camion, rediriger vers la création
-          navigate('/pro/creer-camion', { replace: true });
-        }
-      } catch (err) {
-        console.error('Erreur vérification camion:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+    // Si aucun camion associé -> on redirige vers la création.
+    if (!truckId) {
+      navigate('/pro/creer-camion', { replace: true });
+    }
+  }, [user?.uid, loading, truckId, location.pathname, navigate]);
 
-    checkTruck();
-  }, [user?.uid, location.pathname, navigate]);
-
-  if (loading) {
+  if (loading || (!truckId && !error)) {
     return (
       <div className="mx-auto max-w-6xl px-4 py-10">
         <p className="text-gray-600">Chargement...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-10">
+        <p className="text-gray-600">Erreur lors du chargement de votre camion.</p>
+        <p className="text-xs text-gray-400 font-mono break-all mt-2">{String(error?.message || error)}</p>
       </div>
     );
   }

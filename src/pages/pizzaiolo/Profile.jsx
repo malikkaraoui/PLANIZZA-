@@ -6,7 +6,6 @@ import { Pause, Play, Pizza, Edit2, ArrowLeft, Trash2, Radio, ListOrdered, Utens
 import QRCode from 'react-qr-code';
 import Card from '../../components/ui/Card';
 import { useAuth } from '../../app/providers/AuthProvider';
-import { useUserProfile } from '../../features/users/hooks/useUserProfile';
 import { db, storage } from '../../lib/firebase';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
@@ -20,28 +19,24 @@ import { ROUTES } from '../../app/routes';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '../../components/ui/dialog';
 
-function initialsFromUser({ email, displayName } = {}) {
-  const base = (displayName || email || '').trim();
-  if (!base) return 'P';
-  const parts = base.split(/\s+/).filter(Boolean);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[1][0]).toUpperCase();
-}
+const DEFAULT_OPENING_HOURS = {
+  monday: { enabled: true, open: '11:00', close: '22:00' },
+  tuesday: { enabled: true, open: '11:00', close: '22:00' },
+  wednesday: { enabled: true, open: '11:00', close: '22:00' },
+  thursday: { enabled: true, open: '11:00', close: '22:00' },
+  friday: { enabled: true, open: '11:00', close: '22:00' },
+  saturday: { enabled: true, open: '11:00', close: '23:00' },
+  sunday: { enabled: false, open: '11:00', close: '22:00' },
+};
 
 export default function PizzaioloProfile() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { profile, loading: profileLoading } = useUserProfile();
-
-  const email = profile?.email || user?.email || null;
-  const displayName = profile?.displayName || user?.displayName || null;
-  const photoURL = profile?.photoURL || user?.photoURL || null;
 
   // Mode édition ou visualisation
   const [isEditing, setIsEditing] = useState(false);
@@ -71,15 +66,7 @@ export default function PizzaioloProfile() {
   });
 
   // Horaires
-  const [openingHours, setOpeningHours] = useState({
-    monday: { enabled: true, open: '11:00', close: '22:00' },
-    tuesday: { enabled: true, open: '11:00', close: '22:00' },
-    wednesday: { enabled: true, open: '11:00', close: '22:00' },
-    thursday: { enabled: true, open: '11:00', close: '22:00' },
-    friday: { enabled: true, open: '11:00', close: '22:00' },
-    saturday: { enabled: true, open: '11:00', close: '23:00' },
-    sunday: { enabled: false, open: '11:00', close: '22:00' }
-  });
+  const [openingHours, setOpeningHours] = useState(DEFAULT_OPENING_HOURS);
 
   // Cadence de travail
   const [pizzaPerHour, setPizzaPerHour] = useState(30);
@@ -247,7 +234,7 @@ export default function PizzaioloProfile() {
             setOvenType(truck.ovenType || 'Bois');
             setBadges(truck.badges || {});
             setDeliveryOptions(truck.deliveryOptions || {});
-            setOpeningHours(truck.openingHours || openingHours);
+            setOpeningHours(truck.openingHours || DEFAULT_OPENING_HOURS);
             setPizzaPerHour(truck.capacity?.pizzaPerHour || 30);
             setTruckSlug(truck.slug || null);
             
@@ -365,7 +352,7 @@ export default function PizzaioloProfile() {
         setOvenType(truck.ovenType || 'Bois');
         setBadges(truck.badges || {});
         setDeliveryOptions(truck.deliveryOptions || {});
-        setOpeningHours(truck.openingHours || openingHours);
+        setOpeningHours(truck.openingHours || DEFAULT_OPENING_HOURS);
         setPizzaPerHour(truck.capacity?.pizzaPerHour || 30);
         setTruckSlug(truck.slug || null);
       }

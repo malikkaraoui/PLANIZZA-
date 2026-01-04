@@ -17,31 +17,34 @@ import { ROUTES } from '../../app/routes';
 import { useCart } from '../../features/cart/hooks/useCart.jsx';
 import { ref, onValue } from 'firebase/database';
 import { db } from '../../lib/firebase';
+import { rtdbPaths } from '../../lib/rtdbPaths';
 
 export default function Navbar() {
   const { isAuthenticated, user } = useAuth();
   const { items } = useCart();
-  const [isPizzaiolo, setIsPizzaiolo] = useState(false);
+  const [pizzaioloTruckId, setPizzaioloTruckId] = useState(null);
+
+  const isPizzaiolo = Boolean(user?.uid && pizzaioloTruckId);
 
   const cartItemsCount = items.reduce((sum, item) => sum + (item.qty || 0), 0);
   const cartHasItems = cartItemsCount > 0;
 
   // Vérifier si l'utilisateur est pizzaiolo (écoute en temps réel)
   useEffect(() => {
-    if (!user?.uid) {
-      setIsPizzaiolo(false);
-      return;
-    }
+    if (!user?.uid) return;
 
-    const pizzaioloRef = ref(db, `pizzaiolos/${user.uid}`);
+    // Reset (asynchrone) pour éviter d'afficher l'état précédent si l'uid change.
+    queueMicrotask(() => setPizzaioloTruckId(null));
+
+    const pizzaioloRef = ref(db, rtdbPaths.pizzaiolo(user.uid));
     const unsubscribe = onValue(
       pizzaioloRef,
       (snap) => {
-        setIsPizzaiolo(snap.exists() && snap.val()?.truckId);
+        setPizzaioloTruckId(snap.exists() ? (snap.val()?.truckId ?? null) : null);
       },
       (err) => {
         console.error('[PLANIZZA] Erreur écoute pizzaiolo:', err);
-        setIsPizzaiolo(false);
+        setPizzaioloTruckId(null);
       }
     );
 

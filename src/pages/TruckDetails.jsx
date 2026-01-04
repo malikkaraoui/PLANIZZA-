@@ -16,18 +16,28 @@ export default function TruckDetails() {
   const { truckId: slugOrId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { truck, loading: loadingTruck } = useTruck(slugOrId);
+  const { truck, loading: loadingTruck, error: truckError } = useTruck(slugOrId);
   const { items: menuItems, loading: loadingMenu } = useMenu(truck?.id);
   const { addItem, items } = useCart();
   const [zoomedImage, setZoomedImage] = useState(null);
   const [showMap, setShowMap] = useState(false);
 
-  const isLoading = loadingTruck || loadingMenu;
+  const embeddedMenuItems = useMemo(() => {
+    const raw = truck?.menu?.items;
+    if (!raw || typeof raw !== 'object') return [];
+    return Object.entries(raw).map(([id, item]) => ({ id, ...(item && typeof item === 'object' ? item : {}) }));
+  }, [truck]);
+
+  const effectiveMenuItems = (menuItems?.length ?? 0) > 0 ? menuItems : embeddedMenuItems;
+  const hasEmbeddedMenu = embeddedMenuItems.length > 0;
+
+  // IMPORTANT: si le camion contient déjà un menu embarqué, on ne bloque pas l'écran sur un listener RTDB menu.
+  const isLoading = loadingTruck || (!hasEmbeddedMenu && loadingMenu);
   const isPaused = truck?.isPaused === true;
   const isOpen = isCurrentlyOpen(truck?.openingHours);
   const canOrder = isOpen && !isPaused;
 
-  const hasMenu = useMemo(() => (menuItems?.length ?? 0) > 0, [menuItems]);
+  const hasMenu = useMemo(() => (effectiveMenuItems?.length ?? 0) > 0, [effectiveMenuItems]);
 
   const handleBack = () => {
     // Comportement attendu: revenir à la page précédente (ex: /explore avec sa recherche)
@@ -81,6 +91,31 @@ export default function TruckDetails() {
             Préparation de votre escale...
           </div>
         </div>
+      ) : truckError ? (
+        <Card className="glass-premium glass-glossy py-24 text-center rounded-[48px] border-white/20 shadow-2xl">
+          <CardContent className="space-y-6">
+            <div className="w-20 h-20 bg-destructive/10 rounded-full flex items-center justify-center mx-auto text-4xl">
+              ⚠️
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-3xl font-black tracking-tighter">Connexion au camion impossible</h2>
+              <p className="text-muted-foreground font-medium">
+                Un souci réseau empêche de récupérer les données en temps réel.
+              </p>
+              <p className="text-xs text-muted-foreground/70 font-mono break-all">
+                {String(truckError?.message || truckError)}
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button className="rounded-2xl px-8 h-12 font-black bg-primary" onClick={() => window.location.reload()}>
+                RECHARGER
+              </Button>
+              <Button asChild variant="secondary" className="rounded-2xl px-8 h-12 font-black">
+                <Link to={ROUTES.explore}>RETOURNER À L'EXPLORATION</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       ) : !truck ? (
         <Card className="glass-premium glass-glossy py-32 text-center rounded-[48px] border-white/20 shadow-2xl">
           <CardContent className="space-y-8">
@@ -265,7 +300,7 @@ export default function TruckDetails() {
                     )}
                   </div>
                 )}
-                {menuItems.map((it) => (
+                {effectiveMenuItems.map((it) => (
                   <MenuItemCard
                     key={it.id}
                     item={it}

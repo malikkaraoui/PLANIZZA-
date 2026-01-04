@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../app/providers/AuthProvider';
-import { useUserProfile } from '../../features/users/hooks/useUserProfile';
 import { ref, update } from 'firebase/database';
 import { db } from '../../lib/firebase';
 import { ROUTES } from '../../app/routes';
@@ -33,7 +32,6 @@ function PricingCard({ title, subtitle, tagline, bullets }) {
 export default function PizzaioloStart() {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
-  const { profile } = useUserProfile();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 

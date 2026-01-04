@@ -4,3 +4,4 @@
 
 export * from './ingredients';
 export * from './menuConfig';
+export * from './pizzaioloMenuPresets';

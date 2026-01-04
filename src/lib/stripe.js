@@ -1,6 +1,5 @@
 import { loadStripe } from '@stripe/stripe-js';
-import { getAuth } from 'firebase/auth';
-import { functions } from './firebase';
+import { auth, functions, isFirebaseConfigured } from './firebase';
 
 const FUNCTIONS_BASE =
   import.meta.env.VITE_FUNCTIONS_ORIGIN ||
@@ -34,7 +33,7 @@ const stripePromise = publishableKey ? loadStripe(publishableKey) : Promise.reso
  */
 export async function createCheckoutSession({ orderId }) {
   try {
-    if (!functions) {
+    if (!isFirebaseConfigured || !functions) {
       throw new Error(
         'Firebase Functions n\'est pas configuré. Configurez .env.local (Firebase) et démarrez les émulateurs ou déployez les functions.'
       );
@@ -54,8 +53,7 @@ export async function createCheckoutSession({ orderId }) {
     }
 
     // Appeler l'endpoint HTTP v2 (onRequest) avec Auth Bearer
-    const auth = getAuth();
-    const token = await auth.currentUser?.getIdToken?.();
+    const token = await auth?.currentUser?.getIdToken?.();
     if (!token) {
       throw new Error('Vous devez être connecté pour payer.');
     }

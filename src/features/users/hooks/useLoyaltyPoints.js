@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { ref, onValue, set } from 'firebase/database';
+import { get, ref, onValue, set } from 'firebase/database';
 import { db } from '../../../lib/firebase';
+import { rtdbPaths } from '../../../lib/rtdbPaths';
 
 /**
  * Hook pour gérer les points de fidélité d'un utilisateur
@@ -21,25 +22,27 @@ const LOYALTY_TIERS = [
 ];
 
 export function useLoyaltyPoints(userUid) {
+  const enabled = Boolean(userUid);
   const [points, setPoints] = useState(0);
   const [totalSpent, setTotalSpent] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
 
   useEffect(() => {
-    if (!userUid) {
-      setPoints(0);
-      setTotalSpent(0);
-      setLoading(false);
-      return;
-    }
+    let cancelled = false;
+
+    if (!enabled) return;
+
+    queueMicrotask(() => setLoading(true));
 
     // Écouter le profil utilisateur pour les points stockés
-    const userRef = ref(db, `users/${userUid}`);
+    const userRef = ref(db, rtdbPaths.user(userUid));
     const unsubUser = onValue(userRef, async (userSnap) => {
       if (!userSnap.exists()) {
-        setPoints(0);
-        setTotalSpent(0);
-        setLoading(false);
+        if (!cancelled) {
+          setPoints(0);
+          setTotalSpent(0);
+          setLoading(false);
+        }
         return;
       }
 
@@ -49,52 +52,60 @@ export function useLoyaltyPoints(userUid) {
 
       // Si les points ne sont pas initialisés, calculer depuis les commandes
       if (storedPoints === 0 && storedSpent === 0) {
-        // Calcul initial depuis toutes les commandes
-        const ordersRef = ref(db, 'orders');
-        onValue(ordersRef, async (ordersSnap) => {
-          if (!ordersSnap.exists()) {
+        // Calcul initial one-shot depuis toutes les commandes (évite un abonnement permanent)
+        const ordersSnap = await get(ref(db, rtdbPaths.ordersRoot()));
+
+        if (!ordersSnap.exists()) {
+          if (!cancelled) {
             setPoints(0);
             setTotalSpent(0);
             setLoading(false);
-            return;
           }
+          return;
+        }
 
-          const allOrders = ordersSnap.val();
-          let total = 0;
+        const allOrders = ordersSnap.val();
+        let total = 0;
 
-          // Filtrer les commandes payées de l'utilisateur
-          Object.values(allOrders).forEach(order => {
-            if (order.userUid === userUid && order.payment?.paymentStatus === 'paid') {
-              total += order.totalCents || 0;
-            }
-          });
-
-          // Convertir en euros et arrondir à l'euro supérieur
-          const totalEuros = Math.ceil(total / 100);
-          const calculatedPoints = Math.floor(totalEuros / 5);
-
-          // Sauvegarder dans le profil
-          try {
-            await set(ref(db, `users/${userUid}/loyaltyPoints`), calculatedPoints);
-            await set(ref(db, `users/${userUid}/totalSpentCents`), total);
-          } catch (err) {
-            console.error('[PLANIZZA] Erreur sauvegarde points fidélité:', err);
+        // Filtrer les commandes payées de l'utilisateur
+        Object.values(allOrders).forEach((order) => {
+          if (order.userUid === userUid && order.payment?.paymentStatus === 'paid') {
+            total += order.totalCents || 0;
           }
+        });
 
+        // Convertir en euros et arrondir à l'euro supérieur
+        const totalEuros = Math.ceil(total / 100);
+        const calculatedPoints = Math.floor(totalEuros / 5);
+
+        // Sauvegarder dans le profil
+        try {
+          await set(ref(db, `${rtdbPaths.user(userUid)}/loyaltyPoints`), calculatedPoints);
+          await set(ref(db, `${rtdbPaths.user(userUid)}/totalSpentCents`), total);
+        } catch (err) {
+          console.error('[PLANIZZA] Erreur sauvegarde points fidélité:', err);
+        }
+
+        if (!cancelled) {
           setPoints(calculatedPoints);
           setTotalSpent(totalEuros);
           setLoading(false);
-        }, { onlyOnce: true });
+        }
       } else {
         // Utiliser les points stockés
-        setPoints(storedPoints);
-        setTotalSpent(Math.ceil(storedSpent / 100));
-        setLoading(false);
+        if (!cancelled) {
+          setPoints(storedPoints);
+          setTotalSpent(Math.ceil(storedSpent / 100));
+          setLoading(false);
+        }
       }
     });
 
-    return () => unsubUser();
-  }, [userUid]);
+    return () => {
+      cancelled = true;
+      unsubUser();
+    };
+  }, [enabled, userUid]);
 
   // Trouver le prochain palier
   const getNextTier = () => {
@@ -130,13 +141,13 @@ export function useLoyaltyPoints(userUid) {
     : 100;
 
   return {
-    points,
-    totalSpent,
-    loading,
-    currentTier,
-    nextTier,
-    progress,
-    maxTierReached: !nextTier,
-    tiers: LOYALTY_TIERS
+    points: enabled ? points : 0,
+    totalSpent: enabled ? totalSpent : 0,
+    loading: enabled ? loading : false,
+    currentTier: enabled ? currentTier : null,
+    nextTier: enabled ? nextTier : null,
+    progress: enabled ? progress : 0,
+    maxTierReached: enabled ? !nextTier : false,
+    tiers: LOYALTY_TIERS,
   };
 }

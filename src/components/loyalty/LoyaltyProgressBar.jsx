@@ -1,6 +1,6 @@
 import { Gift, TrendingUp } from 'lucide-react';
 
-export default function LoyaltyProgressBar({ points, currentTier, nextTier, progress, maxTierReached }) {
+export default function LoyaltyProgressBar({ points, currentTier, nextTier: _nextTier, progress: _progress, maxTierReached: _maxTierReached }) {
   // Calculer le palier actuel (tous les 10 points = 1 palier)
   const currentLevel = Math.floor(points / 10);
   const nextLevel = currentLevel + 1;
@@ -8,9 +8,6 @@ export default function LoyaltyProgressBar({ points, currentTier, nextTier, prog
   // Points dans le palier actuel (0-10)
   const pointsInCurrentLevel = points % 10;
   const progressPercentage = (pointsInCurrentLevel / 10) * 100;
-  
-  // Points restants pour le prochain palier
-  const pointsToNextLevel = 10 - pointsInCurrentLevel;
 
   return (
     <div className="space-y-3">
