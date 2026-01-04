@@ -74,6 +74,7 @@ export default function PizzaioloMenu() {
 
   // Formulaire nouvel item
   const [showForm, setShowForm] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null); // 'pizza', 'calzone', 'boisson', 'dessert'
   const [itemName, setItemName] = useState('');
   const [itemDesc, setItemDesc] = useState('');
   const [itemType, setItemType] = useState('pizza');
@@ -347,11 +348,22 @@ export default function PizzaioloMenu() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">📋 Mon Menu</h2>
-            <p className="mt-1 text-sm text-gray-600">Gérez votre carte : pizzas, calzones, desserts</p>
+            <p className="mt-1 text-sm text-gray-600">Gérez votre carte : pizzas, calzones, boissons, desserts</p>
           </div>
-          <Button onClick={() => setShowForm(!showForm)}>
-            {showForm ? 'Annuler' : '+ Ajouter un article'}
-          </Button>
+          {showForm && (
+            <Button variant="outline" onClick={() => {
+              setShowForm(false);
+              setSelectedCategory(null);
+              setItemName('');
+              setItemDesc('');
+              setPriceS('');
+              setPriceM('');
+              setPriceL('');
+              setDrinkSizes({});
+            }}>
+              Annuler
+            </Button>
+          )}
         </div>
 
         {message && (
@@ -360,23 +372,121 @@ export default function PizzaioloMenu() {
           </div>
         )}
 
+        {/* Tuiles de sélection de catégorie */}
+        {!showForm && (
+          <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <button
+              onClick={() => {
+                setSelectedCategory('pizza');
+                setItemType('pizza');
+                setShowForm(true);
+              }}
+              className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 p-6 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
+            >
+              <div className="text-5xl mb-3">🍕</div>
+              <h3 className="text-xl font-bold">PIZZA</h3>
+              <p className="text-sm text-white/80 mt-1">Créer une pizza</p>
+            </button>
+
+            <button
+              onClick={() => {
+                setSelectedCategory('calzone');
+                setItemType('calzone');
+                setShowForm(true);
+              }}
+              className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 p-6 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
+            >
+              <div className="text-5xl mb-3">🥟</div>
+              <h3 className="text-xl font-bold">CALZONE</h3>
+              <p className="text-sm text-white/80 mt-1">Ajouter un calzone</p>
+            </button>
+
+            <button
+              onClick={() => {
+                setSelectedCategory('boisson');
+                setShowForm(true);
+              }}
+              className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-600 p-6 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
+            >
+              <div className="text-5xl mb-3">🥤</div>
+              <h3 className="text-xl font-bold">BOISSONS</h3>
+              <p className="text-sm text-white/80 mt-1">Sodas, eaux, bières...</p>
+            </button>
+
+            <button
+              onClick={() => {
+                setSelectedCategory('dessert');
+                setItemType('dessert');
+                setShowForm(true);
+              }}
+              className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-pink-500 to-purple-600 p-6 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
+            >
+              <div className="text-5xl mb-3">🍰</div>
+              <h3 className="text-xl font-bold">DESSERT</h3>
+              <p className="text-sm text-white/80 mt-1">Ajouter un dessert</p>
+            </button>
+          </div>
+        )}
+
+        {/* Formulaire selon la catégorie sélectionnée */}
+        {showForm && selectedCategory === 'boisson' && (
+          <div className="mt-6 space-y-4 border-t pt-6">
+            <h3 className="text-lg font-semibold text-gray-900">Type de boisson</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <button
+                type="button"
+                onClick={() => setItemType('soda')}
+                className={`p-4 rounded-xl border-2 transition-all ${
+                  itemType === 'soda' 
+                    ? 'border-emerald-500 bg-emerald-50' 
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className="text-3xl mb-2">🥤</div>
+                <div className="font-medium">Soda</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setItemType('eau')}
+                className={`p-4 rounded-xl border-2 transition-all ${
+                  itemType === 'eau' 
+                    ? 'border-emerald-500 bg-emerald-50' 
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className="text-3xl mb-2">💧</div>
+                <div className="font-medium">Eau</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setItemType('biere')}
+                className={`p-4 rounded-xl border-2 transition-all ${
+                  itemType === 'biere' 
+                    ? 'border-emerald-500 bg-emerald-50' 
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className="text-3xl mb-2">🍺</div>
+                <div className="font-medium">Bière</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setItemType('vin')}
+                className={`p-4 rounded-xl border-2 transition-all ${
+                  itemType === 'vin' 
+                    ? 'border-emerald-500 bg-emerald-50' 
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className="text-3xl mb-2">🍷</div>
+                <div className="font-medium">Vin</div>
+              </button>
+            </div>
+          </div>
+        )}
+
         {showForm && (
           <form onSubmit={handleAddItem} className="mt-6 space-y-4 border-t pt-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Type *</label>
-              <select
-                value={itemType}
-                onChange={(e) => setItemType(e.target.value)}
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                required
-              >
-                {ITEM_TYPES.map(t => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Nom : sélection prédéfinie pour boissons, texte libre pour le reste */}
             {['soda', 'eau', 'biere', 'vin'].includes(itemType) ? (
               <div>
                 <label className="block text-sm font-medium text-gray-700">Nom *</label>
