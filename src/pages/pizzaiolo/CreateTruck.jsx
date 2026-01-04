@@ -21,7 +21,7 @@ export default function CreateTruck() {
     : ['', userDisplayName];
 
   // États du formulaire
-  const [step, setStep] = useState(1); // 1: Légal, 2: Camion, 3: Menu, 4: Horaires
+  const [step, setStep] = useState(1); // 1: Légal, 2: Camion, 3: Horaires
   
   // Étape 1: Informations légales
   const [siret, setSiret] = useState('');
@@ -57,10 +57,7 @@ export default function CreateTruck() {
     uber: false
   });
 
-  // Étape 3: Menu items
-  const [menuItems, setMenuItems] = useState([]);
-
-  // Étape 4: Horaires
+  // Étape 3: Horaires
   const [openingHours, setOpeningHours] = useState({
     monday: { enabled: true, open: '11:00', close: '22:00' },
     tuesday: { enabled: true, open: '11:00', close: '22:00' },
@@ -296,28 +293,10 @@ export default function CreateTruck() {
                        logoUrl &&
                        photoUrl;
 
-  const canGoToStep4 = true; // Pas obligatoire d'avoir des items, le menu peut être créé plus tard
-
   const canSubmit = Object.values(openingHours).some(day => day.enabled) &&
                     pizzaPerHour >= 10;
 
-  const addMenuItem = () => {
-    setMenuItems([
-      ...menuItems,
-      {
-        id: Date.now().toString(),
-        name: '',
-        description: '',
-        type: 'pizza',
-        sizes: [
-          { size: 'small', label: 'Petite (26cm)', priceCents: 800, available: true },
-          { size: 'medium', label: 'Moyenne (33cm)', priceCents: 1000, available: true },
-          { size: 'large', label: 'Grande (40cm)', priceCents: 1200, available: true }
-        ],
-        available: true
-      }
-    ]);
-  };
+  // Menu sera créé plus tard depuis le dashboard pizzaiolo
 
   const updateMenuItem = (id, field, value) => {
     setMenuItems(menuItems.map(item => 
@@ -381,33 +360,7 @@ export default function CreateTruck() {
           phoneNumber: phoneNumber.replace(/\D/g, '')
         },
         menu: {
-          items: menuItems.filter(item => item.name.trim()).reduce((acc, item) => {
-            const itemId = push(ref(db, 'temp')).key; // Générer un ID unique
-            acc[itemId] = {
-              name: item.name.trim(),
-              description: item.description.trim(),
-              type: item.type,
-              createdAt: Date.now()
-            };
-            
-            // Gérer les prix selon le type
-            if (item.type === 'pizza' || item.type === 'calzone') {
-              acc[itemId].sizes = {};
-              item.sizes.forEach(size => {
-                if (size.available) {
-                  acc[itemId].sizes[size.size] = {
-                    priceCents: size.priceCents,
-                    diameter: size.size === 'small' ? 26 : size.size === 'medium' ? 33 : 40
-                  };
-                }
-              });
-            } else {
-              // Pour desserts/boissons : prix unique
-              acc[itemId].priceCents = item.sizes?.[0]?.priceCents || 1000;
-            }
-            
-            return acc;
-          }, {})
+          items: {} // Menu vide, sera rempli depuis le dashboard
         },
         ratingAvg: 0,
         ratingCount: 0,
@@ -441,7 +394,7 @@ export default function CreateTruck() {
       {/* Progress bar */}
       <div className="mb-8">
         <div className="flex items-center justify-between">
-          {[1, 2, 3, 4].map((s) => (
+          {[1, 2, 3].map((s) => (
             <div key={s} className="flex items-center">
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
@@ -454,7 +407,7 @@ export default function CreateTruck() {
               >
                 {s}
               </div>
-              {s < 4 && (
+              {s < 3 && (
                 <div
                   className={`w-16 h-1 mx-2 ${
                     s < step ? 'bg-emerald-600' : 'bg-gray-200'
@@ -468,8 +421,7 @@ export default function CreateTruck() {
           <p className="text-sm font-semibold text-gray-900">
             {step === 1 && 'Informations légales'}
             {step === 2 && 'Votre camion'}
-            {step === 3 && 'Menu'}
-            {step === 4 && 'Horaires & Capacité'}
+            {step === 3 && 'Horaires & Capacité'}
           </p>
         </div>
       </div>
@@ -754,139 +706,9 @@ export default function CreateTruck() {
         </div>
       )}
 
-      {/* Étape 3: Menu */}
+      {/* Étape 3: Horaires */}
+      {/* Étape 3: Horaires */}
       {step === 3 && (
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Votre menu</h2>
-            <p className="mt-2 text-sm text-gray-600">
-              Ajoutez au moins une pizza à votre menu.
-            </p>
-          </div>
-
-          {menuItems.map((item, idx) => (
-            <div key={item.id} className="rounded-lg border border-gray-200 p-4">
-              <div className="flex items-start justify-between mb-3">
-                <h3 className="font-semibold text-gray-900">Article {idx + 1}</h3>
-                <button
-                  onClick={() => removeMenuItem(item.id)}
-                  className="text-red-600 hover:text-red-700"
-                >
-                  <span className="text-sm">Supprimer</span>
-                </button>
-              </div>
-
-              <div className="space-y-3">
-                <Input
-                  value={item.name}
-                  onChange={(e) => updateMenuItem(item.id, 'name', e.target.value)}
-                  placeholder="Margherita"
-                />
-
-                <textarea
-                  value={item.description}
-                  onChange={(e) => updateMenuItem(item.id, 'description', e.target.value)}
-                  placeholder="Tomate, mozzarella, basilic"
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                  rows={2}
-                />
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Type</label>
-                  <select
-                    value={item.type}
-                    onChange={(e) => updateMenuItem(item.id, 'type', e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                  >
-                    <option value="pizza">Pizza</option>
-                    <option value="calzone">Calzone</option>
-                    <option value="dessert">Dessert</option>
-                    <option value="boisson">Boisson</option>
-                  </select>
-                </div>
-
-                {/* Tailles et prix */}
-                {(item.type === 'pizza' || item.type === 'calzone') && (
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-2">Tailles disponibles</label>
-                    <div className="space-y-2">
-                      {item.sizes.map((size, sizeIdx) => (
-                        <div key={sizeIdx} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
-                          <input
-                            type="checkbox"
-                            checked={size.available}
-                            onChange={(e) => updateMenuItemSize(item.id, sizeIdx, 'available', e.target.checked)}
-                            className="w-4 h-4"
-                          />
-                          <span className="text-sm font-medium text-gray-700 flex-1">{size.label}</span>
-                          <Input
-                            type="number"
-                            step="0.5"
-                            value={size.priceCents / 100}
-                            onChange={(e) => updateMenuItemSize(item.id, sizeIdx, 'priceCents', Math.round(parseFloat(e.target.value || 0) * 100))}
-                            className="w-24"
-                            placeholder="Prix"
-                            disabled={!size.available}
-                          />
-                          <span className="text-sm text-gray-600">€</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Prix unique pour les autres types */}
-                {item.type !== 'pizza' && item.type !== 'calzone' && (
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Prix (€)</label>
-                    <Input
-                      type="number"
-                      step="0.5"
-                      value={(item.sizes?.[0]?.priceCents || 1000) / 100}
-                      onChange={(e) => {
-                        const newPrice = Math.round(parseFloat(e.target.value || 0) * 100);
-                        setMenuItems(menuItems.map(mi => 
-                          mi.id === item.id 
-                            ? { ...mi, sizes: [{ size: 'unique', label: 'Unique', priceCents: newPrice, available: true }] }
-                            : mi
-                        ));
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-
-          <Button
-            variant="outline"
-            onClick={addMenuItem}
-            className="w-full"
-          >
-            + Ajouter un article
-          </Button>
-
-          <div className="flex gap-3">
-            <Button
-              variant="outline"
-              onClick={() => setStep(2)}
-              className="flex-1"
-            >
-              ← Retour
-            </Button>
-            <Button
-              onClick={() => setStep(4)}
-              disabled={!canGoToStep4}
-              className="flex-1"
-            >
-              Continuer →
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Étape 4: Horaires */}
-      {step === 4 && (
         <div className="space-y-6">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Horaires & Capacité</h2>
@@ -972,7 +794,7 @@ export default function CreateTruck() {
           <div className="flex gap-3">
             <Button
               variant="outline"
-              onClick={() => setStep(3)}
+              onClick={() => setStep(2)}
               className="flex-1"
             >
               ← Retour

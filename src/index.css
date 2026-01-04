@@ -1,9 +1,8 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
 @plugin "tailwindcss-animate";
 @custom-variant dark (&:is(.dark *));
-
-/* Leaflet Map Styles */
-@import "leaflet/dist/leaflet.css";
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);

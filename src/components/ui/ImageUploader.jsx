@@ -88,23 +88,27 @@ export default function ImageUploader({ value, onChange, label, folder = 'upload
     try {
       // ✅ SUPPRIMER L'ANCIENNE IMAGE si elle existe
       if (value && value.includes('firebasestorage.googleapis.com')) {
+        console.log('[PLANIZZA] 🗑️ Détection ancienne image à supprimer:', value);
         try {
           // Extraire le chemin depuis l'URL Firebase Storage
           const urlParts = value.split('/o/')[1]?.split('?')[0];
           if (urlParts) {
             const oldPath = decodeURIComponent(urlParts);
+            console.log('[PLANIZZA] 🗑️ Chemin extrait:', oldPath);
             const oldImageRef = storageRef(storage, oldPath);
             await deleteObject(oldImageRef);
-            console.log('[PLANIZZA] Ancienne image supprimée:', oldPath);
+            console.log('[PLANIZZA] ✅ Ancienne image supprimée avec succès');
+          } else {
+            console.warn('[PLANIZZA] ⚠️ Impossible d\'extraire le chemin de l\'URL');
           }
         } catch (deleteErr) {
-          console.warn('[PLANIZZA] Impossible de supprimer l\'ancienne image (peut-être déjà supprimée):', deleteErr);
-          // Ne pas bloquer l'upload si la suppression échoue
+          console.error('[PLANIZZA] ❌ Erreur suppression ancienne image:', deleteErr);
+          // Continuer quand même l'upload de la nouvelle image
         }
       }
 
       // ✅ REDIMENSIONNER l'image en conservant le ratio
-      console.log(`[PLANIZZA] Redimensionnement de l'image (max: ${maxWidth}x${maxHeight})...`);
+      console.log(`[PLANIZZA] 📐 Redimensionnement de l'image (max: ${maxWidth}x${maxHeight})...`);
       const resizedBlob = await resizeImage(file, maxWidth, maxHeight);
       const resizedFile = new File([resizedBlob], file.name, { type: file.type });
 
@@ -115,6 +119,7 @@ export default function ImageUploader({ value, onChange, label, folder = 'upload
       const path = `${folder}/${fileName}`;
 
       // Upload vers Firebase Storage
+      console.log('[PLANIZZA] ⬆️ Upload vers:', path);
       const imageRef = storageRef(storage, path);
       await uploadBytes(imageRef, resizedFile);
 
@@ -124,9 +129,9 @@ export default function ImageUploader({ value, onChange, label, folder = 'upload
       setPreview(downloadUrl);
       onChange(downloadUrl);
 
-      console.log('[PLANIZZA] Image uploadée:', downloadUrl);
+      console.log('[PLANIZZA] ✅ Image uploadée avec succès');
     } catch (err) {
-      console.error('Erreur upload image:', err);
+      console.error('[PLANIZZA] ❌ Erreur upload image:', err);
       setError('Erreur lors de l\'upload. Réessayez.');
     } finally {
       setUploading(false);
