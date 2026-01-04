@@ -109,8 +109,10 @@ const VINS = [
 
 const DRINK_SIZES = {
   soda: [
-    { value: '25cl', label: '25cL', defaultPrice: 2.00 },
-    { value: '33cl', label: '33cL', defaultPrice: 3.00 }
+    { value: '33cl', label: '33cL', defaultPrice: 3.00 },
+    { value: '75cl', label: '75cL', defaultPrice: 5.00 },
+    { value: '1l', label: '1L', defaultPrice: 6.00 },
+    { value: '1.5l', label: '1,5L', defaultPrice: 7.00 }
   ],
   eau: [
     { value: '50cl', label: '50cL', defaultPrice: 1.80 },
@@ -905,7 +907,7 @@ export default function PizzaioloMenu() {
                     value={itemName}
                     onChange={(e) => setItemName(e.target.value)}
                     className="mt-1"
-                    readOnly={selectedCategory !== 'calzone' && itemName !== 'La Perso'}
+                    readOnly={selectedCategory !== 'calzone' && selectedCategory !== 'pizza' && itemType !== 'soda' && itemType !== 'eau' && itemType !== 'biere' && itemType !== 'vin'}
                   />
                 </div>
 

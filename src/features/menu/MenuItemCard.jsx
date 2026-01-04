@@ -86,7 +86,15 @@ export default function MenuItemCard({ item, onAdd, isDisabled = false }) {
                   }
                   // Pour les boissons, afficher le volume
                   else if (['soda', 'eau', 'biere'].includes(item.type)) {
-                    label = size === '25cl' ? '25cL' : size === '33cl' ? '33cL' : size === '50cl' ? '50cL' : size === '1l' ? '1L' : size;
+                    const sizeMap = {
+                      '25cl': '25cL',
+                      '33cl': '33cL',
+                      '50cl': '50cL',
+                      '75cl': '75cL',
+                      '1l': '1L',
+                      '1.5l': '1,5L'
+                    };
+                    label = sizeMap[size] || size;
                   }
                   
                   return (
