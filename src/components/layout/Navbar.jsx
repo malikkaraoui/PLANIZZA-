@@ -15,7 +15,7 @@ import {
 import { useAuth } from '../../app/providers/AuthProvider';
 import { ROUTES } from '../../app/routes';
 import { useCart } from '../../features/cart/hooks/useCart.jsx';
-import { ref, get } from 'firebase/database';
+import { ref, onValue } from 'firebase/database';
 import { db } from '../../lib/firebase';
 
 export default function Navbar() {
@@ -26,25 +26,26 @@ export default function Navbar() {
   const cartItemsCount = items.reduce((sum, item) => sum + (item.qty || 0), 0);
   const cartHasItems = cartItemsCount > 0;
 
-  // Vérifier si l'utilisateur est pizzaiolo
+  // Vérifier si l'utilisateur est pizzaiolo (écoute en temps réel)
   useEffect(() => {
     if (!user?.uid) {
       setIsPizzaiolo(false);
       return;
     }
 
-    const checkPizzaiolo = async () => {
-      try {
-        const pizzaioloRef = ref(db, `pizzaiolos/${user.uid}`);
-        const snap = await get(pizzaioloRef);
-        setIsPizzaiolo(snap.exists() && snap.val().truckId);
-      } catch (err) {
-        console.error('[PLANIZZA] Erreur vérification pizzaiolo:', err);
+    const pizzaioloRef = ref(db, `pizzaiolos/${user.uid}`);
+    const unsubscribe = onValue(
+      pizzaioloRef,
+      (snap) => {
+        setIsPizzaiolo(snap.exists() && snap.val()?.truckId);
+      },
+      (err) => {
+        console.error('[PLANIZZA] Erreur écoute pizzaiolo:', err);
         setIsPizzaiolo(false);
       }
-    };
+    );
 
-    checkPizzaiolo();
+    return () => unsubscribe();
   }, [user?.uid]);
 
   return (

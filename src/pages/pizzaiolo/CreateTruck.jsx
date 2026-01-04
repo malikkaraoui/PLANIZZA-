@@ -139,10 +139,11 @@ export default function CreateTruck() {
       if (trucksSnap.exists()) {
         const trucks = trucksSnap.val();
         const existingTruck = Object.values(trucks).find(
-          truck => truck.siret === cleanSiret
+          truck => truck.siret === cleanSiret || truck.legal?.siret === cleanSiret
         );
         
         if (existingTruck) {
+          console.log('[PLANIZZA] SIRET déjà utilisé:', cleanSiret);
           setSiretValid('already_exists');
           setSiretChecking(false);
           return;
@@ -656,12 +657,12 @@ export default function CreateTruck() {
 
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Logo *
+              Logo * <span className="text-xs text-gray-500 font-normal">(Votre marque/enseigne)</span>
             </label>
             <ImageUploader
               value={logoUrl}
               onChange={setLogoUrl}
-              folder="trucks/logos"
+              folder="logos"
               maxWidth={500}
               maxHeight={500}
             />
@@ -669,12 +670,12 @@ export default function CreateTruck() {
 
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Photo du camion *
+              Photo du camion * <span className="text-xs text-gray-500 font-normal">(Votre véhicule)</span>
             </label>
             <ImageUploader
               value={photoUrl}
               onChange={setPhotoUrl}
-              folder="trucks/photos"
+              folder="trucks"
               maxWidth={1200}
               maxHeight={800}
             />
@@ -736,6 +737,20 @@ export default function CreateTruck() {
               Continuer →
             </Button>
           </div>
+          
+          {/* Message d'aide si des champs manquent */}
+          {!canGoToStep3 && (
+            <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+              <p className="text-sm font-semibold text-amber-900 mb-2">📋 Champs manquants :</p>
+              <ul className="text-sm text-amber-800 space-y-1">
+                {truckName.trim().length < 2 && <li>• Nom du camion (min 2 caractères)</li>}
+                {truckDescription.trim().length < 10 && <li>• Description (min 10 caractères)</li>}
+                {!location?.lat && <li>• Localisation (cliquez sur la carte)</li>}
+                {!logoUrl && <li>• Logo (uploadez votre logo)</li>}
+                {!photoUrl && <li>• Photo du camion (uploadez une photo)</li>}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 

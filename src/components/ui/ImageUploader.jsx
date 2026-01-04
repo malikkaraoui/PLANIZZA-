@@ -182,7 +182,7 @@ export default function ImageUploader({ value, onChange, label, folder = 'upload
       {/* Aperçu de l'image */}
       {preview && (
         <div 
-          className="relative rounded-lg overflow-hidden border border-gray-300 bg-gray-50 cursor-pointer hover:border-primary transition-all group"
+          className="relative rounded-lg overflow-hidden border-2 border-emerald-500 bg-gray-50 cursor-pointer hover:border-emerald-600 transition-all group"
           onClick={handleImageClick}
         >
           <img
@@ -190,6 +190,10 @@ export default function ImageUploader({ value, onChange, label, folder = 'upload
             alt="Aperçu"
             className="w-full h-48 object-cover group-hover:opacity-90 transition-opacity"
           />
+          {/* Badge de succès */}
+          <div className="absolute top-2 left-2 bg-emerald-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-lg">
+            ✓ Uploadée
+          </div>
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center">
             <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-bold text-gray-800">
               📁 Changer l'image
@@ -208,28 +212,39 @@ export default function ImageUploader({ value, onChange, label, folder = 'upload
       {/* Zone d'upload */}
       {!preview && (
         <div 
-          className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer"
-          onClick={handleImageClick}
+          className={`border-2 border-dashed rounded-lg p-6 text-center transition-all ${
+            uploading 
+              ? 'border-blue-400 bg-blue-50 cursor-wait' 
+              : 'border-gray-300 hover:border-primary cursor-pointer'
+          }`}
+          onClick={!uploading ? handleImageClick : undefined}
         >
           <div className="space-y-3">
-            <div className="text-4xl">📸</div>
-            <div>
-              <div className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
-                {uploading ? (
-                  <>
-                    <span className="animate-spin">⏳</span>
-                    Upload en cours...
-                  </>
-                ) : (
-                  <>
+            {uploading ? (
+              <>
+                <div className="text-4xl animate-bounce">⏳</div>
+                <div className="font-bold text-blue-600">Upload en cours...</div>
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Envoi vers Firebase Storage
+                </div>
+                <p className="text-xs text-blue-600 font-medium">
+                  Veuillez patienter, compression et upload en cours...
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="text-4xl">📸</div>
+                <div>
+                  <div className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
                     📁 Choisir une image
-                  </>
-                )}
-              </div>
-            </div>
-            <p className="text-xs text-gray-500">
-              JPG, PNG ou WebP • Max 5MB
-            </p>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500">
+                  JPG, PNG ou WebP • Max 5MB
+                </p>
+              </>
+            )}
           </div>
         </div>
       )}
