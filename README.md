@@ -1,6 +1,27 @@
 # 🍕 PLANIZZA
 
-Plateforme web moderne de gestion et planification construite avec Vite, React, TailwindCSS, Firebase et Stripe.
+Plateforme web moderne de commande et gestion de pizzas itinérantes. Une application complète permettant aux clients de commander auprès de camions pizzas, et aux pizzaiolos de gérer leur activité (menu, commandes en temps réel, tableau de bord).
+
+**Stack technique** : Vite + React 19 + TailwindCSS + Firebase (Auth, Realtime Database, Functions) + Stripe
+
+## ✨ Fonctionnalités
+
+### 👥 Côté Client
+- 🔍 Exploration des camions pizzas (géolocalisation, filtres, badges)
+- 🍕 Consultation des menus avec personnalisation des pizzas
+- 🛒 Panier intelligent avec sauvegarde automatique
+- 💳 Paiement sécurisé via Stripe Checkout
+- 📱 Suivi de commande en temps réel
+- 🎁 Programme de fidélité
+
+### 🚚 Côté Pizzaiolo
+- 📊 Dashboard complet avec statistiques
+- 📋 Gestion du menu (création, modification, prix par taille)
+- 🎨 Personnalisation avancée des pizzas (ingrédients)
+- 📱 Mode Live pour commandes manuelles sur place
+- ⏸️ Gestion des pauses et disponibilité
+- 📦 Suivi des commandes en temps réel
+- 💰 Historique des ventes
 
 ## 📁 Structure du projet
 
@@ -9,12 +30,26 @@ PLANIZZA/
 ├── src/
 │   ├── app/              # Router et configuration app principale
 │   │   ├── App.jsx       # Composant racine avec RouterProvider
-│   │   └── router.jsx    # Configuration des routes
+│   │   ├── router.jsx    # Configuration des routes
+│   │   └── providers/    # Providers React (Auth, etc.)
 │   ├── components/       # Composants réutilisables
+│   │   ├── layout/       # Layout (Header, Footer, etc.)
+│   │   ├── loyalty/      # Composants fidélité
+│   │   ├── partner/      # Composants partenaires
+│   │   └── ui/           # Composants UI réutilisables
+│   ├── features/         # 🆕 Modules métier (logique réutilisable)
+│   │   ├── cart/         # Gestion du panier utilisateur
+│   │   ├── menu/         # 🔥 Logique menu (hooks, utils, constants)
+│   │   ├── orders/       # Gestion des commandes
+│   │   ├── trucks/       # Gestion des camions
+│   │   └── users/        # Gestion des utilisateurs
 │   ├── lib/              # Utilitaires et configurations
-│   │   └── firebase.js   # Configuration Firebase avec variables d'env
+│   │   ├── firebase.js   # Configuration Firebase
+│   │   ├── stripe.js     # Configuration Stripe
+│   │   └── utils.js      # Utilitaires généraux
 │   ├── pages/            # Pages de l'application
-│   │   └── Home.jsx      # Page d'accueil
+│   │   ├── pizzaiolo/    # Pages pizzaiolo (Dashboard, Live, Menu, etc.)
+│   │   └── ...           # Autres pages (Home, Login, etc.)
 │   └── styles/           # Styles personnalisés
 ├── functions/            # Firebase Cloud Functions (backend)
 │   ├── index.js          # Functions (createCheckoutSession, stripeWebhook)
@@ -24,6 +59,32 @@ PLANIZZA/
 ├── firebase.json         # Configuration Firebase (hosting, functions, emulators)
 └── package.json          # Dépendances frontend et scripts npm
 ```
+
+### 🔥 Module Menu (`src/features/menu/`)
+
+Module réutilisable contenant toute la logique métier pour la gestion du menu, du panier et de la personnalisation.
+
+```
+src/features/menu/
+├── constants/           # Constantes et configuration
+│   ├── ingredients.js   # 50+ ingrédients organisés par catégories
+│   ├── menuConfig.js    # Configuration (TVA, types, catégories, tailles)
+│   └── index.js         # Export centralisé
+├── hooks/               # Hooks React réutilisables
+│   ├── useLiveCart.js   # Gestion panier mode Live (pizzaiolo)
+│   ├── useLiveOrder.js  # Sync Firebase temps réel
+│   ├── useMenuItem.js   # État et interactions d'un item
+│   ├── usePizzaCustomization.js # Personnalisation pizzas
+│   └── index.js         # Export centralisé
+├── utils/               # Utilitaires purs
+│   ├── menuHelpers.js   # Filtrage, formatage, helpers menu
+│   ├── priceCalculations.js # Calculs de prix (TVA, TTC, etc.)
+│   └── index.js         # Export centralisé
+├── README.md            # Documentation complète du module
+└── index.js             # Export centralisé du module complet
+```
+
+**Documentation complète** : [`src/features/menu/README.md`](src/features/menu/README.md)
 
 ## 🚀 Démarrage rapide
 
@@ -151,9 +212,16 @@ npm run firebase:emulators
 
 ### Backend
 - **Firebase Functions** : Serverless backend
-- **Firebase Auth** : Authentification
-- **Realtime Database (RTDB)** : Base de données temps réel (MVP)
+- **Firebase Auth** : Authentification (Google OAuth)
+- **Realtime Database (RTDB)** : Base de données temps réel
+- **Firebase Hosting** : Hébergement web
 - **Stripe API** : Paiements sécurisés
+
+### Architecture
+- **Feature-based** : Organisation par modules métier (`src/features/`)
+- **Hooks personnalisés** : Logique réutilisable et testable
+- **Utilitaires purs** : Fonctions isolées sans effets de bord
+- **Constants centralisées** : Configuration unique et partagée
 
 ## 🔄 Workflow Git
 
@@ -173,30 +241,48 @@ git push origin feature/nom-feature
 
 ## 📝 TODOs
 
+### 🔥 Récemment complété
+- [x] ♻️ **Refactoring module Menu** : Extraction de toute la logique métier
+  - [x] 4 hooks réutilisables (`useLiveCart`, `usePizzaCustomization`, `useMenuItem`, `useLiveOrder`)
+  - [x] 2 fichiers d'utilitaires (calculs prix, helpers menu)
+  - [x] 2 fichiers de constantes (ingrédients, configuration)
+  - [x] Documentation complète + exemples d'utilisation
+  - [x] Architecture scalable et testable
+
 ### Backend (Functions)
-- [ ] Implémenter l'authentification Firebase dans `createCheckoutSession`
-- [ ] Valider les paramètres d'entrée (priceId, quantity)
+- [x] Implémenter `createCheckoutSession` avec authentification
+- [x] Valider les paramètres d'entrée
+- [x] Configurer les webhooks Stripe pour les confirmations
 - [ ] Enregistrer les sessions Stripe dans Firestore
-- [ ] Configurer les webhooks Stripe pour les confirmations
-- [ ] Gérer les erreurs et les cas limites
-- [ ] Ajouter des logs pour le debugging
+- [ ] Ajouter plus de logs pour le debugging
+- [ ] Gérer plus de cas limites
 
 ### Frontend
-- [ ] Créer un contexte AuthContext pour gérer l'authentification
-- [ ] Implémenter les pages Login/Register
-- [ ] Créer un Dashboard utilisateur
-- [ ] Intégrer le flow Stripe Checkout
-- [ ] Ajouter une page de succès/échec de paiement
-- [ ] Implémenter la gestion d'état (Context API ou Redux)
+- [x] Créer un contexte AuthContext pour gérer l'authentification
+- [x] Implémenter les pages Login/Register
+- [x] Créer un Dashboard pizzaiolo complet
+- [x] Intégrer le flow Stripe Checkout
+- [x] Ajouter une page de succès/échec de paiement
+- [x] Page Live pour commandes manuelles (pizzaiolo)
+- [x] Gestion du menu avec personnalisation pizzas
+- [x] Gestion des commandes temps réel
+- [ ] Refactoriser la page Menu.jsx avec les nouveaux hooks
+- [ ] Implémenter la gestion d'état globale (Context API)
+- [ ] Ajouter la gestion de fidélité complète
 
 ### DevOps
 - [ ] Configurer GitHub Actions pour CI/CD
 - [ ] Mettre en place les tests (Jest + React Testing Library)
-- [ ] Configurer les règles de sécurité Firestore
+- [x] Configurer les règles de sécurité Realtime Database
 - [ ] Optimiser les performances (lazy loading, code splitting)
 
 ## 📚 Documentation
 
+### Projet
+- [📖 Module Menu - Architecture complète](src/features/menu/README.md)
+- [📋 Refactoring Live.jsx - Synthèse](REFACTORING_LIVE.md)
+
+### Technologies externes
 - [Vite](https://vite.dev/)
 - [React](https://react.dev/)
 - [TailwindCSS](https://tailwindcss.com/)
