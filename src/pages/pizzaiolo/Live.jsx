@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Minus, Trash2, User, ShoppingCart, Check, Pizza, Wine, IceCream, ArrowRight } from 'lucide-react';
-import { ref, get, push, set, remove, onValue } from 'firebase/database';
+import { ref, get, push, set, remove } from 'firebase/database';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../app/providers/AuthProvider';
 import { Card } from '../../components/ui/Card';
@@ -21,7 +21,6 @@ export default function PizzaioloLive() {
 
   // Navigation
   const [selectedCategory, setSelectedCategory] = useState(null); // 'pizza', 'boisson', 'dessert'
-  const [selectedSubCategory, setSelectedSubCategory] = useState(null); // 'sans-alcool', 'alcool'
   
   // Panier
   const [cart, setCart] = useState([]);
@@ -296,26 +295,6 @@ export default function PizzaioloLive() {
   const pizzas = menu.filter(item => item.type === 'pizza' || item.type === 'calzone');
   const boissons = menu.filter(item => ['soda', 'eau', 'biere', 'vin'].includes(item.type));
   const desserts = menu.filter(item => item.type === 'dessert');
-  
-  // Sous-catégories boissons
-  const boissonsAlcool = boissons.filter(item => ['biere', 'vin'].includes(item.type));
-  const boissonsSansAlcool = boissons.filter(item => ['soda', 'eau'].includes(item.type));
-  
-  // Trier les boissons : Coca en premier
-  const sortedBoissons = (list) => {
-    return [...list].sort((a, b) => {
-      if (a.name.toLowerCase().includes('coca')) return -1;
-      if (b.name.toLowerCase().includes('coca')) return 1;
-      return 0;
-    });
-  };
-  
-  // Trier les desserts : Tiramisu Nutella en premier
-  const sortedDesserts = [...desserts].sort((a, b) => {
-    if (a.name.toLowerCase().includes('tiramisu') && a.name.toLowerCase().includes('nutella')) return -1;
-    if (b.name.toLowerCase().includes('tiramisu') && b.name.toLowerCase().includes('nutella')) return 1;
-    return 0;
-  });
 
   // Calculer le total
   const totalCents = cart.reduce((sum, item) => sum + (item.priceCents * item.qty), 0);
@@ -572,7 +551,17 @@ export default function PizzaioloLive() {
                 {pizzas.length === 0 ? (
                   <p className="col-span-2 text-center text-muted-foreground py-8">Aucune pizza dans le menu</p>
                 ) : (
-                  pizzas.map((item) => {
+                  pizzas
+                    .filter((item) => {
+                      // Ne pas afficher les pizzas sans prix défini
+                      if (item.type === 'pizza' && item.sizes) {
+                        // Vérifier si au moins une taille a un prix
+                        return Object.values(item.sizes).some(size => size.priceCents > 0);
+                      }
+                      // Pour les autres types, vérifier le prix direct
+                      return item.priceCents && item.priceCents > 0;
+                    })
+                    .map((item) => {
                     const isPizza = item.type === 'pizza';
                     const isExpanded = selectedItem?.id === item.id;
                     
@@ -666,248 +655,119 @@ export default function PizzaioloLive() {
               </div>
             )}
 
-            {/* Vue Boissons sans alcool */}
-            {currentView === 'boisson-sans-alcool' && (
-              <div className="grid md:grid-cols-2 gap-3">
-                {sortedBoissons(boissonsSansAlcool).length === 0 ? (
-                  <p className="col-span-2 text-center text-muted-foreground py-8">Aucune boisson</p>
-                ) : (
-                  sortedBoissons(boissonsSansAlcool).map((item) => {
-                    const isExpanded = selectedItem?.id === item.id;
-                    const hasSizes = item.sizes && Object.keys(item.sizes).length > 0;
-                    
-                    return (
-                      <div key={item.id} className={`transition-all ${isExpanded ? 'md:col-span-2' : ''}`}>
-                        <button
-                          onClick={() => {
-                            if (hasSizes) {
-                              setSelectedItem(isExpanded ? null : item);
-                            } else {
-                              addToCart(item);
-                            }
-                          }}
-                          className={`glass-premium glass-glossy border-white/20 p-4 rounded-2xl hover:border-primary/50 transition-all text-left group w-full ${
-                            isExpanded ? 'border-primary/50' : ''
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <h3 className="font-black text-lg group-hover:text-primary transition">{item.name}</h3>
-                            {!hasSizes && item.priceCents && (
-                              <div className="text-xl font-black text-primary">
-                                {(item.priceCents / 100).toFixed(2)}€
+                {/* Contenu boissons */}
+                {selectedCategory === 'boisson' && (
+                  <div className="grid md:grid-cols-2 gap-3">
+                    {boissons.length === 0 ? (
+                      <p className="col-span-2 text-center text-muted-foreground py-8">Aucune boisson dans le menu</p>
+                    ) : (
+                      boissons.map((item) => {
+                        const hasSizes = item.sizes && Object.keys(item.sizes).length > 0;
+                        const singleSize = hasSizes && Object.keys(item.sizes).length === 1;
+                        const isExpanded = selectedItem?.id === item.id;
+                        
+                        // Si une seule taille, récupérer le prix et la taille
+                        let singleSizeKey = null;
+                        let singleSizeData = null;
+                        if (singleSize) {
+                          singleSizeKey = Object.keys(item.sizes)[0];
+                          singleSizeData = item.sizes[singleSizeKey];
+                        }
+                        
+                        return (
+                          <div key={item.id} className={`transition-all ${isExpanded ? 'md:col-span-2' : ''}`}>
+                            <button
+                              onClick={() => {
+                                if (singleSize) {
+                                  // Une seule taille : ajouter directement au panier
+                                  addToCart(item, singleSizeKey);
+                                } else if (hasSizes) {
+                                  // Plusieurs tailles : afficher le sélecteur
+                                  setSelectedItem(isExpanded ? null : item);
+                                } else {
+                                  // Pas de taille : ajouter directement
+                                  addToCart(item);
+                                }
+                              }}
+                              className={`glass-premium glass-glossy border-white/20 p-4 rounded-2xl hover:border-primary/50 transition-all text-left group w-full ${
+                                isExpanded ? 'border-primary/50' : ''
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <h3 className="font-black text-lg group-hover:text-primary transition">{item.name}</h3>
+                                {singleSize && singleSizeData ? (
+                                  <div className="text-xl font-black text-primary">
+                                    {(singleSizeData.priceCents / 100).toFixed(2)}€
+                                  </div>
+                                ) : !hasSizes && item.priceCents ? (
+                                  <div className="text-xl font-black text-primary">
+                                    {(item.priceCents / 100).toFixed(2)}€
+                                  </div>
+                                ) : null}
+                              </div>
+                            </button>
+                            
+                            {isExpanded && hasSizes && !singleSize && (
+                              <div className="mt-3 grid grid-cols-4 gap-2">
+                                {Object.entries(item.sizes).map(([size, sizeData]) => (
+                                  <button
+                                    key={size}
+                                    onClick={() => addToCart(item, size)}
+                                    className="glass-premium glass-glossy border-white/20 p-3 rounded-xl hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-all"
+                                  >
+                                    <div className="text-center">
+                                      <div className="text-sm font-black text-primary">
+                                        {size}
+                                      </div>
+                                      <div className="text-lg font-bold mt-1">
+                                        {(sizeData.priceCents / 100).toFixed(2)}€
+                                      </div>
+                                    </div>
+                                  </button>
+                                ))}
                               </div>
                             )}
                           </div>
-                        </button>
-                        
-                        {isExpanded && hasSizes && (
-                          <div className="mt-3 grid grid-cols-4 gap-2">
-                            {Object.entries(item.sizes).map(([size, sizeData]) => {
-                              const labels = {
-                                '33cl': '33cL',
-                                '75cl': '75cL',
-                                '1l': '1L',
-                                '1.5l': '1,5L',
-                                '50cl': '50cL'
-                              };
-                              
-                              return (
-                                <button
-                                  key={size}
-                                  onClick={() => addToCart(item, size)}
-                                  className="glass-premium glass-glossy border-white/20 p-3 rounded-xl hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-all"
-                                >
-                                  <div className="text-center">
-                                    <div className="text-sm font-black text-primary">
-                                      {labels[size] || size}
-                                    </div>
-                                    <div className="text-lg font-bold mt-1">
-                                      {(sizeData.priceCents / 100).toFixed(2)}€
-                                    </div>
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })
+                        );
+                      })
+                    )}
+                  </div>
                 )}
-              </div>
-            )}
 
-            {/* Vue Boissons avec alcool */}
-            {currentView === 'boisson-alcool' && (
-              <div className="grid md:grid-cols-2 gap-3">
-                {boissonsAlcool.length === 0 ? (
-                  <p className="col-span-2 text-center text-muted-foreground py-8">Aucune boisson alcoolisée</p>
-                ) : (
-                  boissonsAlcool.map((item) => {
-                    const isExpanded = selectedItem?.id === item.id;
-                    const hasSizes = item.sizes && Object.keys(item.sizes).length > 0;
-                    
-                    return (
-                      <div key={item.id} className={`transition-all ${isExpanded ? 'md:col-span-2' : ''}`}>
+                {/* Contenu desserts */}
+                {selectedCategory === 'dessert' && (
+                  <div className="grid md:grid-cols-2 gap-3">
+                    {desserts.length === 0 ? (
+                      <p className="col-span-2 text-center text-muted-foreground py-8">Aucun dessert dans le menu</p>
+                    ) : (
+                      desserts.map((item) => (
                         <button
-                          onClick={() => {
-                            if (hasSizes) {
-                              setSelectedItem(isExpanded ? null : item);
-                            } else {
-                              addToCart(item);
-                            }
-                          }}
-                          className={`glass-premium glass-glossy border-white/20 p-4 rounded-2xl hover:border-primary/50 transition-all text-left group w-full ${
-                            isExpanded ? 'border-primary/50' : ''
-                          }`}
+                          key={item.id}
+                          onClick={() => addToCart(item)}
+                          className="glass-premium glass-glossy border-white/20 p-4 rounded-2xl hover:border-primary/50 transition-all text-left group"
                         >
-                          <div className="flex items-center justify-between">
-                            <h3 className="font-black text-lg group-hover:text-primary transition">{item.name}</h3>
-                            {!hasSizes && item.priceCents && (
-                              <div className="text-xl font-black text-primary">
-                                {(item.priceCents / 100).toFixed(2)}€
-                              </div>
-                            )}
-                          </div>
-                        </button>
-                        
-                        {isExpanded && hasSizes && (
-                          <div className="mt-3 grid grid-cols-4 gap-2">
-                            {Object.entries(item.sizes).map(([size, sizeData]) => {
-                              const labels = {
-                                '25cl': '25cL',
-                                '33cl': '33cL'
-                              };
-                              
-                              return (
-                                <button
-                                  key={size}
-                                  onClick={() => addToCart(item, size)}
-                                  className="glass-premium glass-glossy border-white/20 p-3 rounded-xl hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-all"
-                                >
-                                  <div className="text-center">
-                                    <div className="text-sm font-black text-primary">
-                                      {labels[size] || size}
-                                    </div>
-                                    <div className="text-lg font-bold mt-1">
-                                      {(sizeData.priceCents / 100).toFixed(2)}€
-                                    </div>
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            )}
-
-            {/* Vue Desserts */}
-            {currentView === 'dessert' && (
-              <div className="grid md:grid-cols-2 gap-3">
-                {sortedDesserts.length === 0 ? (
-                  <p className="col-span-2 text-center text-muted-foreground py-8">Aucun dessert</p>
-                ) : (
-                  sortedDesserts.map((item) => (
-                    <button
-                      key={item.id}
-                      onClick={() => addToCart(item)}
-                      className="glass-premium glass-glossy border-white/20 p-4 rounded-2xl hover:border-primary/50 transition-all text-left group"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1">
-                          <h3 className="font-black text-lg group-hover:text-primary transition">{item.name}</h3>
-                          {item.description && (
-                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.description}</p>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          {item.priceCents ? (
-                            <div className="text-xl font-black text-primary">
-                              {(item.priceCents / 100).toFixed(2)}€
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1">
+                              <h3 className="font-black text-lg group-hover:text-primary transition">{item.name}</h3>
+                              {item.description && (
+                                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.description}</p>
+                              )}
                             </div>
-                          ) : (
-                            <div className="text-sm text-muted-foreground">Prix non défini</div>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  ))
-                )}
-              </div>
-            )}
-
-            {/* Vue Personnalisation Pizza */}
-            {currentView === 'customize-pizza' && customizingPizza && (
-              <div className="space-y-6">
-                <div className="text-center pb-4 border-b border-white/10">
-                  <h3 className="text-2xl font-black">{customizingPizza.item.name}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Taille {customizingPizza.size.toUpperCase()} • {(customizingPizza.item.sizes[customizingPizza.size].priceCents / 100).toFixed(2)}€
-                  </p>
-                </div>
-
-                {/* Ingrédients actuels (retirer) */}
-                {customizingPizza.currentIngredients.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-black text-muted-foreground mb-3 uppercase">Ingrédients actuels (cliquer pour retirer)</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {customizingPizza.currentIngredients.map((ingredient) => {
-                        const isRemoved = customizingPizza.removedIngredients.includes(ingredient);
-                        return (
-                          <button
-                            key={ingredient}
-                            onClick={() => toggleRemoveIngredient(ingredient)}
-                            className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${
-                              isRemoved
-                                ? 'bg-red-500/20 text-red-500 border-2 border-red-500 line-through'
-                                : 'glass-premium glass-glossy border-white/20 hover:border-red-500/50'
-                            }`}
-                          >
-                            {ingredient}
-                          </button>
-                        );
-                      })}
-                    </div>
+                            <div className="text-right">
+                              {item.priceCents ? (
+                                <div className="text-xl font-black text-primary">
+                                  {(item.priceCents / 100).toFixed(2)}€
+                                </div>
+                              ) : (
+                                <div className="text-sm text-muted-foreground">Prix non défini</div>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      ))
+                    )}
                   </div>
                 )}
-
-                {/* Ingrédients disponibles (ajouter) */}
-                <div>
-                  <h4 className="text-sm font-black text-muted-foreground mb-3 uppercase">Ajouter des ingrédients</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {availableIngredients
-                      .filter(ing => !customizingPizza.currentIngredients.includes(ing))
-                      .map((ingredient) => {
-                        const isAdded = customizingPizza.addedIngredients.includes(ingredient);
-                        return (
-                          <button
-                            key={ingredient}
-                            onClick={() => toggleAddIngredient(ingredient)}
-                            className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${
-                              isAdded
-                                ? 'bg-emerald-500 text-white border-2 border-emerald-500 shadow-lg'
-                                : 'glass-premium glass-glossy border-white/20 hover:border-emerald-500/50'
-                            }`}
-                          >
-                            {isAdded && '✓ '}{ingredient}
-                          </button>
-                        );
-                      })}
-                  </div>
-                </div>
-
-                {/* Bouton Ajouter au panier */}
-                <Button
-                  onClick={finishCustomization}
-                  className="w-full h-14 rounded-2xl font-black text-lg bg-emerald-500 hover:bg-emerald-600"
-                >
-                  <Plus className="h-5 w-5 mr-2" />
-                  Ajouter au panier
-                </Button>
               </div>
             )}
           </Card>
