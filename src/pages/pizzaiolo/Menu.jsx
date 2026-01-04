@@ -16,8 +16,8 @@ const ITEM_TYPES = [
 
 const PIZZA_SIZES = [
   { value: 's', label: 'S (26cm)', defaultDiameter: 26 },
-  { value: 'm', label: 'M (33cm)', defaultDiameter: 33 },
-  { value: 'l', label: 'L (40cm)', defaultDiameter: 40 }
+  { value: 'm', label: 'M (34cm)', defaultDiameter: 34 },
+  { value: 'l', label: 'L (44cm)', defaultDiameter: 44 }
 ];
 
 export default function PizzaioloMenu() {
@@ -35,9 +35,9 @@ export default function PizzaioloMenu() {
   const [priceS, setPriceS] = useState('');
   const [priceM, setPriceM] = useState('');
   const [priceL, setPriceL] = useState('');
-  const [diameterS, setDiameterS] = useState('');
-  const [diameterM, setDiameterM] = useState('');
-  const [diameterL, setDiameterL] = useState('');
+  const [diameterS, setDiameterS] = useState('26');
+  const [diameterM, setDiameterM] = useState('34');
+  const [diameterL, setDiameterL] = useState('44');
   
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -214,9 +214,9 @@ export default function PizzaioloMenu() {
       setPriceS('');
       setPriceM('');
       setPriceL('');
-      setDiameterS('');
-      setDiameterM('');
-      setDiameterL('');
+      setDiameterS('26');
+      setDiameterM('34');
+      setDiameterL('44');
       setShowForm(false);
       setMessage('✅ Article ajouté avec succès !');
 
