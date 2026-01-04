@@ -35,9 +35,9 @@ export default function PizzaioloMenu() {
   const [priceS, setPriceS] = useState('');
   const [priceM, setPriceM] = useState('');
   const [priceL, setPriceL] = useState('');
-  const [diameterS, setDiameterS] = useState('26');
-  const [diameterM, setDiameterM] = useState('33');
-  const [diameterL, setDiameterL] = useState('40');
+  const [diameterS, setDiameterS] = useState('');
+  const [diameterM, setDiameterM] = useState('');
+  const [diameterL, setDiameterL] = useState('');
   
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -100,23 +100,62 @@ export default function PizzaioloMenu() {
       const mPrice = priceM ? parseFloat(priceM) : null;
       const lPrice = priceL ? parseFloat(priceL) : null;
       
-      // Au moins une taille doit être renseignée
-      if (!sPrice && !mPrice && !lPrice) {
+      const sDiameter = diameterS ? parseInt(diameterS) : null;
+      const mDiameter = diameterM ? parseInt(diameterM) : null;
+      const lDiameter = diameterL ? parseInt(diameterL) : null;
+      
+      // Compter le nombre de tailles renseignées
+      const sizesCount = [sPrice, mPrice, lPrice].filter(p => p && p > 0).length;
+      
+      // Au moins 1 taille, maximum 3 tailles
+      if (sizesCount === 0) {
         setMessage('❌ Vous devez renseigner au moins une taille de pizza');
         return;
       }
+      if (sizesCount > 3) {
+        setMessage('❌ Maximum 3 tailles par pizza');
+        return;
+      }
       
-      // Si plusieurs tailles sont renseignées, vérifier que les prix sont croissants
-      if (sPrice && mPrice && mPrice < sPrice) {
-        setMessage('❌ Le prix M doit être supérieur ou égal au prix S');
+      // Validation des prix croissants : S < M < L
+      if (sPrice && mPrice && mPrice <= sPrice) {
+        setMessage('❌ Le prix M doit être strictement supérieur au prix S');
         return;
       }
-      if (mPrice && lPrice && lPrice < mPrice) {
-        setMessage('❌ Le prix L doit être supérieur ou égal au prix M');
+      if (mPrice && lPrice && lPrice <= mPrice) {
+        setMessage('❌ Le prix L doit être strictement supérieur au prix M');
         return;
       }
-      if (sPrice && lPrice && lPrice < sPrice) {
-        setMessage('❌ Le prix L doit être supérieur ou égal au prix S');
+      if (sPrice && lPrice && lPrice <= sPrice) {
+        setMessage('❌ Le prix L doit être strictement supérieur au prix S');
+        return;
+      }
+      
+      // Validation des diamètres croissants : S < M < L
+      if (sDiameter && mDiameter && mDiameter <= sDiameter) {
+        setMessage('❌ Le diamètre M doit être strictement supérieur au diamètre S');
+        return;
+      }
+      if (mDiameter && lDiameter && lDiameter <= mDiameter) {
+        setMessage('❌ Le diamètre L doit être strictement supérieur au diamètre M');
+        return;
+      }
+      if (sDiameter && lDiameter && lDiameter <= sDiameter) {
+        setMessage('❌ Le diamètre L doit être strictement supérieur au diamètre S');
+        return;
+      }
+      
+      // Vérifier que chaque prix a son diamètre
+      if (sPrice && !sDiameter) {
+        setMessage('❌ Le diamètre S est obligatoire si vous renseignez un prix S');
+        return;
+      }
+      if (mPrice && !mDiameter) {
+        setMessage('❌ Le diamètre M est obligatoire si vous renseignez un prix M');
+        return;
+      }
+      if (lPrice && !lDiameter) {
+        setMessage('❌ Le diamètre L est obligatoire si vous renseignez un prix L');
         return;
       }
     }
@@ -175,9 +214,9 @@ export default function PizzaioloMenu() {
       setPriceS('');
       setPriceM('');
       setPriceL('');
-      setDiameterS('26');
-      setDiameterM('33');
-      setDiameterL('40');
+      setDiameterS('');
+      setDiameterM('');
+      setDiameterL('');
       setShowForm(false);
       setMessage('✅ Article ajouté avec succès !');
 
@@ -291,7 +330,8 @@ export default function PizzaioloMenu() {
 
             {itemType === 'pizza' ? (
               <div className="space-y-4">
-                <p className="text-sm font-medium text-gray-700">Tailles et prix *</p>
+                <p className="text-sm font-medium text-gray-700">Tailles et prix * (minimum 1, maximum 3)</p>
+                <p className="text-xs text-gray-500">Prix : S {'<'} M {'<'} L • Diamètres : S {'<'} M {'<'} L</p>
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">S (Petite)</label>
@@ -303,7 +343,6 @@ export default function PizzaioloMenu() {
                         type="number"
                         step="0.01"
                         min="0"
-                        required
                       />
                       <Input
                         value={diameterS}
@@ -312,7 +351,7 @@ export default function PizzaioloMenu() {
                         type="number"
                         min="15"
                         max="50"
-                        required
+                        disabled={!priceS}
                       />
                     </div>
                   </div>
@@ -326,7 +365,6 @@ export default function PizzaioloMenu() {
                         type="number"
                         step="0.01"
                         min="0"
-                        required
                       />
                       <Input
                         value={diameterM}
@@ -335,7 +373,7 @@ export default function PizzaioloMenu() {
                         type="number"
                         min="15"
                         max="50"
-                        required
+                        disabled={!priceM}
                       />
                     </div>
                   </div>
@@ -349,7 +387,6 @@ export default function PizzaioloMenu() {
                         type="number"
                         step="0.01"
                         min="0"
-                        required
                       />
                       <Input
                         value={diameterL}
@@ -358,7 +395,7 @@ export default function PizzaioloMenu() {
                         type="number"
                         min="15"
                         max="50"
-                        required
+                        disabled={!priceL}
                       />
                     </div>
                   </div>
