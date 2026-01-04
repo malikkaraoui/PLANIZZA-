@@ -11,7 +11,11 @@ import { Button } from '../../components/ui/Button';
 const ITEM_TYPES = [
   { value: 'pizza', label: '🍕 Pizza' },
   { value: 'calzone', label: '🥟 Calzone' },
-  { value: 'dessert', label: '🍰 Dessert' }
+  { value: 'dessert', label: '🍰 Dessert' },
+  { value: 'soda', label: '🥤 Soda' },
+  { value: 'eau', label: '💧 Eau (plate/pétillante)' },
+  { value: 'biere', label: '🍺 Bière' },
+  { value: 'vin', label: '🍷 Vin' }
 ];
 
 const PIZZA_SIZES = [
@@ -19,6 +23,47 @@ const PIZZA_SIZES = [
   { value: 'm', label: 'M (34cm)', defaultDiameter: 34 },
   { value: 'l', label: 'L (44cm)', defaultDiameter: 44 }
 ];
+
+const SODAS = [
+  'Coca Cola',
+  'Coca Cola Zéro',
+  'Fanta Orange',
+  'Fanta Citron',
+  'Oasis Fruits Rouges',
+  'Oasis Tropical'
+];
+
+const EAUX = [
+  'Badoit',
+  'Cristalline',
+  'Evian'
+];
+
+const BIERES = [
+  'Heineken',
+  'Affligem',
+  '1664'
+];
+
+const VINS = [
+  { name: 'GÉRARD BERTRAND : GRIS BLANC - 2023', defaultPrice: 11.50 },
+  { name: 'CLOS DES FEES - LES SORCIERES 2024', defaultPrice: 15.00 }
+];
+
+const DRINK_SIZES = {
+  soda: [
+    { value: '25cl', label: '25cL', defaultPrice: 2.00 },
+    { value: '33cl', label: '33cL', defaultPrice: 3.00 }
+  ],
+  eau: [
+    { value: '50cl', label: '50cL', defaultPrice: 1.80 },
+    { value: '1l', label: '1L', defaultPrice: 2.50 }
+  ],
+  biere: [
+    { value: '25cl', label: '25cL', defaultPrice: 3.00 },
+    { value: '33cl', label: '33cL', defaultPrice: 5.00 }
+  ]
+};
 
 export default function PizzaioloMenu() {
   const { user } = useAuth();
@@ -38,6 +83,10 @@ export default function PizzaioloMenu() {
   const [diameterS, setDiameterS] = useState('26');
   const [diameterM, setDiameterM] = useState('34');
   const [diameterL, setDiameterL] = useState('44');
+  
+  // États pour les boissons
+  const [drinkName, setDrinkName] = useState('');
+  const [drinkSizes, setDrinkSizes] = useState({});
   
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -197,6 +246,25 @@ export default function PizzaioloMenu() {
             diameter: parseInt(diameterL)
           };
         }
+      } else if (['soda', 'eau', 'biere'].includes(itemType)) {
+        // Pour les boissons avec tailles
+        itemData.sizes = {};
+        Object.entries(drinkSizes).forEach(([size, price]) => {
+          if (price && parseFloat(price) > 0) {
+            itemData.sizes[size] = {
+              priceCents: parseFloat(price) * 100
+            };
+          }
+        });
+        
+        if (Object.keys(itemData.sizes).length === 0) {
+          setMessage('❌ Vous devez renseigner au moins une taille');
+          setSaving(false);
+          return;
+        }
+      } else if (itemType === 'vin') {
+        // Pour les vins, un seul prix par bouteille
+        itemData.priceCents = parseFloat(priceS) * 100;
       } else {
         // Pour calzone et dessert, un seul prix
         itemData.priceCents = parseFloat(priceS) * 100;
@@ -217,6 +285,8 @@ export default function PizzaioloMenu() {
       setDiameterS('26');
       setDiameterM('34');
       setDiameterL('44');
+      setDrinkName('');
+      setDrinkSizes({});
       setShowForm(false);
       setMessage('✅ Article ajouté avec succès !');
 
@@ -306,16 +376,53 @@ export default function PizzaioloMenu() {
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Nom *</label>
-              <Input
-                value={itemName}
-                onChange={(e) => setItemName(e.target.value)}
-                placeholder="Ex: Margherita, Tiramisu..."
-                required
-                className="mt-1"
-              />
-            </div>
+            {/* Nom : sélection prédéfinie pour boissons, texte libre pour le reste */}
+            {['soda', 'eau', 'biere', 'vin'].includes(itemType) ? (
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Nom *</label>
+                <select
+                  value={itemName}
+                  onChange={(e) => {
+                    setItemName(e.target.value);
+                    // Pré-remplir le prix pour les vins
+                    if (itemType === 'vin') {
+                      const vin = VINS.find(v => v.name === e.target.value);
+                      if (vin) {
+                        setPriceS(vin.defaultPrice.toString());
+                      }
+                    }
+                    // Pré-remplir les prix par défaut pour les autres boissons
+                    if (['soda', 'eau', 'biere'].includes(itemType) && e.target.value) {
+                      const sizes = DRINK_SIZES[itemType];
+                      const defaultSizes = {};
+                      sizes?.forEach(size => {
+                        defaultSizes[size.value] = size.defaultPrice.toString();
+                      });
+                      setDrinkSizes(defaultSizes);
+                    }
+                  }}
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                  required
+                >
+                  <option value="">Sélectionnez...</option>
+                  {itemType === 'soda' && SODAS.map(s => <option key={s} value={s}>{s}</option>)}
+                  {itemType === 'eau' && EAUX.map(e => <option key={e} value={e}>{e}</option>)}
+                  {itemType === 'biere' && BIERES.map(b => <option key={b} value={b}>{b}</option>)}
+                  {itemType === 'vin' && VINS.map(v => <option key={v.name} value={v.name}>{v.name}</option>)}
+                </select>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Nom *</label>
+                <Input
+                  value={itemName}
+                  onChange={(e) => setItemName(e.target.value)}
+                  placeholder="Ex: Margherita, Tiramisu..."
+                  required
+                  className="mt-1"
+                />
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700">Description</label>
@@ -401,13 +508,37 @@ export default function PizzaioloMenu() {
                   </div>
                 </div>
               </div>
+            ) : ['soda', 'eau', 'biere'].includes(itemType) ? (
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-gray-700">Tailles et prix *</p>
+                {DRINK_SIZES[itemType]?.map(size => (
+                  <div key={size.value} className="flex items-center gap-3">
+                    <label className="w-24 text-sm text-gray-600">{size.label}</label>
+                    <Input
+                      value={drinkSizes[size.value] || ''}
+                      onChange={(e) => setDrinkSizes(prev => ({
+                        ...prev,
+                        [size.value]: e.target.value
+                      }))}
+                      placeholder={`${size.defaultPrice.toFixed(2)} €`}
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="flex-1"
+                    />
+                  </div>
+                ))}
+              </div>
             ) : (
               <div>
                 <label className="block text-sm font-medium text-gray-700">Prix (€) *</label>
                 <Input
                   value={priceS}
                   onChange={(e) => setPriceS(e.target.value)}
-                  placeholder="5.00"
+                  placeholder={itemType === 'vin' && itemName ? 
+                    (VINS.find(v => v.name === itemName)?.defaultPrice?.toFixed(2) || '5.00') : 
+                    '5.00'
+                  }
                   type="number"
                   step="0.01"
                   min="0"
