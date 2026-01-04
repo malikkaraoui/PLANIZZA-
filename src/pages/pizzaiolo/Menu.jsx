@@ -145,6 +145,7 @@ export default function PizzaioloMenu() {
   // États pour les boissons
   const [drinkName, setDrinkName] = useState('');
   const [drinkSizes, setDrinkSizes] = useState({});
+  const [selectedDrinkSize, setSelectedDrinkSize] = useState(''); // Taille unique sélectionnée
   
   // États pour les pizzas personnalisées
   const [selectedBase, setSelectedBase] = useState('');
@@ -371,6 +372,10 @@ export default function PizzaioloMenu() {
       setDiameterL('44');
       setDrinkName('');
       setDrinkSizes({});
+      setSelectedDrinkSize('');
+      setSelectedBase('');
+      setSelectedGarnitures([]);
+      setSelectedFromages([]);
       setShowForm(false);
       setMessage('✅ Article ajouté avec succès !');
 
@@ -443,6 +448,10 @@ export default function PizzaioloMenu() {
               setPriceM('');
               setPriceL('');
               setDrinkSizes({});
+              setSelectedDrinkSize('');
+              setSelectedBase('');
+              setSelectedGarnitures([]);
+              setSelectedFromages([]);
             }}>
               Annuler
             </Button>
@@ -620,7 +629,7 @@ export default function PizzaioloMenu() {
             )}
 
             {/* Sélection type de boisson puis boisson spécifique */}
-            {selectedCategory === 'boisson' && itemType && !itemName && (
+            {selectedCategory === 'boisson' && itemType && !itemName && !selectedDrinkSize && (
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   {itemType === 'soda' && 'Choisissez un soda'}
@@ -696,6 +705,29 @@ export default function PizzaioloMenu() {
                       <div className="text-3xl mb-2">{vin.emoji}</div>
                       <div className="font-semibold text-xs">{vin.name}</div>
                       <div className="text-xs text-emerald-600 mt-1">{vin.defaultPrice.toFixed(2)}€</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Sélection de la taille pour les boissons avec tailles */}
+            {selectedCategory === 'boisson' && ['soda', 'eau', 'biere'].includes(itemType) && itemName && !selectedDrinkSize && (
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Choisissez la taille à ajouter</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {DRINK_SIZES[itemType]?.map(size => (
+                    <button
+                      key={size.value}
+                      type="button"
+                      onClick={() => {
+                        setSelectedDrinkSize(size.value);
+                        setDrinkSizes({ [size.value]: size.defaultPrice.toString() });
+                      }}
+                      className="p-6 rounded-xl border-2 border-gray-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-center"
+                    >
+                      <div className="text-2xl font-bold text-gray-900 mb-2">{size.label}</div>
+                      <div className="text-lg text-emerald-600 font-semibold">{size.defaultPrice.toFixed(2)}€</div>
                     </button>
                   ))}
                 </div>
@@ -783,6 +815,8 @@ export default function PizzaioloMenu() {
 
             {/* Champs communs une fois le produit sélectionné */}
             {itemName && (
+              // Pour les boissons avec tailles, attendre la sélection de taille
+              (['soda', 'eau', 'biere'].includes(itemType) && !selectedDrinkSize) ? null : (
               <>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Nom</label>
@@ -790,7 +824,7 @@ export default function PizzaioloMenu() {
                     value={itemName}
                     onChange={(e) => setItemName(e.target.value)}
                     className="mt-1"
-                    readOnly={selectedCategory !== 'calzone'}
+                    readOnly={selectedCategory !== 'calzone' && itemName !== 'La Perso'}
                   />
                 </div>
 
@@ -924,6 +958,7 @@ export default function PizzaioloMenu() {
                   </div>
                 )}
               </>
+              )
             )}
 
             <Button type="submit" disabled={saving} className="w-full">
