@@ -312,44 +312,64 @@ export default function PizzaioloMenu() {
       if (itemType === 'pizza') {
         itemData.sizes = {};
         
-        // Ajouter uniquement les tailles qui ont un prix
-        if (priceS && parseFloat(priceS) > 0) {
+        // Ajouter uniquement les tailles qui ont un prix SAISI (pas vide, pas 0)
+        if (priceS && priceS.trim() !== '' && parseFloat(priceS) > 0) {
           itemData.sizes.s = { 
-            priceCents: parseFloat(priceS) * 100,
+            priceCents: Math.round(parseFloat(priceS) * 100),
             diameter: parseInt(diameterS)
           };
         }
-        if (priceM && parseFloat(priceM) > 0) {
+        if (priceM && priceM.trim() !== '' && parseFloat(priceM) > 0) {
           itemData.sizes.m = { 
-            priceCents: parseFloat(priceM) * 100,
+            priceCents: Math.round(parseFloat(priceM) * 100),
             diameter: parseInt(diameterM)
           };
         }
-        if (priceL && parseFloat(priceL) > 0) {
+        if (priceL && priceL.trim() !== '' && parseFloat(priceL) > 0) {
           itemData.sizes.l = { 
-            priceCents: parseFloat(priceL) * 100,
+            priceCents: Math.round(parseFloat(priceL) * 100),
             diameter: parseInt(diameterL)
           };
         }
+        
+        // Vérifier qu'au moins une taille est présente
+        if (Object.keys(itemData.sizes).length === 0) {
+          setMessage('❌ Vous devez renseigner au moins une taille avec un prix');
+          setSaving(false);
+          return;
+        }
       } else if (['soda', 'eau', 'biere'].includes(itemType)) {
-        // Pour les boissons avec tailles
+        // Pour les boissons avec tailles (une seule taille sélectionnée)
         itemData.sizes = {};
+        
+        // drinkSizes contient la taille sélectionnée avec son prix
         Object.entries(drinkSizes).forEach(([size, price]) => {
-          if (price && parseFloat(price) > 0) {
+          // Utiliser le prix saisi ou le prix par défaut
+          const priceStr = price ? price.toString().trim() : '';
+          const parsedPrice = priceStr !== '' ? parseFloat(priceStr) : 0;
+          
+          const finalPrice = parsedPrice > 0 
+            ? parsedPrice 
+            : DRINK_SIZES[itemType]?.find(s => s.value === size)?.defaultPrice || 0;
+          
+          if (finalPrice > 0) {
             itemData.sizes[size] = {
-              priceCents: parseFloat(price) * 100
+              priceCents: Math.round(finalPrice * 100)
             };
           }
         });
         
         if (Object.keys(itemData.sizes).length === 0) {
-          setMessage('❌ Vous devez renseigner au moins une taille');
+          setMessage('❌ Erreur: aucune taille avec prix valide');
           setSaving(false);
           return;
         }
       } else if (itemType === 'vin') {
-        // Pour les vins, un seul prix par bouteille
-        itemData.priceCents = parseFloat(priceS) * 100;
+        // Pour les vins, un seul prix par bouteille (utiliser défaut si vide)
+        const finalPrice = priceS && parseFloat(priceS) > 0
+          ? parseFloat(priceS)
+          : VINS.find(v => v.name === itemName)?.defaultPrice || 0;
+        itemData.priceCents = finalPrice * 100;
       } else {
         // Pour calzone et dessert, un seul prix
         itemData.priceCents = parseFloat(priceS) * 100;
@@ -464,61 +484,102 @@ export default function PizzaioloMenu() {
           </div>
         )}
 
-        {/* Tuiles de sélection de catégorie */}
-        {!showForm && (
-          <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-            <button
-              onClick={() => {
-                setSelectedCategory('pizza');
-                setItemType('pizza');
-                setShowForm(true);
-              }}
-              className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 p-6 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
-            >
-              <div className="text-5xl mb-3">🍕</div>
-              <h3 className="text-xl font-bold">PIZZA</h3>
-              <p className="text-sm text-white/80 mt-1">Créer une pizza</p>
-            </button>
+        {/* Tuiles de sélection de catégorie - TOUJOURS VISIBLES */}
+        <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+          <button
+            onClick={() => {
+              setSelectedCategory('pizza');
+              setItemType('pizza');
+              setItemName('');
+              setItemDesc('');
+              setPriceS('');
+              setPriceM('');
+              setPriceL('');
+              setSelectedDrinkSize('');
+              setDrinkSizes({});
+              setSelectedBase('');
+              setSelectedGarnitures([]);
+              setSelectedFromages([]);
+              setShowForm(true);
+            }}
+            className={`group relative overflow-hidden rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95 ${
+              selectedCategory === 'pizza' 
+                ? 'bg-gradient-to-br from-orange-600 to-red-700 ring-4 ring-orange-300' 
+                : 'bg-gradient-to-br from-orange-500 to-red-600'
+            }`}
+          >
+            <div className="text-5xl mb-3">🍕</div>
+            <h3 className="text-xl font-bold">PIZZA</h3>
+            <p className="text-sm text-white/80 mt-1">Créer une pizza</p>
+          </button>
 
-            <button
-              onClick={() => {
-                setSelectedCategory('calzone');
-                setItemType('calzone');
-                setShowForm(true);
-              }}
-              className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 p-6 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
-            >
-              <div className="text-5xl mb-3">🥟</div>
-              <h3 className="text-xl font-bold">CALZONE</h3>
-              <p className="text-sm text-white/80 mt-1">Ajouter un calzone</p>
-            </button>
+          <button
+            onClick={() => {
+              setSelectedCategory('calzone');
+              setItemType('calzone');
+              setItemName('');
+              setItemDesc('');
+              setPriceS('');
+              setPriceM('');
+              setPriceL('');
+              setSelectedDrinkSize('');
+              setDrinkSizes({});
+              setShowForm(true);
+            }}
+            className={`group relative overflow-hidden rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95 ${
+              selectedCategory === 'calzone' 
+                ? 'bg-gradient-to-br from-amber-600 to-orange-700 ring-4 ring-amber-300' 
+                : 'bg-gradient-to-br from-amber-500 to-orange-600'
+            }`}
+          >
+            <div className="text-5xl mb-3">🥟</div>
+            <h3 className="text-xl font-bold">CALZONE</h3>
+            <p className="text-sm text-white/80 mt-1">Ajouter un calzone</p>
+          </button>
 
-            <button
-              onClick={() => {
-                setSelectedCategory('boisson');
-                setShowForm(true);
-              }}
-              className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-600 p-6 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
-            >
-              <div className="text-5xl mb-3">🥤</div>
-              <h3 className="text-xl font-bold">BOISSONS</h3>
-              <p className="text-sm text-white/80 mt-1">Sodas, eaux, bières...</p>
-            </button>
+          <button
+            onClick={() => {
+              setSelectedCategory('boisson');
+              setItemName('');
+              setItemDesc('');
+              setPriceS('');
+              setSelectedDrinkSize('');
+              setDrinkSizes({});
+              setShowForm(true);
+            }}
+            className={`group relative overflow-hidden rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95 ${
+              selectedCategory === 'boisson' 
+                ? 'bg-gradient-to-br from-blue-600 to-cyan-700 ring-4 ring-blue-300' 
+                : 'bg-gradient-to-br from-blue-500 to-cyan-600'
+            }`}
+          >
+            <div className="text-5xl mb-3">🥤</div>
+            <h3 className="text-xl font-bold">BOISSONS</h3>
+            <p className="text-sm text-white/80 mt-1">Sodas, eaux, bières...</p>
+          </button>
 
-            <button
-              onClick={() => {
-                setSelectedCategory('dessert');
-                setItemType('dessert');
-                setShowForm(true);
-              }}
-              className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-pink-500 to-purple-600 p-6 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
-            >
-              <div className="text-5xl mb-3">🍰</div>
-              <h3 className="text-xl font-bold">DESSERT</h3>
-              <p className="text-sm text-white/80 mt-1">Ajouter un dessert</p>
-            </button>
-          </div>
-        )}
+          <button
+            onClick={() => {
+              setSelectedCategory('dessert');
+              setItemType('dessert');
+              setItemName('');
+              setItemDesc('');
+              setPriceS('');
+              setSelectedDrinkSize('');
+              setDrinkSizes({});
+              setShowForm(true);
+            }}
+            className={`group relative overflow-hidden rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95 ${
+              selectedCategory === 'dessert' 
+                ? 'bg-gradient-to-br from-pink-600 to-purple-700 ring-4 ring-pink-300' 
+                : 'bg-gradient-to-br from-pink-500 to-purple-600'
+            }`}
+          >
+            <div className="text-5xl mb-3">🍰</div>
+            <h3 className="text-xl font-bold">DESSERT</h3>
+            <p className="text-sm text-white/80 mt-1">Ajouter un dessert</p>
+          </button>
+        </div>
 
         {/* Formulaire selon la catégorie sélectionnée */}
         {showForm && selectedCategory === 'boisson' && (
@@ -527,7 +588,12 @@ export default function PizzaioloMenu() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <button
                 type="button"
-                onClick={() => setItemType('soda')}
+                onClick={() => {
+                  setItemType('soda');
+                  setItemName('');
+                  setSelectedDrinkSize('');
+                  setDrinkSizes({});
+                }}
                 className={`p-4 rounded-xl border-2 transition-all ${
                   itemType === 'soda' 
                     ? 'border-emerald-500 bg-emerald-50' 
@@ -539,7 +605,12 @@ export default function PizzaioloMenu() {
               </button>
               <button
                 type="button"
-                onClick={() => setItemType('eau')}
+                onClick={() => {
+                  setItemType('eau');
+                  setItemName('');
+                  setSelectedDrinkSize('');
+                  setDrinkSizes({});
+                }}
                 className={`p-4 rounded-xl border-2 transition-all ${
                   itemType === 'eau' 
                     ? 'border-emerald-500 bg-emerald-50' 
@@ -551,7 +622,12 @@ export default function PizzaioloMenu() {
               </button>
               <button
                 type="button"
-                onClick={() => setItemType('biere')}
+                onClick={() => {
+                  setItemType('biere');
+                  setItemName('');
+                  setSelectedDrinkSize('');
+                  setDrinkSizes({});
+                }}
                 className={`p-4 rounded-xl border-2 transition-all ${
                   itemType === 'biere' 
                     ? 'border-emerald-500 bg-emerald-50' 
@@ -563,7 +639,12 @@ export default function PizzaioloMenu() {
               </button>
               <button
                 type="button"
-                onClick={() => setItemType('vin')}
+                onClick={() => {
+                  setItemType('vin');
+                  setItemName('');
+                  setSelectedDrinkSize('');
+                  setDrinkSizes({});
+                }}
                 className={`p-4 rounded-xl border-2 transition-all ${
                   itemType === 'vin' 
                     ? 'border-emerald-500 bg-emerald-50' 
@@ -916,26 +997,19 @@ export default function PizzaioloMenu() {
                   </div>
                 )}
 
-                {['soda', 'eau', 'biere'].includes(itemType) && (
-                  <div className="space-y-3">
-                <p className="text-sm font-medium text-gray-700">Tailles et prix *</p>
-                {DRINK_SIZES[itemType]?.map(size => (
-                  <div key={size.value} className="flex items-center gap-3">
-                    <label className="w-24 text-sm text-gray-600">{size.label}</label>
+                {['soda', 'eau', 'biere'].includes(itemType) && selectedDrinkSize && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Prix {DRINK_SIZES[itemType]?.find(s => s.value === selectedDrinkSize)?.label} (€) *
+                    </label>
                     <Input
-                      value={drinkSizes[size.value] || ''}
-                      onChange={(e) => setDrinkSizes(prev => ({
-                        ...prev,
-                        [size.value]: e.target.value
-                      }))}
-                      placeholder={`${size.defaultPrice.toFixed(2)} €`}
+                      value={drinkSizes[selectedDrinkSize] || ''}
+                      onChange={(e) => setDrinkSizes({ [selectedDrinkSize]: e.target.value })}
+                      placeholder={`${DRINK_SIZES[itemType]?.find(s => s.value === selectedDrinkSize)?.defaultPrice.toFixed(2)}`}
                       type="number"
                       step="0.01"
                       min="0"
-                      className="flex-1"
                     />
-                  </div>
-                ))}
                   </div>
                 )}
 
@@ -991,22 +1065,50 @@ export default function PizzaioloMenu() {
                   )}
                   
                   <div className="mt-3 flex items-center gap-4 flex-wrap">
-                    {item.type === 'pizza' && item.sizes ? (
+                    {(item.type === 'pizza' || ['soda', 'eau', 'biere'].includes(item.type)) && item.sizes ? (
                       <>
-                        {item.sizes.s && (
-                          <span className="text-sm font-semibold text-gray-900">
-                            S ({item.sizes.s.diameter}cm): {formatPrice(item.sizes.s.priceCents)}
-                          </span>
-                        )}
-                        {item.sizes.m && (
-                          <span className="text-sm font-semibold text-gray-900">
-                            M ({item.sizes.m.diameter}cm): {formatPrice(item.sizes.m.priceCents)}
-                          </span>
-                        )}
-                        {item.sizes.l && (
-                          <span className="text-sm font-semibold text-gray-900">
-                            L ({item.sizes.l.diameter}cm): {formatPrice(item.sizes.l.priceCents)}
-                          </span>
+                        {item.type === 'pizza' ? (
+                          <>
+                            {item.sizes.s && (
+                              <span className="text-sm font-semibold text-gray-900">
+                                S ({item.sizes.s.diameter}cm): {formatPrice(item.sizes.s.priceCents)}
+                              </span>
+                            )}
+                            {item.sizes.m && (
+                              <span className="text-sm font-semibold text-gray-900">
+                                M ({item.sizes.m.diameter}cm): {formatPrice(item.sizes.m.priceCents)}
+                              </span>
+                            )}
+                            {item.sizes.l && (
+                              <span className="text-sm font-semibold text-gray-900">
+                                L ({item.sizes.l.diameter}cm): {formatPrice(item.sizes.l.priceCents)}
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          // Pour les boissons
+                          <>
+                            {item.sizes['25cl'] && (
+                              <span className="text-sm font-semibold text-gray-900">
+                                25cL: {formatPrice(item.sizes['25cl'].priceCents)}
+                              </span>
+                            )}
+                            {item.sizes['33cl'] && (
+                              <span className="text-sm font-semibold text-gray-900">
+                                33cL: {formatPrice(item.sizes['33cl'].priceCents)}
+                              </span>
+                            )}
+                            {item.sizes['50cl'] && (
+                              <span className="text-sm font-semibold text-gray-900">
+                                50cL: {formatPrice(item.sizes['50cl'].priceCents)}
+                              </span>
+                            )}
+                            {item.sizes['1l'] && (
+                              <span className="text-sm font-semibold text-gray-900">
+                                1L: {formatPrice(item.sizes['1l'].priceCents)}
+                              </span>
+                            )}
+                          </>
                         )}
                       </>
                     ) : item.type === 'pizza' && item.prices ? (

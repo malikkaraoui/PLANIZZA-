@@ -97,8 +97,16 @@ export default function PizzaioloOrders() {
           const truckSnap = await get(truckRef);
           if (truckSnap.exists()) {
             const truckData = truckSnap.val();
+            console.log('[PizzaioloOrders] Données camion complètes:', truckData);
+            console.log('[PizzaioloOrders] Horaires bruts:', truckData.openingHours);
+            console.log('[PizzaioloOrders] Horaires schedule:', truckData.schedule);
+            console.log('[PizzaioloOrders] Horaires hours:', truckData.hours);
             setPizzaPerHour(truckData.capacity?.pizzaPerHour || 30);
-            setOpeningHours(truckData.openingHours || null);
+            
+            // Essayer différentes clés possibles pour les horaires
+            const hours = truckData.openingHours || truckData.schedule || truckData.hours || null;
+            console.log('[PizzaioloOrders] Horaires finalement utilisés:', hours);
+            setOpeningHours(hours);
           }
         }
       } catch (err) {
@@ -183,47 +191,59 @@ export default function PizzaioloOrders() {
     
     switch (filters.period) {
       case 'today': {
-        // Heure par heure (11h à 23h ou selon horaires)
+        // NOUVELLE MÉTHODE : détection automatique de la plage horaire depuis les commandes
         const today = new Date();
-        const currentHour = today.getHours();
-        const dayName = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][today.getDay()];
-        const todayHours = openingHours?.[dayName];
-        const startHour = todayHours?.enabled ? parseInt(todayHours.open?.split(':')[0] || 11) : 11;
-        const endHour = todayHours?.enabled ? parseInt(todayHours.close?.split(':')[0] || 23) : 23;
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
         
-        // S'arrêter à l'heure actuelle (pas afficher les heures futures)
-        const maxHour = Math.min(currentHour, endHour);
+        // Récupérer toutes les commandes delivered d'aujourd'hui
+        const todayDelivered = filteredCompletedOrders.filter(o => {
+          const orderDate = new Date(o.createdAt);
+          return o.status === 'delivered' && orderDate >= todayStart;
+        });
         
-        console.log('[getChartData TODAY] Plage horaire:', startHour, 'à', maxHour);
-        console.log('[getChartData TODAY] Commandes delivered aujourd\'hui:', 
-          filteredCompletedOrders.filter(o => {
-            const orderDate = new Date(o.createdAt);
-            const orderToday = new Date();
-            orderToday.setHours(0, 0, 0, 0);
-            return o.status === 'delivered' && orderDate >= orderToday;
-          }).map(o => ({
-            id: o.id,
-            createdAt: new Date(o.createdAt).toLocaleString('fr-FR'),
-            hour: new Date(o.createdAt).getHours(),
-            totalCents: o.totalCents,
-            source: o.source
-          }))
-        );
+        console.log('[getChartData TODAY] Commandes delivered:', todayDelivered.length);
         
-        for (let hour = startHour; hour <= maxHour; hour++) {
-          const hourStart = new Date(today);
-          hourStart.setHours(hour, 0, 0, 0);
-          const hourEnd = new Date(today);
-          hourEnd.setHours(hour + 1, 0, 0, 0);
+        if (todayDelivered.length === 0) {
+          // Aucune commande : afficher 8h-23h par défaut
+          for (let hour = 8; hour <= 23; hour++) {
+            labels.push(`${hour}h`);
+            revenues.push(0);
+            pizzaCounts.push(0);
+          }
+          console.log('[getChartData TODAY] Aucune commande, plage par défaut 8h-23h');
+        } else {
+          // Détecter automatiquement min/max depuis les commandes
+          const hours = todayDelivered.map(o => new Date(o.createdAt).getHours());
+          const minHour = Math.min(...hours);
+          const maxHour = Math.max(...hours);
           
-          const hourOrders = filteredCompletedOrders.filter((o) => {
-            const orderDate = new Date(o.createdAt);
-            return orderDate >= hourStart && orderDate < hourEnd && o.status === 'delivered';
-          });
+          // Élargir d'1h avant/après pour avoir de la marge
+          const startHour = Math.max(0, minHour - 1);
+          const endHour = Math.min(23, maxHour + 1);
           
-          labels.push(`${hour}h`);
-          revenues.push(hourOrders.reduce((sum, o) => sum + (o.totalCents || 0) / 100, 0));
-          pizzaCounts.push(hourOrders.reduce((sum, o) => sum + (o.items?.reduce((s, i) => s + (i.qty || 0), 0) || 0), 0));
+          console.log('[getChartData TODAY] Heures détectées:', hours);
+          console.log('[getChartData TODAY] Plage auto:', startHour, 'à', endHour);
+          
+          for (let hour = startHour; hour <= endHour; hour++) {
+            const hourStart = new Date(today);
+            hourStart.setHours(hour, 0, 0, 0);
+            const hourEnd = new Date(today);
+            hourEnd.setHours(hour + 1, 0, 0, 0);
+            
+            const hourOrders = filteredCompletedOrders.filter((o) => {
+              const orderDate = new Date(o.createdAt);
+              return orderDate >= hourStart && orderDate < hourEnd && o.status === 'delivered';
+            });
+            
+            labels.push(`${hour}h`);
+            revenues.push(hourOrders.reduce((sum, o) => sum + (o.totalCents || 0) / 100, 0));
+            pizzaCounts.push(hourOrders.reduce((sum, o) => sum + (o.items?.reduce((s, i) => s + (i.qty || 0), 0) || 0), 0));
+            
+            if (hourOrders.length > 0) {
+              console.log(`[getChartData TODAY] ${hour}h: ${hourOrders.length} commandes, ${revenues[revenues.length-1]}€`);
+            }
+          }
         }
         break;
       }
