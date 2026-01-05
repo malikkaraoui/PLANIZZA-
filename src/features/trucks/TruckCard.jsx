@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { MapPin, Star, Clock, Pizza } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
@@ -20,6 +20,7 @@ function formatKm(km) {
 }
 
 export default function TruckCard({ truck }) {
+  const navigate = useNavigate();
   const hero = Array.isArray(truck.photos) && truck.photos.length ? truck.photos[0] : null;
   const href = ROUTES.truck(truck.slug || truck.id);
   const kmText = formatKm(truck.distanceKm);
@@ -32,10 +33,14 @@ export default function TruckCard({ truck }) {
   const isOpen = isCurrentlyOpen(truck.openingHours);
   const statusText = getOpeningStatusText(truck.openingHours);
 
+  const handleCardClick = () => {
+    navigate(href);
+  };
+
   return (
     <Card className={`group glass-premium glass-glossy overflow-hidden border-white/30 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.2)] ${isPaused ? 'opacity-60 blur-[0.5px] backdrop-blur-xl' : ''}`}>
       {/* Image d'en-tête */}
-      <Link to={href} className="relative block aspect-16/10 overflow-hidden">
+      <div onClick={handleCardClick} className="relative block aspect-16/10 overflow-hidden cursor-pointer">
         {hero ? (
           <img
             src={hero}
@@ -81,7 +86,7 @@ export default function TruckCard({ truck }) {
             VOIR LE MENU
           </div>
         </div>
-      </Link>
+      </div>
 
       <CardHeader className="pb-4 pt-6 px-6">
         <div className="flex items-start gap-5">
@@ -98,10 +103,8 @@ export default function TruckCard({ truck }) {
 
           <div className="flex-1 min-w-0 space-y-1">
             <div className="flex items-center gap-2">
-              <CardTitle className="text-xl font-black tracking-tighter truncate group-hover:text-premium-gradient transition-all duration-300">
-                <Link to={href}>
-                  {truck.name}
-                </Link>
+              <CardTitle className="text-xl font-black tracking-tighter truncate group-hover:text-premium-gradient transition-all duration-300 cursor-pointer" onClick={handleCardClick}>
+                {truck.name}
               </CardTitle>
               {isPaused && (
                 <Badge variant="secondary" className="text-xs font-bold">
