@@ -8,11 +8,13 @@ import { ROUTES } from '../../app/routes';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
+import { Input } from '../../components/ui/Input';
 import { useTruckOrders } from '../../features/orders/hooks/useTruckOrders';
 import { useUpdateOrderStatus } from '../../features/orders/hooks/useUpdateOrderStatus';
 import { usePizzaioloTruckId } from '../../features/pizzaiolo/hooks/usePizzaioloTruckId';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { getFilteredOrders, isExpired, MAX_ORDER_DURATION } from '../../features/orders/utils/orderFilters';
+import { useScrollDirection } from '../../hooks/useScrollDirection';
 
 // Statuts possibles (SIMPLIFIÉ)
 const STATUS_CONFIG = {
@@ -28,6 +30,7 @@ const TVA_RATE = 0.10; // 10% TVA restauration
 export default function PizzaioloOrders() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { isVisible: isScrolledUp } = useScrollDirection(10);
 
   const {
     truckId,
@@ -130,11 +133,18 @@ export default function PizzaioloOrders() {
   // Calculer le temps écoulé (pour les commandes non prises en charge)
   const getElapsedTime = (createdAt) => {
     if (!createdAt) return '—';
+    
+    // Debug: afficher les timestamps
+    console.log('[CHRONO] createdAt:', createdAt, 'currentTime:', currentTime, 'diff:', (currentTime - createdAt) / 1000, 's');
+    
     const diff = Math.floor((currentTime - createdAt) / 1000);
     
-    if (diff < 60) return `${diff}s`;
-    if (diff < 3600) return `${Math.floor(diff / 60)}min`;
-    return `${Math.floor(diff / 3600)}h${Math.floor((diff % 3600) / 60)}min`;
+    // Si le temps est négatif (peut arriver avec désync horloge), afficher en positif
+    const absDiff = Math.abs(diff);
+    
+    if (absDiff < 60) return `${absDiff}s`;
+    if (absDiff < 3600) return `${Math.floor(absDiff / 60)}min`;
+    return `${Math.floor(absDiff / 3600)}h${Math.floor((absDiff % 3600) / 60)}min`;
   };
 
   // Calculer le temps restant basé sur la cadence du pizzaiolo (pour commandes prises en charge)
@@ -165,6 +175,22 @@ export default function PizzaioloOrders() {
   // Marquer comme livrée
   const handleDeliver = async (orderId) => {
     console.log('[Orders] Clic sur Délivré, orderId:', orderId);
+    
+    // Vérifier si c'est une commande manuelle non payée
+    const order = orders.find(o => o.id === orderId);
+    if (order?.source === 'manual' && order?.payment?.paymentStatus !== 'paid') {
+      const confirmed = window.confirm(
+        `⚠️ ATTENTION : Cette commande n'a pas été marquée comme PAYÉE !\n\n` +
+        `Client : ${order.customerName || 'Client'}\n` +
+        `Montant : ${(order.totalCents / 100).toFixed(2)} €\n\n` +
+        `Confirmez-vous que le client a bien payé et que vous voulez marquer cette commande comme délivrée ?`
+      );
+      
+      if (!confirmed) {
+        return; // Annuler la livraison
+      }
+    }
+    
     const result = await updateStatus(orderId, 'delivered');
     console.log('[Orders] Résultat:', result);
   };
@@ -245,11 +271,56 @@ export default function PizzaioloOrders() {
       </button>
 
       {/* Header */}
-      <div>
-        <h1 className="text-4xl font-black tracking-tight">Commandes Reçues</h1>
-        <p className="text-muted-foreground font-medium mt-2">
-          {filteredActiveOrders.length} commande{filteredActiveOrders.length > 1 ? 's' : ''} en cours
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-black tracking-tight">Commandes</h1>
+          <p className="text-muted-foreground font-medium mt-2">
+            {filteredActiveOrders.length} commande{filteredActiveOrders.length > 1 ? 's' : ''} en cours
+          </p>
+        </div>
+
+        {/* Cadence de production - Desktop uniquement */}
+        <Card className="hidden md:flex glass-premium glass-glossy border-white/20 p-3 rounded-2xl">
+          <div className="flex items-center gap-2">
+            <Pizza className="h-5 w-5 text-orange-500" />
+            <button
+              onClick={() => {
+                const newValue = Math.max(1, pizzaPerHour - 1);
+                setPizzaPerHour(newValue);
+                if (db && truckId) {
+                  const capacityRef = ref(db, `public/trucks/${truckId}/capacity/pizzaPerHour`);
+                  set(capacityRef, newValue).catch(err => 
+                    console.error('[Orders] Erreur sauvegarde cadence:', err)
+                  );
+                }
+              }}
+              className="w-10 h-10 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 active:bg-orange-500/30 flex items-center justify-center font-black text-xl text-orange-500 transition-colors"
+            >
+              −
+            </button>
+            <span className="text-xl font-black text-orange-500 min-w-12 text-center">
+              {pizzaPerHour}
+            </span>
+            <button
+              onClick={() => {
+                const newValue = Math.min(100, pizzaPerHour + 1);
+                setPizzaPerHour(newValue);
+                if (db && truckId) {
+                  const capacityRef = ref(db, `public/trucks/${truckId}/capacity/pizzaPerHour`);
+                  set(capacityRef, newValue).catch(err => 
+                    console.error('[Orders] Erreur sauvegarde cadence:', err)
+                  );
+                }
+              }}
+              className="w-10 h-10 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 active:bg-orange-500/30 flex items-center justify-center font-black text-xl text-orange-500 transition-colors"
+            >
+              +
+            </button>
+            <span className="text-sm font-bold text-muted-foreground">
+              🍕/h
+            </span>
+          </div>
+        </Card>
       </div>
 
       {/* Filtres des commandes */}
@@ -553,7 +624,13 @@ export default function PizzaioloOrders() {
                         <div className="text-right">
                           {order.status === 'received' ? (
                             <>
-                              <div className="text-2xl font-black text-orange-500">
+                              <div className={`text-2xl font-black ${
+                                elapsed.includes('min') || elapsed.includes('h') 
+                                  ? 'text-red-500 animate-pulse' 
+                                  : parseInt(elapsed) >= 60 
+                                    ? 'text-red-500 animate-pulse'
+                                    : 'text-orange-500'
+                              }`}>
                                 {elapsed}
                               </div>
                               <span className="text-xs font-bold text-muted-foreground uppercase">Chrono</span>
@@ -611,14 +688,14 @@ export default function PizzaioloOrders() {
 
                     {/* Actions */}
                     <div className="flex flex-col gap-2" style={{ minWidth: '180px' }}>
-                      {/* Bouton Marquer Payé pour commandes manuelles non payées */}
+                      {/* Bouton Marquer Payé pour commandes manuelles non payées - ROUGE et visible */}
                       {order.source === 'manual' && order.payment?.paymentStatus !== 'paid' && (
                         <Button
                           onClick={() => handleMarkPaid(order.id)}
-                          className="w-full rounded-xl h-10 font-bold bg-green-600 hover:bg-green-700 text-white flex items-center justify-center gap-2"
+                          className="w-full rounded-xl h-14 font-black text-base bg-red-600 hover:bg-red-700 text-white flex items-center justify-center gap-2 animate-pulse shadow-lg shadow-red-500/50 border-2 border-red-400"
                         >
-                          <CreditCard className="h-4 w-4" />
-                          Marquer Payé
+                          <CreditCard className="h-5 w-5" />
+                          💰 MARQUER PAYÉ
                         </Button>
                       )}
                       
@@ -882,6 +959,57 @@ export default function PizzaioloOrders() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Cadence de production - Mobile uniquement (sticky en bas) */}
+      <div 
+        className={`md:hidden fixed bottom-0 left-0 right-0 z-40 transition-transform duration-300 ease-in-out ${
+          isScrolledUp ? 'translate-y-0' : 'translate-y-full'
+        }`}
+      >
+        <div className="px-4 pb-4 pt-2">
+          <Card className="glass-premium glass-glossy border-white/20 p-4 rounded-2xl shadow-2xl">
+            <div className="flex items-center justify-center gap-3">
+              <Pizza className="h-6 w-6 text-orange-500" />
+              <button
+                onClick={() => {
+                  const newValue = Math.max(1, pizzaPerHour - 1);
+                  setPizzaPerHour(newValue);
+                  if (db && truckId) {
+                    const capacityRef = ref(db, `public/trucks/${truckId}/capacity/pizzaPerHour`);
+                    set(capacityRef, newValue).catch(err => 
+                      console.error('[Orders] Erreur sauvegarde cadence:', err)
+                    );
+                  }
+                }}
+                className="w-12 h-12 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 active:bg-orange-500/30 flex items-center justify-center font-black text-2xl text-orange-500 transition-colors"
+              >
+                −
+              </button>
+              <span className="text-2xl font-black text-orange-500 min-w-16 text-center">
+                {pizzaPerHour}
+              </span>
+              <button
+                onClick={() => {
+                  const newValue = Math.min(100, pizzaPerHour + 1);
+                  setPizzaPerHour(newValue);
+                  if (db && truckId) {
+                    const capacityRef = ref(db, `public/trucks/${truckId}/capacity/pizzaPerHour`);
+                    set(capacityRef, newValue).catch(err => 
+                      console.error('[Orders] Erreur sauvegarde cadence:', err)
+                    );
+                  }
+                }}
+                className="w-12 h-12 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 active:bg-orange-500/30 flex items-center justify-center font-black text-2xl text-orange-500 transition-colors"
+              >
+                +
+              </button>
+              <span className="text-base font-bold text-muted-foreground">
+                🍕/h
+              </span>
+            </div>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

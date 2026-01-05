@@ -157,8 +157,7 @@ export default function PizzaioloLive() {
         timeline: {},
         payment: {
           provider: 'manual',
-          paymentStatus: 'paid',
-          paidAt: Date.now()
+          paymentStatus: 'pending', // Commande manuelle créée comme non-payée
         },
         deliveryMethod: 'pickup',
         customerName: customerName.trim(),
