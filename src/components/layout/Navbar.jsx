@@ -18,11 +18,13 @@ import { useCart } from '../../features/cart/hooks/useCart.jsx';
 import { ref, onValue } from 'firebase/database';
 import { db } from '../../lib/firebase';
 import { rtdbPaths } from '../../lib/rtdbPaths';
+import { useScrollDirection } from '../../hooks/useScrollDirection';
 
 export default function Navbar() {
   const { isAuthenticated, user } = useAuth();
   const { items } = useCart();
   const [pizzaioloTruckId, setPizzaioloTruckId] = useState(null);
+  const { isVisible } = useScrollDirection(10);
 
   const isPizzaiolo = Boolean(user?.uid && pizzaioloTruckId);
 
@@ -52,7 +54,7 @@ export default function Navbar() {
   }, [user?.uid]);
 
   return (
-    <header className="sticky top-0 z-50 flex justify-center w-full pointer-events-none">
+    <header className={`sticky top-0 z-50 flex justify-center w-full pointer-events-none transition-transform duration-300 ease-in-out ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}>
       <div className="container max-w-7xl w-full px-4 sm:px-6 lg:px-8 pointer-events-auto">
         <div className="floating-island w-full h-20 items-center justify-between flex px-8 transition-transform duration-500 hover:scale-[1.01]">
           {/* Logo */}

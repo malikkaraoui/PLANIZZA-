@@ -4,6 +4,21 @@
 @plugin "tailwindcss-animate";
 @custom-variant dark (&:is(.dark *));
 
+/* Animation CSS pour détecter l'autofill Chrome/Edge */
+@keyframes onAutoFillStart {
+  from {
+    /**/
+  }
+  to {
+    /**/
+  }
+}
+
+input:-webkit-autofill {
+  animation-name: onAutoFillStart;
+  animation-duration: 0.001s;
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

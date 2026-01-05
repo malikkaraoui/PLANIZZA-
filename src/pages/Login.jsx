@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
@@ -14,6 +14,9 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const emailRef = useRef(null);
+  const passwordRef = useRef(null);
+  const formRef = useRef(null);
 
   const onGoogleLogin = async () => {
     if (!isFirebaseConfigured || !auth) {
@@ -60,6 +63,55 @@ export default function Login() {
     }
   };
 
+  // Détection de l'auto-remplissage par gestionnaire de mots de passe
+  // pour soumettre automatiquement le formulaire (sans friction)
+  useEffect(() => {
+    if (!emailRef.current || !passwordRef.current) return;
+
+    let autosubmitTimer = null;
+
+    // Gestionnaires de mots de passe déclenchent soit 'animationstart' (Chrome/Edge avec :-webkit-autofill),
+    // soit 'input' avec valeur déjà remplie (Firefox, Safari).
+    const checkAutofillAndSubmit = () => {
+      // Attendre un court instant pour que les deux champs soient remplis
+      clearTimeout(autosubmitTimer);
+      autosubmitTimer = setTimeout(() => {
+        const emailFilled = emailRef.current?.value?.trim().length > 0;
+        const passwordFilled = passwordRef.current?.value?.trim().length > 0;
+
+        // Si les deux sont remplis ET qu'on n'est pas déjà en train de charger, soumettre
+        if (emailFilled && passwordFilled && !loading && formRef.current) {
+          formRef.current.requestSubmit();
+        }
+      }, 300);
+    };
+
+    // Chrome/Edge: détecte l'animation CSS :-webkit-autofill
+    const handleAnimation = (e) => {
+      if (e.animationName === 'onAutoFillStart') {
+        checkAutofillAndSubmit();
+      }
+    };
+
+    // Firefox/Safari: détecte l'événement 'input' après autofill
+    const handleInput = () => {
+      checkAutofillAndSubmit();
+    };
+
+    emailRef.current.addEventListener('animationstart', handleAnimation);
+    passwordRef.current.addEventListener('animationstart', handleAnimation);
+    emailRef.current.addEventListener('input', handleInput);
+    passwordRef.current.addEventListener('input', handleInput);
+
+    return () => {
+      clearTimeout(autosubmitTimer);
+      emailRef.current?.removeEventListener('animationstart', handleAnimation);
+      passwordRef.current?.removeEventListener('animationstart', handleAnimation);
+      emailRef.current?.removeEventListener('input', handleInput);
+      passwordRef.current?.removeEventListener('input', handleInput);
+    };
+  }, [loading]);
+
   return (
     <div className="container mx-auto max-w-lg px-4 py-12">
       <Card>
@@ -73,16 +125,18 @@ export default function Login() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <form className="space-y-4" onSubmit={onSubmit}>
+          <form ref={formRef} className="space-y-4" onSubmit={onSubmit}>
             <div className="space-y-2">
               <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                 Email
               </label>
-              <Input 
+              <Input
+                ref={emailRef}
                 value={email} 
                 onChange={(e) => setEmail(e.target.value)} 
                 type="email" 
                 placeholder="votre@email.com"
+                autoComplete="email"
                 required 
               />
             </div>
@@ -90,11 +144,13 @@ export default function Login() {
               <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                 Mot de passe
               </label>
-              <Input 
+              <Input
+                ref={passwordRef}
                 value={password} 
                 onChange={(e) => setPassword(e.target.value)} 
                 type="password" 
                 placeholder="••••••••"
+                autoComplete="current-password"
                 required 
               />
             </div>
