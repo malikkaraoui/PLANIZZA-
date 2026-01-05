@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ref, get, set, push, update, remove, query, orderByChild, equalTo } from 'firebase/database';
 import { ref as storageRef, deleteObject } from 'firebase/storage';
-import { Pause, Play, Pizza, Edit2, ArrowLeft, Trash2, Radio, ListOrdered, Utensils } from 'lucide-react';
+import { Pause, Play, Pizza, Edit2, ArrowLeft, Trash2, Radio, ListOrdered, Utensils, TrendingUp } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import Card from '../../components/ui/Card';
 import { useAuth } from '../../app/providers/AuthProvider';
@@ -418,7 +418,7 @@ export default function PizzaioloProfile() {
 
       {/* Navigation rapide */}
       {truckId && (
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Link
             to={ROUTES.pizzaioloLive}
             className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px] hover:border-primary/50 transition-all group"
@@ -450,7 +450,22 @@ export default function PizzaioloProfile() {
               </div>
               <div>
                 <h3 className="font-black text-lg">Commandes</h3>
-                <p className="text-xs text-muted-foreground">Historique & Stats</p>
+                <p className="text-xs text-muted-foreground">Gestion en direct</p>
+              </div>
+            </div>
+          </Link>
+
+          <Link
+            to={ROUTES.pizzaioloStats}
+            className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px] hover:border-primary/50 transition-all group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-purple-500/10 group-hover:bg-purple-500/20 transition">
+                <TrendingUp className="h-6 w-6 text-purple-500" />
+              </div>
+              <div>
+                <h3 className="font-black text-lg">Statistiques</h3>
+                <p className="text-xs text-muted-foreground">Analytics & CA</p>
               </div>
             </div>
           </Link>

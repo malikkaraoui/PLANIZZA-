@@ -16,6 +16,7 @@ import PizzaioloDashboard from '../pages/pizzaiolo/Dashboard';
 import PizzaioloProfile from '../pages/pizzaiolo/Profile';
 import PizzaioloMenu from '../pages/pizzaiolo/Menu';
 import PizzaioloOrders from '../pages/pizzaiolo/Orders';
+import PizzaioloStats from '../pages/pizzaiolo/Stats';
 import PizzaioloLive from '../pages/pizzaiolo/Live';
 import PizzaioloStart from '../pages/pizzaiolo/Start';
 import CreateTruck from '../pages/pizzaiolo/CreateTruck';
@@ -87,6 +88,7 @@ export const router = createBrowserRouter([
           { path: 'truck', element: <PizzaioloProfile /> },
           { path: 'menu', element: <PizzaioloMenu /> },
           { path: 'commandes', element: <PizzaioloOrders /> },
+          { path: 'stats', element: <PizzaioloStats /> },
           { path: 'live', element: <PizzaioloLive /> },
         ],
       },

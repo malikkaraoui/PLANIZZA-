@@ -27,6 +27,7 @@ export const ROUTES = {
   pizzaioloProfile: '/pro/truck',
   pizzaioloMenu: '/pro/menu',
   pizzaioloOrders: '/pro/commandes',
+  pizzaioloStats: '/pro/stats',
   pizzaioloLive: '/pro/live',
 
   // Partenaires / Pro

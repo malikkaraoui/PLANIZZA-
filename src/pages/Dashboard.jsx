@@ -639,7 +639,7 @@ export default function Dashboard() {
             <div className="h-1 flex-1 bg-linear-to-r from-transparent via-orange-500/30 to-transparent rounded-full" />
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
             {/* Mon Camion */}
             <Link to={ROUTES.pizzaioloProfile} className="relative">
               <Card className="glass-premium glass-glossy border-orange-500/20 p-8 rounded-[32px] hover:scale-[1.02] hover:shadow-2xl hover:shadow-orange-500/10 transition-all group cursor-pointer h-full">
@@ -755,6 +755,26 @@ export default function Dashboard() {
                         ? `${activeOrdersCount} commande${activeOrdersCount > 1 ? 's' : ''} en cours`
                         : 'Gérer vos commandes en cours'
                       }
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            </Link>
+
+            {/* Statistiques */}
+            <Link to={ROUTES.pizzaioloStats}>
+              <Card className="glass-premium glass-glossy border-purple-500/20 p-8 rounded-[32px] hover:scale-[1.02] hover:shadow-2xl hover:shadow-purple-500/10 transition-all group cursor-pointer h-full">
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div className="p-4 rounded-2xl bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors">
+                      <TrendingUp className="h-8 w-8 text-purple-500" />
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-purple-500 group-hover:translate-x-1 transition-all" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-black tracking-tight">Statistiques</h3>
+                    <p className="text-sm text-muted-foreground font-medium">
+                      Analyser vos performances
                     </p>
                   </div>
                 </div>
