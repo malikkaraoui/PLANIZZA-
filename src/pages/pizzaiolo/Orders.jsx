@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Clock, User, Pizza, CheckCircle, ChefHat, Package, ArrowLeft, Filter, Store, Bike, CreditCard, X, Calendar } from 'lucide-react';
-import { ref, get } from 'firebase/database';
+import { ref, get, set } from 'firebase/database';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../app/providers/AuthProvider';
 import { ROUTES } from '../../app/routes';
@@ -50,7 +50,7 @@ export default function PizzaioloOrders() {
     period: 'all', // 'all', 'today', 'week', 'month', 'year'
   });
 
-  const [filtersVisible, setFiltersVisible] = useState(true); // Afficher/cacher les filtres
+  const [filtersVisible, setFiltersVisible] = useState(false); // Afficher/cacher les filtres
   
   // Modal de détails de commande
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -169,6 +169,22 @@ export default function PizzaioloOrders() {
     console.log('[Orders] Résultat:', result);
   };
 
+  // Marquer comme payée (pour commandes manuelles)
+  const handleMarkPaid = async (orderId) => {
+    if (!db) return;
+    try {
+      const orderRef = ref(db, `orders/${orderId}/payment`);
+      await set(orderRef, {
+        provider: 'manual',
+        paymentStatus: 'paid',
+        paidAt: Date.now()
+      });
+      console.log('[Orders] Commande marquée comme payée:', orderId);
+    } catch (error) {
+      console.error('[Orders] Erreur lors du marquage payé:', error);
+    }
+  };
+
   // Appliquer les filtres sur TOUTES les commandes (actives + historique)
   const allFilteredOrders = getFilteredOrders(orders, filters);
   const filteredActiveOrders = allFilteredOrders.filter((o) => {
@@ -237,8 +253,10 @@ export default function PizzaioloOrders() {
       </div>
 
       {/* Filtres des commandes */}
-      <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px]">
-        <div className="flex items-center justify-between mb-4">
+      <Card className={`glass-premium glass-glossy border-white/20 rounded-[24px] transition-all duration-300 ${
+        filtersVisible ? 'p-6' : 'p-3'
+      }`}>
+        <div className={`flex items-center justify-between ${filtersVisible ? 'mb-4' : ''}`}>
           <div className="flex items-center gap-2">
             <Filter className="h-5 w-5 text-primary" />
             <h2 className="text-lg font-black tracking-tight">Filtres</h2>
@@ -480,6 +498,19 @@ export default function PizzaioloOrders() {
                                 </Badge>
                               )}
                               
+                              {/* Badge Paiement pour commandes manuelles */}
+                              {order.source === 'manual' && (
+                                order.payment?.paymentStatus === 'paid' ? (
+                                  <Badge className="bg-green-600 text-white rounded-full text-xs font-bold">
+                                    💵 PAYÉ
+                                  </Badge>
+                                ) : (
+                                  <Badge className="bg-red-600 text-white rounded-full text-xs font-bold animate-pulse">
+                                    ⚠️ NON-PAYÉ
+                                  </Badge>
+                                )
+                              )}
+                              
                               {/* Badge Livraison */}
                               {order.deliveryMethod === 'delivery' ? (
                                 <Badge className="bg-blue-600 text-white rounded-full text-xs font-bold flex items-center gap-1">
@@ -580,6 +611,17 @@ export default function PizzaioloOrders() {
 
                     {/* Actions */}
                     <div className="flex flex-col gap-2" style={{ minWidth: '180px' }}>
+                      {/* Bouton Marquer Payé pour commandes manuelles non payées */}
+                      {order.source === 'manual' && order.payment?.paymentStatus !== 'paid' && (
+                        <Button
+                          onClick={() => handleMarkPaid(order.id)}
+                          className="w-full rounded-xl h-10 font-bold bg-green-600 hover:bg-green-700 text-white flex items-center justify-center gap-2"
+                        >
+                          <CreditCard className="h-4 w-4" />
+                          Marquer Payé
+                        </Button>
+                      )}
+                      
                       {order.status === 'received' ? (
                         <Button
                           onClick={() => handleAccept(order.id)}
