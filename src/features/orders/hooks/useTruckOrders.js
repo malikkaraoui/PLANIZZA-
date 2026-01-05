@@ -35,12 +35,19 @@ export function useTruckOrders(truckId) {
               id,
               ...order,
             }))
-            // ✅ FILTRER : Ne garder que les commandes VRAIMENT PAYÉES
+            // ✅ FILTRER : Ne garder que les commandes VRAIMENT PAYÉES OU EN COURS
             .filter((order) => {
-              // Exclure les commandes non payées (created ou pending sans confirmation)
+              // Exclure les commandes en création (status 'created' sans paiement)
               if (order.status === 'created') return false;
-              if (order.payment?.paymentStatus === 'pending' && order.status !== 'received') return false;
-              return true;
+              
+              // Pour les commandes manuelles, on garde tout sauf 'created'
+              if (order.payment?.provider === 'manual') return true;
+              
+              // Pour les commandes en ligne, on garde si payment.paymentStatus = 'paid'
+              if (order.payment?.provider === 'stripe' && order.payment?.paymentStatus === 'paid') return true;
+              
+              // Sinon, on exclut
+              return false;
             })
             .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); // Plus récentes en premier
 

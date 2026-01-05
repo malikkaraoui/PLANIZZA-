@@ -142,9 +142,8 @@ export default function PizzaioloOrders() {
     // Si le temps est négatif (peut arriver avec désync horloge), afficher en positif
     const absDiff = Math.abs(diff);
     
-    if (absDiff < 60) return `${absDiff}s`;
-    if (absDiff < 3600) return `${Math.floor(absDiff / 60)}min`;
-    return `${Math.floor(absDiff / 3600)}h${Math.floor((absDiff % 3600) / 60)}min`;
+    // TOUJOURS afficher en secondes pour plus d'impact
+    return `${absDiff}s`;
   };
 
   // Calculer le temps restant basé sur la cadence du pizzaiolo (pour commandes prises en charge)
@@ -500,186 +499,150 @@ export default function PizzaioloOrders() {
                     remaining?.isLate ? 'border-red-500/50' : ''
                   }`}
                 >
-                  <div className="grid gap-4 md:grid-cols-[1fr_auto]">
+                  <div className="grid md:grid-cols-[1fr_auto_auto] gap-6 items-start">
+                    {/* Colonne 1: Informations commande - PIZZAS EN GROS */}
                     <div className="space-y-4">
-                      {/* En-tête */}
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          <div className={`p-3 rounded-xl ${statusConfig.color}/10`}>
-                            <StatusIcon className="h-6 w-6 text-white" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="text-lg font-black">
-                                #{order.id.slice(-6).toUpperCase()}
-                              </h3>
-                              <Badge className={`${statusConfig.color} text-white rounded-full text-xs`}>
-                                {statusConfig.label}
-                              </Badge>
-                              
-                              {/* Badge Commande Manuelle */}
-                              {order.source === 'manual' && (
-                                <Badge className="bg-purple-600 text-white rounded-full text-xs font-bold">
-                                  ✋ MANUELLE
-                                </Badge>
-                              )}
-                              
-                              {/* Badge Paiement pour commandes manuelles */}
-                              {order.source === 'manual' && (
-                                order.payment?.paymentStatus === 'paid' ? (
-                                  <Badge className="bg-green-600 text-white rounded-full text-xs font-bold">
-                                    💵 PAYÉ
-                                  </Badge>
-                                ) : (
-                                  <Badge className="bg-red-600 text-white rounded-full text-xs font-bold animate-pulse">
-                                    ⚠️ NON-PAYÉ
-                                  </Badge>
-                                )
-                              )}
-                              
-                              {/* Badge Livraison */}
-                              {order.deliveryMethod === 'delivery' ? (
-                                <Badge className="bg-blue-600 text-white rounded-full text-xs font-bold flex items-center gap-1">
-                                  <Bike className="h-3 w-3" />
-                                  LIVRAISON À DOMICILE
-                                </Badge>
-                              ) : (
-                                <Badge className="bg-emerald-600 text-white rounded-full text-xs font-bold flex items-center gap-1">
-                                  <Store className="h-3 w-3" />
-                                  RETRAIT AU CAMION
-                                </Badge>
-                              )}
-                            </div>
-                            
-                            {/* Prénom du client mis en avant */}
-                            <div className="mb-2 px-3 py-1.5 bg-primary/20 rounded-lg inline-flex items-center gap-2">
-                              <User className="h-4 w-4 text-primary" />
-                              <span className="font-black text-primary text-base">
-                                {order.customerName || 'Client'}
-                              </span>
-                            </div>
-                            
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <Clock className="h-4 w-4" />
-                                {new Date(order.createdAt).toLocaleTimeString('fr-FR', {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Pizza className="h-4 w-4" />
-                                {totalPizzas} pizza{totalPizzas > 1 ? 's' : ''}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Timer */}
-                        <div className="text-right">
-                          {order.status === 'received' ? (
-                            <>
-                              <div className={`text-2xl font-black ${
-                                elapsed.includes('min') || elapsed.includes('h') 
-                                  ? 'text-red-500 animate-pulse' 
-                                  : parseInt(elapsed) >= 60 
-                                    ? 'text-red-500 animate-pulse'
-                                    : 'text-orange-500'
-                              }`}>
-                                {elapsed}
-                              </div>
-                              <span className="text-xs font-bold text-muted-foreground uppercase">Chrono</span>
-                            </>
-                          ) : remaining ? (
-                            <>
-                              <div className={`text-2xl font-black ${remaining.isLate ? 'text-red-500' : 'text-emerald-500'}`}>
-                                {remaining.text}
-                              </div>
-                              <span className="text-xs font-bold text-muted-foreground uppercase">Restant</span>
-                              {remaining.isLate && (
-                                <span className="text-xs font-bold text-red-500 uppercase block">Retard</span>
-                              )}
-                            </>
+                      {/* En-tête compact - BADGES UNIQUEMENT SI PERTINENTS */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {/* Badge Statut seulement si pas "Prise en charge" (redondant) */}
+                        {order.status !== 'accepted' && (
+                          <Badge className={`${statusConfig.color} text-white rounded-full text-xs`}>
+                            {statusConfig.label}
+                          </Badge>
+                        )}
+                        
+                        {/* Badge MANUELLE seulement si commande payée (sinon évident que c'est manuel) */}
+                        {order.source === 'manual' && order.payment?.paymentStatus === 'paid' && (
+                          <Badge className="bg-purple-600 text-white rounded-full text-xs font-bold">
+                            ✋ MANUELLE
+                          </Badge>
+                        )}
+                        
+                        {/* Badge Livraison/Retrait UNIQUEMENT si pas encore prise en charge */}
+                        {order.status === 'received' && (
+                          order.deliveryMethod === 'delivery' ? (
+                            <Badge className="bg-blue-600 text-white rounded-full text-xs font-bold flex items-center gap-1">
+                              <Bike className="h-3 w-3" />
+                              LIVRAISON
+                            </Badge>
                           ) : (
-                            <div className="text-2xl font-black text-muted-foreground">{elapsed}</div>
-                          )}
-                        </div>
+                            <Badge className="bg-emerald-600 text-white rounded-full text-xs font-bold flex items-center gap-1">
+                              <Store className="h-3 w-3" />
+                              RETRAIT
+                            </Badge>
+                          )
+                        )}
+                        
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(order.createdAt).toLocaleTimeString('fr-FR', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      </div>
+                      
+                      {/* Nom du client - INFO PRINCIPALE */}
+                      <div className="mb-3 px-4 py-2 bg-primary/20 rounded-xl inline-flex items-center gap-2">
+                        <User className="h-5 w-5 text-primary" />
+                        <span className="font-black text-primary text-lg">
+                          {order.customerName || 'Client'}
+                        </span>
                       </div>
 
-                      {/* Items */}
-                      <div className="space-y-2">
+                      {/* PIZZAS - LISTE DIRECTE SANS COMPTEUR */}
+                      <div className="space-y-3">
                         {order.items?.map((item, idx) => (
-                          <div key={idx} className="flex items-center justify-between text-sm p-3 rounded-xl bg-white/5">
-                            <span className="font-bold">{item.qty}x {item.name}</span>
-                            <span className="text-muted-foreground">
-                              {((item.priceCents * item.qty) / 100).toFixed(2)} €
-                            </span>
+                          <div key={idx} className="space-y-1">
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-2xl font-black text-foreground">
+                                {item.qty}x {item.name}
+                              </span>
+                            </div>
+                            {(item.removedIngredients?.length > 0 || item.addedIngredients?.length > 0) && (
+                              <div className="text-sm pl-6 space-y-1">
+                                {item.removedIngredients?.length > 0 && (
+                                  <div className="text-red-500 font-bold">
+                                    ➖ Sans: {item.removedIngredients.join(', ')}
+                                  </div>
+                                )}
+                                {item.addedIngredients?.length > 0 && (
+                                  <div className="text-green-500 font-bold">
+                                    ➕ Avec: {item.addedIngredients.join(', ')}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
-
-                      {/* Total */}
-                      <div className="space-y-2 pt-3 border-t border-white/10">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Total HT</span>
-                          <span className="font-bold">
-                            {(order.totalCents / (1 + TVA_RATE) / 100).toFixed(2)} €
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">TVA (10%)</span>
-                          <span className="font-bold">
-                            {(order.totalCents / 100 - order.totalCents / (1 + TVA_RATE) / 100).toFixed(2)} €
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between pt-2 border-t border-white/10">
-                          <span className="font-black text-lg">Total TTC</span>
-                          <span className="font-black text-xl text-primary">
-                            {(order.totalCents / 100).toFixed(2)} €
-                          </span>
-                        </div>
-                      </div>
                     </div>
 
-                    {/* Actions */}
+                    {/* Colonne 2: Actions */}
                     <div className="flex flex-col gap-2" style={{ minWidth: '180px' }}>
-                      {/* Bouton Marquer Payé pour commandes manuelles non payées - ROUGE et visible */}
                       {order.source === 'manual' && order.payment?.paymentStatus !== 'paid' && (
                         <Button
                           onClick={() => handleMarkPaid(order.id)}
-                          className="w-full rounded-xl h-14 font-black text-base bg-red-600 hover:bg-red-700 text-white flex items-center justify-center gap-2 animate-pulse shadow-lg shadow-red-500/50 border-2 border-red-400"
+                          className="w-full rounded-xl h-14 font-black text-sm bg-red-600 hover:bg-red-700 text-white flex items-center justify-center gap-2 animate-pulse shadow-lg shadow-red-500/50 border-2 border-red-400"
                         >
                           <CreditCard className="h-5 w-5" />
-                          💰 MARQUER PAYÉ
+                          💰 PAYÉ
                         </Button>
+                      )}
+                      
+                      {order.source === 'manual' && order.payment?.paymentStatus === 'paid' && (
+                        <div className="w-full px-4 py-2 rounded-xl bg-green-600/20 border-2 border-green-600 flex items-center justify-center gap-2">
+                          <span className="text-green-600 font-black text-sm">💵 PAYÉ</span>
+                        </div>
                       )}
                       
                       {order.status === 'received' ? (
                         <Button
                           onClick={() => handleAccept(order.id)}
                           disabled={updating}
-                          className="w-full rounded-xl h-12 font-bold bg-blue-500 hover:bg-blue-600"
+                          className="w-full rounded-xl h-12 font-bold bg-blue-500 hover:bg-blue-600 text-white"
                         >
+                          <ChefHat className="h-4 w-4 mr-2" />
                           Prendre en charge
                         </Button>
                       ) : (
-                        <Button
-                          onClick={() => handleDeliver(order.id)}
-                          disabled={updating}
-                          className="w-full rounded-xl h-12 font-bold bg-emerald-500 hover:bg-emerald-600 flex items-center justify-center gap-2"
-                        >
-                          {order.deliveryMethod === 'delivery' ? (
-                            <>
-                              <Bike className="h-4 w-4" />
-                              Délivré à Uber Eats
-                            </>
-                          ) : (
-                            <>
-                              <Store className="h-4 w-4" />
-                              Délivré
-                            </>
-                          )}
-                        </Button>
+                        // Bouton Délivré : uniquement si commande payée (ou non manuelle)
+                        !(order.source === 'manual' && order.payment?.paymentStatus !== 'paid') && (
+                          <Button
+                            onClick={() => handleDeliver(order.id)}
+                            disabled={updating}
+                            className="w-full rounded-xl h-12 font-bold bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center gap-2"
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                            {order.deliveryMethod === 'delivery' ? 'Livré' : 'Délivré'}
+                          </Button>
+                        )
+                      )}
+                    </div>
+
+                    {/* Colonne 3: Timer */}
+                    <div className="text-center" style={{ minWidth: '120px' }}>
+                      {order.status === 'received' ? (
+                        <div className="space-y-1">
+                          <div className={`text-4xl font-black ${
+                            parseInt(elapsed) >= 60 
+                              ? 'text-red-500 animate-pulse'
+                              : 'text-orange-500'
+                          }`}>
+                            {elapsed}
+                          </div>
+                          <span className="text-xs font-bold text-muted-foreground uppercase block">Chrono</span>
+                        </div>
+                      ) : remaining ? (
+                        <div className="space-y-1">
+                          <div className={`text-4xl font-black ${remaining.isLate ? 'text-red-500 animate-pulse' : 'text-emerald-500'}`}>
+                            {remaining.text}
+                          </div>
+                          <span className="text-xs font-bold text-muted-foreground uppercase block">
+                            {remaining.isLate ? 'Retard' : 'Restant'}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="text-2xl font-black text-muted-foreground">{elapsed}</div>
                       )}
                     </div>
                   </div>
@@ -758,7 +721,7 @@ export default function PizzaioloOrders() {
 
       {/* Modal de détails de commande */}
       <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
-        <DialogContent className="max-w-2xl glass-premium glass-glossy border-white/20 rounded-[32px]">
+        <DialogContent className="max-w-2xl glass-premium glass-glossy border-white/20 rounded-[32px] max-h-[90vh] overflow-y-auto">
           {selectedOrder && (
             <>
               <DialogHeader>
