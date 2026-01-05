@@ -1,8 +1,9 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { ShoppingCart, User, ChefHat, Pizza, Store, Receipt } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
+import { Card } from '../ui/Card';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import {
   DropdownMenu,
@@ -15,7 +16,7 @@ import {
 import { useAuth } from '../../app/providers/AuthProvider';
 import { ROUTES } from '../../app/routes';
 import { useCart } from '../../features/cart/hooks/useCart.jsx';
-import { ref, onValue } from 'firebase/database';
+import { ref, onValue, get, set } from 'firebase/database';
 import { db } from '../../lib/firebase';
 import { rtdbPaths } from '../../lib/rtdbPaths';
 import { useScrollDirection } from '../../hooks/useScrollDirection';
@@ -23,10 +24,13 @@ import { useScrollDirection } from '../../hooks/useScrollDirection';
 export default function Navbar() {
   const { isAuthenticated, user } = useAuth();
   const { items } = useCart();
+  const location = useLocation();
   const [pizzaioloTruckId, setPizzaioloTruckId] = useState(null);
+  const [pizzaPerHour, setPizzaPerHour] = useState(30);
   const { isVisible } = useScrollDirection(10);
 
   const isPizzaiolo = Boolean(user?.uid && pizzaioloTruckId);
+  const isOnOrdersPage = location.pathname === '/pro/commandes';
 
   const cartItemsCount = items.reduce((sum, item) => sum + (item.qty || 0), 0);
   const cartHasItems = cartItemsCount > 0;
@@ -53,6 +57,27 @@ export default function Navbar() {
     return () => unsubscribe();
   }, [user?.uid]);
 
+  // Charger la cadence du camion si on est sur la page Orders
+  useEffect(() => {
+    if (!isOnOrdersPage || !pizzaioloTruckId || !db) {
+      return;
+    }
+
+    const loadCapacity = async () => {
+      try {
+        const capacityRef = ref(db, `public/trucks/${pizzaioloTruckId}/capacity/pizzaPerHour`);
+        const snap = await get(capacityRef);
+        if (snap.exists()) {
+          setPizzaPerHour(snap.val());
+        }
+      } catch (err) {
+        console.error('[Navbar] Erreur chargement cadence:', err);
+      }
+    };
+
+    loadCapacity();
+  }, [isOnOrdersPage, pizzaioloTruckId]);
+
   return (
     <header className={`sticky top-0 z-50 flex justify-center w-full pointer-events-none transition-transform duration-300 ease-in-out ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}>
       <div className="container max-w-7xl w-full px-4 sm:px-6 lg:px-8 pointer-events-auto">
@@ -72,44 +97,93 @@ export default function Navbar() {
 
           {/* Navigation */}
           <nav className="flex items-center gap-2 sm:gap-6">
-            {/* Panier */}
-            <Link to={ROUTES.cart}>
-              <Button variant="ghost" size="icon" className="relative group/cart h-12 w-12 rounded-full hover:bg-white/10 transition-all">
-                <ShoppingCart
-                  className={`h-6 w-6 transition-transform group-hover/cart:-rotate-12 ${cartHasItems ? 'text-primary' : 'text-muted-foreground/70'}`}
-                />
-                {cartHasItems && (
-                  <Badge
-                    className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 text-[10px] flex items-center justify-center bg-primary text-white border-2 border-white/20 shadow-lg shadow-primary/40 animate-in zoom-in"
-                  >
-                    {cartItemsCount}
-                  </Badge>
-                )}
-                <span className="sr-only">Panier</span>
-              </Button>
-            </Link>
-
-            {/* Devenir partenaire / Live */}
-            {isPizzaiolo ? (
-              <Link to={ROUTES.pizzaioloLive} className="hidden lg:block">
-                <Button variant="outline" className="gap-2 glass-premium border-red-500/30 hover:border-red-500/50 bg-red-500/10 rounded-full px-8 h-11 font-bold transition-all hover:shadow-lg hover:shadow-red-500/20 relative overflow-hidden group">
-                  <div className="absolute inset-0 bg-linear-to-r from-red-500/0 via-red-500/10 to-red-500/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                  <span className="relative flex items-center gap-2">
-                    <span className="flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-red-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+            {/* Widget de cadence sur page Orders (desktop uniquement) */}
+            {isOnOrdersPage && isPizzaiolo ? (
+              <div className="hidden lg:flex items-center">
+                <Card className="glass-premium glass-glossy border-white/20 p-2.5 rounded-2xl">
+                  <div className="flex items-center gap-2">
+                    <Pizza className="h-4 w-4 text-orange-500" />
+                    <button
+                      onClick={() => {
+                        const newValue = Math.max(1, pizzaPerHour - 1);
+                        setPizzaPerHour(newValue);
+                        if (db && pizzaioloTruckId) {
+                          const capacityRef = ref(db, `public/trucks/${pizzaioloTruckId}/capacity/pizzaPerHour`);
+                          set(capacityRef, newValue).catch(err => 
+                            console.error('[Navbar] Erreur sauvegarde cadence:', err)
+                          );
+                        }
+                      }}
+                      className="w-9 h-9 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 active:bg-orange-500/30 flex items-center justify-center font-black text-lg text-orange-500 transition-colors"
+                    >
+                      −
+                    </button>
+                    <span className="text-lg font-black text-orange-500 min-w-10 text-center">
+                      {pizzaPerHour}
                     </span>
-                    Live
-                  </span>
-                </Button>
-              </Link>
+                    <button
+                      onClick={() => {
+                        const newValue = Math.min(100, pizzaPerHour + 1);
+                        setPizzaPerHour(newValue);
+                        if (db && pizzaioloTruckId) {
+                          const capacityRef = ref(db, `public/trucks/${pizzaioloTruckId}/capacity/pizzaPerHour`);
+                          set(capacityRef, newValue).catch(err => 
+                            console.error('[Navbar] Erreur sauvegarde cadence:', err)
+                          );
+                        }
+                      }}
+                      className="w-9 h-9 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 active:bg-orange-500/30 flex items-center justify-center font-black text-lg text-orange-500 transition-colors"
+                    >
+                      +
+                    </button>
+                    <span className="text-xs font-bold text-muted-foreground">
+                      🍕/h
+                    </span>
+                  </div>
+                </Card>
+              </div>
             ) : (
-              <Link to={ROUTES.becomePartner} className="hidden lg:block">
-                <Button variant="outline" className="gap-2 glass-premium border-white/20 hover:border-primary/50 rounded-full px-8 h-11 font-bold transition-all hover:shadow-lg hover:shadow-primary/5">
-                  <ChefHat className="h-4 w-4 text-primary" />
-                  Professionnel
-                </Button>
-              </Link>
+              <>
+                {/* Panier */}
+                <Link to={ROUTES.cart}>
+                  <Button variant="ghost" size="icon" className="relative group/cart h-12 w-12 rounded-full hover:bg-white/10 transition-all">
+                    <ShoppingCart
+                      className={`h-6 w-6 transition-transform group-hover/cart:-rotate-12 ${cartHasItems ? 'text-primary' : 'text-muted-foreground/70'}`}
+                    />
+                    {cartHasItems && (
+                      <Badge
+                        className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 text-[10px] flex items-center justify-center bg-primary text-white border-2 border-white/20 shadow-lg shadow-primary/40 animate-in zoom-in"
+                      >
+                        {cartItemsCount}
+                      </Badge>
+                    )}
+                    <span className="sr-only">Panier</span>
+                  </Button>
+                </Link>
+
+                {/* Devenir partenaire / Live */}
+                {isPizzaiolo ? (
+                  <Link to={ROUTES.pizzaioloLive} className="hidden lg:block">
+                    <Button variant="outline" className="gap-2 glass-premium border-red-500/30 hover:border-red-500/50 bg-red-500/10 rounded-full px-8 h-11 font-bold transition-all hover:shadow-lg hover:shadow-red-500/20 relative overflow-hidden group">
+                      <div className="absolute inset-0 bg-linear-to-r from-red-500/0 via-red-500/10 to-red-500/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                      <span className="relative flex items-center gap-2">
+                        <span className="flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-red-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                        </span>
+                        Live
+                      </span>
+                    </Button>
+                  </Link>
+                ) : (
+                  <Link to={ROUTES.becomePartner} className="hidden lg:block">
+                    <Button variant="outline" className="gap-2 glass-premium border-white/20 hover:border-primary/50 rounded-full px-8 h-11 font-bold transition-all hover:shadow-lg hover:shadow-primary/5">
+                      <ChefHat className="h-4 w-4 text-primary" />
+                      Professionnel
+                    </Button>
+                  </Link>
+                )}
+              </>
             )}
 
             {/* Compte utilisateur */}

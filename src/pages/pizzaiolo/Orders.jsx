@@ -271,56 +271,11 @@ export default function PizzaioloOrders() {
       </button>
 
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight">Commandes</h1>
-          <p className="text-muted-foreground font-medium mt-2">
-            {filteredActiveOrders.length} commande{filteredActiveOrders.length > 1 ? 's' : ''} en cours
-          </p>
-        </div>
-
-        {/* Cadence de production - Desktop uniquement */}
-        <Card className="hidden md:flex glass-premium glass-glossy border-white/20 p-3 rounded-2xl">
-          <div className="flex items-center gap-2">
-            <Pizza className="h-5 w-5 text-orange-500" />
-            <button
-              onClick={() => {
-                const newValue = Math.max(1, pizzaPerHour - 1);
-                setPizzaPerHour(newValue);
-                if (db && truckId) {
-                  const capacityRef = ref(db, `public/trucks/${truckId}/capacity/pizzaPerHour`);
-                  set(capacityRef, newValue).catch(err => 
-                    console.error('[Orders] Erreur sauvegarde cadence:', err)
-                  );
-                }
-              }}
-              className="w-10 h-10 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 active:bg-orange-500/30 flex items-center justify-center font-black text-xl text-orange-500 transition-colors"
-            >
-              −
-            </button>
-            <span className="text-xl font-black text-orange-500 min-w-12 text-center">
-              {pizzaPerHour}
-            </span>
-            <button
-              onClick={() => {
-                const newValue = Math.min(100, pizzaPerHour + 1);
-                setPizzaPerHour(newValue);
-                if (db && truckId) {
-                  const capacityRef = ref(db, `public/trucks/${truckId}/capacity/pizzaPerHour`);
-                  set(capacityRef, newValue).catch(err => 
-                    console.error('[Orders] Erreur sauvegarde cadence:', err)
-                  );
-                }
-              }}
-              className="w-10 h-10 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 active:bg-orange-500/30 flex items-center justify-center font-black text-xl text-orange-500 transition-colors"
-            >
-              +
-            </button>
-            <span className="text-sm font-bold text-muted-foreground">
-              🍕/h
-            </span>
-          </div>
-        </Card>
+      <div>
+        <h1 className="text-3xl font-black tracking-tight">Commandes</h1>
+        <p className="text-muted-foreground font-medium mt-2">
+          {filteredActiveOrders.length} commande{filteredActiveOrders.length > 1 ? 's' : ''} en cours
+        </p>
       </div>
 
       {/* Filtres des commandes */}
