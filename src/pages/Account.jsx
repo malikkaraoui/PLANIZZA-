@@ -16,11 +16,11 @@ import { useLoyaltyPoints } from '../features/users/hooks/useLoyaltyPoints';
 import LoyaltyProgressBar from '../components/loyalty/LoyaltyProgressBar';
 
 export default function Account() {
-  const { isAuthenticated, user, loading } = useAuth();
+  const { isAuthenticated, user, loading, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState(null);
-  const { flushToStorage } = useCart();
+  const { flushToStorage, clear: clearCart } = useCart();
   
   // Carte de fidélité
   const { points, currentTier, nextTier, progress, maxTierReached, loading: loyaltyLoading } = useLoyaltyPoints(user?.uid);
@@ -197,9 +197,9 @@ export default function Account() {
 
       setMessage('✅ Profil sauvegardé avec succès !');
       setIsEditing(false);
-      
-      // Forcer un rechargement pour mettre à jour l'affichage
-      window.location.reload();
+
+      // Mettre à jour l'UI sans recharger toute l'app
+      await refreshUser?.();
       
       console.log('[PLANIZZA] Profil utilisateur mis à jour');
     } catch (err) {
@@ -322,9 +322,14 @@ export default function Account() {
       localStorage.clear();
       sessionStorage.clear();
 
-      // 6. Forcer le rechargement complet de la page vers l'accueil
-      // Utiliser window.location pour forcer un rechargement complet
-      window.location.href = '/';
+      // Vider aussi l'état en mémoire du panier (sinon il peut rester affiché jusqu'au prochain mount)
+      clearCart?.();
+
+      // 6. Rediriger sans rechargement complet
+      navigate(ROUTES.explore, { replace: true });
+      setShowDeleteConfirm(false);
+      setDeleteConfirmText('');
+      setDeleting(false);
     } catch (err) {
       console.error('Erreur suppression compte:', err);
       alert('Erreur lors de la suppression du compte. Veuillez réessayer ou nous contacter.');
