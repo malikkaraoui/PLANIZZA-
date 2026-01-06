@@ -29,6 +29,24 @@ export default function Cart() {
   const { createOrder, loading: creatingOrder } = useCreateOrder();
   const [error, setError] = useState(null);
   const [deliveryMethod, setDeliveryMethod] = useState('pickup'); // 'pickup' ou 'delivery'
+
+  const getExploreUrl = () => {
+    try {
+      const lastExploreUrl = localStorage.getItem('planizza.lastExploreUrl');
+      if (lastExploreUrl && typeof lastExploreUrl === 'string' && lastExploreUrl.startsWith('/explore')) {
+        return lastExploreUrl;
+      }
+    } catch {
+      // noop
+    }
+    return ROUTES.explore;
+  };
+
+  const handleContinueShopping = (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    navigate(getExploreUrl());
+  };
   
   // Adresse structurée
   const [deliveryAddress, setDeliveryAddress] = useState({
@@ -195,7 +213,7 @@ export default function Cart() {
             <CardDescription className="mb-6">
               Ajoutez des pizzas depuis un camion pour commencer
             </CardDescription>
-            <Link to={ROUTES.explore}>
+            <Link to={getExploreUrl()}>
               <Button>
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Explorer les camions
@@ -211,7 +229,11 @@ export default function Cart() {
     <div className="container mx-auto max-w-4xl px-4 py-8 sm:px-6">
       {/* Header */}
       <div className="mb-8">
-        <Link to={ROUTES.explore} className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4">
+        <Link
+          to={getExploreUrl()}
+          onClick={handleContinueShopping}
+          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4"
+        >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Continuer mes achats
         </Link>
