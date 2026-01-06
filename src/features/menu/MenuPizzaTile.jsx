@@ -9,7 +9,21 @@ function formatEUR(cents) {
 
 function sizeLabel(sizeKey, diameter) {
   const k = String(sizeKey || '').toLowerCase();
-  const label = k === 's' ? 'S' : k === 'm' ? 'M' : k === 'l' ? 'L' : String(sizeKey).toUpperCase();
+  let label;
+  switch (k) {
+    case 's':
+      label = 'S';
+      break;
+    case 'm':
+      label = 'M';
+      break;
+    case 'l':
+      label = 'L';
+      break;
+    default:
+      label = String(sizeKey).toUpperCase();
+      break;
+  }
   return diameter ? `${label} (${diameter}cm)` : label;
 }
 

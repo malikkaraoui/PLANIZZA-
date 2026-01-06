@@ -40,11 +40,21 @@ export default function TruckDetails() {
     const getGenre = (item) => {
       const t = normalize(item?.type);
 
-      if (t === 'dessert') return 'dessert';
-      if (t === 'pizza' || t === 'calzone') return 'pizza';
-      if (t === 'boisson' || ['soda', 'eau', 'biere', 'vin'].includes(t)) return 'boisson';
-
-      return 'autre';
+      switch (t) {
+        case 'dessert':
+          return 'dessert';
+        case 'pizza':
+        case 'calzone':
+          return 'pizza';
+        case 'boisson':
+        case 'soda':
+        case 'eau':
+        case 'biere':
+        case 'vin':
+          return 'boisson';
+        default:
+          return 'autre';
+      }
     };
 
     const buckets = {

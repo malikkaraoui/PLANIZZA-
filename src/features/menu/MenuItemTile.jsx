@@ -10,12 +10,20 @@ function formatEUR(cents) {
 
 function typeEmoji(type) {
   const t = typeof type === 'string' ? type.toLowerCase() : '';
-  if (t === 'soda') return '🥤';
-  if (t === 'eau') return '💧';
-  if (t === 'biere') return '🍺';
-  if (t === 'vin') return '🍷';
-  if (t === 'dessert') return '🍰';
-  return '🍽️';
+  switch (t) {
+    case 'soda':
+      return '🥤';
+    case 'eau':
+      return '💧';
+    case 'biere':
+      return '🍺';
+    case 'vin':
+      return '🍷';
+    case 'dessert':
+      return '🍰';
+    default:
+      return '🍽️';
+  }
 }
 
 /**
