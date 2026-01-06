@@ -41,19 +41,33 @@ export const useLiveCart = () => {
     return '';
   });
 
+  const [pickupTime, setPickupTime] = useState(() => {
+    // Initialiser depuis localStorage au premier render
+    try {
+      const savedPickupTime = localStorage.getItem(STORAGE_KEYS.LIVE_PICKUP_TIME);
+      if (savedPickupTime) {
+        return savedPickupTime;
+      }
+    } catch (err) {
+      console.error('[useLiveCart] Erreur restauration pickupTime:', err);
+    }
+    return '';
+  });
+
   /**
    * Sauvegarde automatique dans localStorage
    */
   useEffect(() => {
     try {
-      if (cart.length > 0 || customerName) {
+      if (cart.length > 0 || customerName || pickupTime) {
         localStorage.setItem(STORAGE_KEYS.LIVE_CART, JSON.stringify(cart));
         localStorage.setItem(STORAGE_KEYS.LIVE_CUSTOMER, customerName);
+        localStorage.setItem(STORAGE_KEYS.LIVE_PICKUP_TIME, pickupTime);
       }
     } catch (err) {
       console.error('[useLiveCart] Erreur sauvegarde localStorage:', err);
     }
-  }, [cart, customerName]);
+  }, [cart, customerName, pickupTime]);
 
   /**
    * Ajoute un item au panier
@@ -132,10 +146,12 @@ export const useLiveCart = () => {
   const clearCart = useCallback(() => {
     setCart([]);
     setCustomerName('');
+    setPickupTime('');
     
     try {
       localStorage.removeItem(STORAGE_KEYS.LIVE_CART);
       localStorage.removeItem(STORAGE_KEYS.LIVE_CUSTOMER);
+      localStorage.removeItem(STORAGE_KEYS.LIVE_PICKUP_TIME);
     } catch (err) {
       console.error('[useLiveCart] Erreur nettoyage localStorage:', err);
     }
@@ -155,6 +171,8 @@ export const useLiveCart = () => {
     cart,
     customerName,
     setCustomerName,
+    pickupTime,
+    setPickupTime,
     addToCart,
     removeFromCart,
     deleteFromCart,

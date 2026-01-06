@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Minus, Trash2, User, ShoppingCart, Check, Pizza, Wine, IceCream } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, Trash2, User, ShoppingCart, Check, Pizza, Wine, IceCream, Clock } from 'lucide-react';
 import { ref, push, set } from 'firebase/database';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../app/providers/AuthProvider';
@@ -44,7 +44,9 @@ export default function PizzaioloLive() {
   const { 
     cart, 
     customerName, 
-    setCustomerName, 
+    setCustomerName,
+    pickupTime,
+    setPickupTime,
     addToCart, 
     removeFromCart, 
     deleteFromCart, 
@@ -71,6 +73,17 @@ export default function PizzaioloLive() {
   } = useMenuItem();
   
   const { clearLiveOrder } = useLiveOrder(truckId, user?.uid, cart, customerName);
+
+  // Initialiser l'heure de retrait avec heure actuelle + 15 minutes
+  useEffect(() => {
+    if (!pickupTime) {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() + 15);
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      setPickupTime(`${hours}:${minutes}`);
+    }
+  }, [pickupTime, setPickupTime]);
 
   // Synchroniser le menu local (format attendu par l'écran Live)
   useEffect(() => {
@@ -135,6 +148,19 @@ export default function PizzaioloLive() {
       return;
     }
 
+    // Validation: empêcher les heures dans le passé
+    if (pickupTime) {
+      const now = new Date();
+      const [hours, minutes] = pickupTime.split(':').map(Number);
+      const pickupDate = new Date();
+      pickupDate.setHours(hours, minutes, 0, 0);
+      
+      if (pickupDate < now) {
+        alert('❌ L\'heure de retrait ne peut pas être dans le passé');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -161,6 +187,7 @@ export default function PizzaioloLive() {
         },
         deliveryMethod: 'pickup',
         customerName: customerName.trim(),
+        pickupTime: pickupTime || null,
         source: 'manual'
       };
 
@@ -624,6 +651,47 @@ export default function PizzaioloLive() {
                 onChange={(e) => setCustomerName(e.target.value)}
                 placeholder="Ex: Marie"
                 className="rounded-xl"
+              />
+            </div>
+
+            {/* Heure de retrait */}
+            <div className="mb-4">
+              <label className="flex items-center gap-2 text-sm font-bold text-muted-foreground mb-2">
+                <Clock className="h-4 w-4" />
+                Heure de retrait
+              </label>
+              <Input
+                type="time"
+                value={pickupTime}
+                onChange={(e) => {
+                  const newTime = e.target.value;
+                  // Validation temps réel: vérifier que l'heure n'est pas dans le passé
+                  const now = new Date();
+                  const [hours, minutes] = newTime.split(':').map(Number);
+                  const selectedDate = new Date();
+                  selectedDate.setHours(hours, minutes, 0, 0);
+                  
+                  if (selectedDate < now) {
+                    alert('⚠️ L\'heure de retrait ne peut pas être dans le passé');
+                    // Réinitialiser à heure actuelle + 15 min
+                    const resetTime = new Date();
+                    resetTime.setMinutes(resetTime.getMinutes() + 15);
+                    const h = String(resetTime.getHours()).padStart(2, '0');
+                    const m = String(resetTime.getMinutes()).padStart(2, '0');
+                    setPickupTime(`${h}:${m}`);
+                    return;
+                  }
+                  
+                  setPickupTime(newTime);
+                }}
+                className="rounded-xl"
+                min={(() => {
+                  // Définir l'heure minimum (maintenant)
+                  const now = new Date();
+                  const h = String(now.getHours()).padStart(2, '0');
+                  const m = String(now.getMinutes()).padStart(2, '0');
+                  return `${h}:${m}`;
+                })()}
               />
             </div>
 

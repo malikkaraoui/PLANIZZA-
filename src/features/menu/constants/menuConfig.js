@@ -8,7 +8,8 @@ export const TVA_RATE = 0.10; // 10%
 // Clés localStorage
 export const STORAGE_KEYS = {
   LIVE_CART: 'planizza_live_cart',
-  LIVE_CUSTOMER: 'planizza_live_customer'
+  LIVE_CUSTOMER: 'planizza_live_customer',
+  LIVE_PICKUP_TIME: 'planizza_live_pickup_time'
 };
 
 // Types d'items du menu

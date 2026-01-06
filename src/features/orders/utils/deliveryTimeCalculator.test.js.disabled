@@ -1,0 +1,268 @@
+/**
+ * Tests unitaires pour deliveryTimeCalculator.js
+ * 
+ * Pour exécuter ces tests :
+ * 1. Installer Jest : npm install --save-dev jest @testing-library/react
+ * 2. Lancer : npm test deliveryTimeCalculator.test.js
+ */
+
+import {
+  getEstimatedDeliveryTime,
+  formatDeliveryTime,
+  sortOrdersByDeliveryTime,
+  groupOrdersByStatus
+} from './deliveryTimeCalculator';
+
+describe('getEstimatedDeliveryTime', () => {
+  const pizzaPerHour = 30; // 2 min/pizza
+
+  test('devrait utiliser pickupTime pour commande manuelle', () => {
+    const order = {
+      id: 'test-1',
+      pickupTime: '14:30',
+      items: [{ qty: 2 }],
+      createdAt: Date.now()
+    };
+
+    const result = getEstimatedDeliveryTime(order, pizzaPerHour);
+    const date = new Date(result);
+    
+    expect(date.getHours()).toBe(14);
+    expect(date.getMinutes()).toBe(30);
+  });
+
+  test('devrait calculer automatiquement si pas de pickupTime', () => {
+    const now = Date.now();
+    const order = {
+      id: 'test-2',
+      items: [{ qty: 3 }], // 3 pizzas = 6 minutes
+      createdAt: now
+    };
+
+    const result = getEstimatedDeliveryTime(order, pizzaPerHour);
+    const expectedTime = now + (6 * 60 * 1000); // 6 minutes en ms
+    
+    // Tolérance de 1 seconde
+    expect(Math.abs(result - expectedTime)).toBeLessThan(1000);
+  });
+
+  test('devrait utiliser acceptedAt si présent', () => {
+    const createdAt = Date.now() - 60000; // Il y a 1 minute
+    const acceptedAt = Date.now();
+    const order = {
+      id: 'test-3',
+      items: [{ qty: 2 }],
+      createdAt,
+      timeline: { acceptedAt }
+    };
+
+    const result = getEstimatedDeliveryTime(order, pizzaPerHour);
+    const expected = acceptedAt + (4 * 60 * 1000); // 2 pizzas = 4 minutes
+    
+    expect(Math.abs(result - expected)).toBeLessThan(1000);
+  });
+
+  test('devrait gérer les commandes sans items', () => {
+    const order = {
+      id: 'test-4',
+      items: [],
+      createdAt: Date.now()
+    };
+
+    const result = getEstimatedDeliveryTime(order, pizzaPerHour);
+    
+    expect(result).toBeGreaterThan(0);
+    expect(typeof result).toBe('number');
+  });
+
+  test('devrait gérer pickupTime invalide et fallback sur calcul', () => {
+    const order = {
+      id: 'test-5',
+      pickupTime: 'invalid',
+      items: [{ qty: 1 }],
+      createdAt: Date.now()
+    };
+
+    const result = getEstimatedDeliveryTime(order, pizzaPerHour);
+    
+    expect(result).toBeGreaterThan(Date.now());
+  });
+});
+
+describe('formatDeliveryTime', () => {
+  test('devrait formater correctement un timestamp', () => {
+    const date = new Date(2026, 0, 6, 14, 30, 0); // 6 jan 2026, 14:30
+    const timestamp = date.getTime();
+    
+    const result = formatDeliveryTime(timestamp);
+    
+    expect(result).toBe('14:30');
+  });
+
+  test('devrait gérer timestamp null', () => {
+    const result = formatDeliveryTime(null);
+    
+    expect(result).toBe('--:--');
+  });
+
+  test('devrait gérer timestamp undefined', () => {
+    const result = formatDeliveryTime(undefined);
+    
+    expect(result).toBe('--:--');
+  });
+
+  test('devrait gérer timestamp invalide', () => {
+    const result = formatDeliveryTime('invalid');
+    
+    expect(result).toBe('--:--');
+  });
+});
+
+describe('sortOrdersByDeliveryTime', () => {
+  const pizzaPerHour = 30;
+
+  test('devrait trier par ordre chronologique croissant', () => {
+    const orders = [
+      { id: '3', pickupTime: '15:00', items: [{ qty: 1 }] },
+      { id: '1', pickupTime: '13:00', items: [{ qty: 1 }] },
+      { id: '2', pickupTime: '14:00', items: [{ qty: 1 }] }
+    ];
+
+    const result = sortOrdersByDeliveryTime(orders, pizzaPerHour);
+    
+    expect(result[0].id).toBe('1'); // 13:00
+    expect(result[1].id).toBe('2'); // 14:00
+    expect(result[2].id).toBe('3'); // 15:00
+  });
+
+  test('devrait gérer array vide', () => {
+    const result = sortOrdersByDeliveryTime([], pizzaPerHour);
+    
+    expect(result).toEqual([]);
+  });
+
+  test('devrait gérer null/undefined', () => {
+    const result1 = sortOrdersByDeliveryTime(null, pizzaPerHour);
+    const result2 = sortOrdersByDeliveryTime(undefined, pizzaPerHour);
+    
+    expect(result1).toEqual([]);
+    expect(result2).toEqual([]);
+  });
+
+  test('ne devrait pas modifier le tableau original', () => {
+    const orders = [
+      { id: '2', pickupTime: '14:00', items: [{ qty: 1 }] },
+      { id: '1', pickupTime: '13:00', items: [{ qty: 1 }] }
+    ];
+    const originalOrder = orders[0];
+
+    sortOrdersByDeliveryTime(orders, pizzaPerHour);
+    
+    // Le premier élément du tableau original ne doit pas avoir changé
+    expect(orders[0]).toBe(originalOrder);
+  });
+});
+
+describe('groupOrdersByStatus', () => {
+  test('devrait grouper correctement par statut et paiement', () => {
+    const orders = [
+      { id: '1', status: 'received', payment: { paymentStatus: 'pending' } },
+      { id: '2', status: 'accepted', payment: { paymentStatus: 'paid' } },
+      { id: '3', status: 'accepted', payment: { paymentStatus: 'pending' } },
+      { id: '4', status: 'received', payment: { paymentStatus: 'pending' } },
+      { id: '5', status: 'accepted', payment: { paymentStatus: 'paid' } }
+    ];
+
+    const result = groupOrdersByStatus(orders);
+    
+    expect(result.notAccepted).toHaveLength(2);
+    expect(result.acceptedPaid).toHaveLength(2);
+    expect(result.acceptedUnpaid).toHaveLength(1);
+  });
+
+  test('ne devrait perdre aucune commande', () => {
+    const orders = [
+      { id: '1', status: 'received' },
+      { id: '2', status: 'accepted', payment: { paymentStatus: 'paid' } },
+      { id: '3', status: 'accepted', payment: { paymentStatus: 'pending' } }
+    ];
+
+    const result = groupOrdersByStatus(orders);
+    const total = result.notAccepted.length + result.acceptedPaid.length + result.acceptedUnpaid.length;
+    
+    expect(total).toBe(orders.length);
+  });
+
+  test('devrait gérer array vide', () => {
+    const result = groupOrdersByStatus([]);
+    
+    expect(result.notAccepted).toEqual([]);
+    expect(result.acceptedPaid).toEqual([]);
+    expect(result.acceptedUnpaid).toEqual([]);
+  });
+
+  test('devrait gérer null/undefined', () => {
+    const result1 = groupOrdersByStatus(null);
+    const result2 = groupOrdersByStatus(undefined);
+    
+    expect(result1.notAccepted).toEqual([]);
+    expect(result2.notAccepted).toEqual([]);
+  });
+
+  test('devrait gérer commandes sans payment object', () => {
+    const orders = [
+      { id: '1', status: 'accepted' } // Pas de payment
+    ];
+
+    const result = groupOrdersByStatus(orders);
+    
+    // Sans payment.paymentStatus === 'paid', devrait aller dans unpaid
+    expect(result.acceptedUnpaid).toHaveLength(1);
+    expect(result.acceptedPaid).toHaveLength(0);
+  });
+});
+
+describe('Intégration complète', () => {
+  test('flux complet : grouper → trier → formater', () => {
+    const orders = [
+      { 
+        id: '1', 
+        status: 'received', 
+        pickupTime: '15:00',
+        items: [{ qty: 2 }],
+        payment: { paymentStatus: 'pending' }
+      },
+      { 
+        id: '2', 
+        status: 'received', 
+        pickupTime: '13:00',
+        items: [{ qty: 1 }],
+        payment: { paymentStatus: 'pending' }
+      },
+      { 
+        id: '3', 
+        status: 'accepted', 
+        pickupTime: '14:00',
+        items: [{ qty: 3 }],
+        payment: { paymentStatus: 'paid' }
+      }
+    ];
+
+    // 1. Grouper
+    const groups = groupOrdersByStatus(orders);
+    
+    // 2. Trier chaque groupe
+    const sortedReceived = sortOrdersByDeliveryTime(groups.notAccepted, 30);
+    const sortedPaid = sortOrdersByDeliveryTime(groups.acceptedPaid, 30);
+    
+    // 3. Vérifier ordre
+    expect(sortedReceived[0].id).toBe('2'); // 13:00 avant 15:00
+    expect(sortedReceived[1].id).toBe('1');
+    
+    // 4. Formater temps
+    const time1 = getEstimatedDeliveryTime(sortedReceived[0], 30);
+    const formatted1 = formatDeliveryTime(time1);
+    
+    expect(formatted1).toBe('13:00');
+  });
+});

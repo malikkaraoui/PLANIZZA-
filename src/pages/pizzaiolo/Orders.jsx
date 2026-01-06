@@ -15,6 +15,14 @@ import { usePizzaioloTruckId } from '../../features/pizzaiolo/hooks/usePizzaiolo
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { getFilteredOrders, isExpired, MAX_ORDER_DURATION } from '../../features/orders/utils/orderFilters';
 import { useScrollDirection } from '../../hooks/useScrollDirection';
+import { OrderCard } from '../../features/orders/components/OrderCard';
+import { OrderSection } from '../../features/orders/components/OrderSection';
+import { 
+  getEstimatedDeliveryTime, 
+  formatDeliveryTime, 
+  sortOrdersByDeliveryTime,
+  groupOrdersByStatus 
+} from '../../features/orders/utils/deliveryTimeCalculator';
 
 // Statuts possibles (SIMPLIFIÉ)
 const STATUS_CONFIG = {
@@ -222,6 +230,23 @@ export default function PizzaioloOrders() {
     if (isExpired(o)) return true;
     return false;
   });
+
+  // Grouper les commandes actives par statut et paiement (4 groupes)
+  const orderGroups = groupOrdersByStatus(filteredActiveOrders);
+  console.log('[PizzaioloOrders] Groupes de commandes:', {
+    notAcceptedPaid: orderGroups.notAcceptedPaid.length,
+    notAcceptedUnpaid: orderGroups.notAcceptedUnpaid.length,
+    acceptedPaid: orderGroups.acceptedPaid.length,
+    acceptedUnpaid: orderGroups.acceptedUnpaid.length
+  });
+
+  // Trier chaque groupe par ordre chronologique de livraison
+  const sortedNotAcceptedPaid = sortOrdersByDeliveryTime(orderGroups.notAcceptedPaid, pizzaPerHour);
+  const sortedNotAcceptedUnpaid = sortOrdersByDeliveryTime(orderGroups.notAcceptedUnpaid, pizzaPerHour);
+  const sortedAcceptedPaid = sortOrdersByDeliveryTime(orderGroups.acceptedPaid, pizzaPerHour);
+  const sortedAcceptedUnpaid = sortOrdersByDeliveryTime(orderGroups.acceptedUnpaid, pizzaPerHour);
+
+  console.log('[PizzaioloOrders] Commandes triées par heure de livraison');
 
   // Calculer les stats
   const lostCount = filteredCompletedOrders.filter(o => isExpired(o)).length;
@@ -458,7 +483,7 @@ export default function PizzaioloOrders() {
       </Card>
 
       {/* File d'attente */}
-      <section className="space-y-4">
+      <section className="space-y-8">
         <h2 className="text-xl font-black tracking-tight flex items-center gap-2">
           <Clock className="h-5 w-5 text-orange-500" />
           File d'attente
@@ -480,175 +505,134 @@ export default function PizzaioloOrders() {
             </p>
           </Card>
         ) : (
-          <div className="grid gap-4">
-            {filteredActiveOrders.map((order) => {
-              const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.received;
-              const StatusIcon = statusConfig.icon;
-              const elapsed = getElapsedTime(order.createdAt);
-              const remaining = getRemainingTime(order, pizzaPerHour);
-              const totalPizzas = order.items?.reduce((sum, item) => sum + (item.qty || 0), 0) || 0;
+          <div className="space-y-8">
+            {/* Section 1: Commandes non prises en charge - PAYÉES */}
+            <OrderSection 
+              title="Non prises en charge · Payées" 
+              count={sortedNotAcceptedPaid.length}
+              color="green-500"
+            >
+              {sortedNotAcceptedPaid.map((order) => {
+                const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.received;
+                const elapsed = getElapsedTime(order.createdAt);
+                const remaining = getRemainingTime(order, pizzaPerHour);
+                const estimatedTime = getEstimatedDeliveryTime(order, pizzaPerHour);
+                const estimatedTimeFormatted = formatDeliveryTime(estimatedTime);
 
-              return (
-                <Card
-                  key={order.id}
-                  className={`glass-premium glass-glossy ${
-                    order.source === 'manual' 
-                      ? 'border-purple-500/50 bg-purple-500/5' 
-                      : 'border-white/20'
-                  } p-6 rounded-[24px] ${
-                    remaining?.isLate ? 'border-red-500/50' : ''
-                  }`}
-                >
-                  <div className="grid md:grid-cols-[1fr_auto_auto] gap-6 items-start">
-                    {/* Colonne 1: Informations commande - PIZZAS EN GROS */}
-                    <div className="space-y-4">
-                      {/* En-tête compact - BADGES UNIQUEMENT SI PERTINENTS */}
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {/* Badge Statut seulement si pas "Prise en charge" (redondant) */}
-                        {order.status !== 'accepted' && (
-                          <Badge className={`${statusConfig.color} text-white rounded-full text-xs`}>
-                            {statusConfig.label}
-                          </Badge>
-                        )}
-                        
-                        {/* Badge MANUELLE seulement si commande payée (sinon évident que c'est manuel) */}
-                        {order.source === 'manual' && order.payment?.paymentStatus === 'paid' && (
-                          <Badge className="bg-purple-600 text-white rounded-full text-xs font-bold">
-                            ✋ MANUELLE
-                          </Badge>
-                        )}
-                        
-                        {/* Badge Livraison/Retrait UNIQUEMENT si pas encore prise en charge */}
-                        {order.status === 'received' && (
-                          order.deliveryMethod === 'delivery' ? (
-                            <Badge className="bg-blue-600 text-white rounded-full text-xs font-bold flex items-center gap-1">
-                              <Bike className="h-3 w-3" />
-                              LIVRAISON
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-emerald-600 text-white rounded-full text-xs font-bold flex items-center gap-1">
-                              <Store className="h-3 w-3" />
-                              RETRAIT
-                            </Badge>
-                          )
-                        )}
-                        
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(order.createdAt).toLocaleTimeString('fr-FR', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </span>
-                      </div>
-                      
-                      {/* Nom du client - INFO PRINCIPALE */}
-                      <div className="mb-3 px-4 py-2 bg-primary/20 rounded-xl inline-flex items-center gap-2">
-                        <User className="h-5 w-5 text-primary" />
-                        <span className="font-black text-primary text-lg">
-                          {order.customerName || 'Client'}
-                        </span>
-                      </div>
+                return (
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    statusConfig={statusConfig}
+                    elapsed={elapsed}
+                    remaining={remaining}
+                    estimatedDeliveryTime={estimatedTimeFormatted}
+                    onAccept={handleAccept}
+                    onDeliver={handleDeliver}
+                    onMarkPaid={handleMarkPaid}
+                    onClick={() => setSelectedOrder(order)}
+                    updating={updating}
+                    borderVariant="paid"
+                  />
+                );
+              })}
+            </OrderSection>
 
-                      {/* PIZZAS - LISTE DIRECTE SANS COMPTEUR */}
-                      <div className="space-y-3">
-                        {order.items?.map((item, idx) => (
-                          <div key={idx} className="space-y-1">
-                            <div className="flex items-baseline gap-2">
-                              <span className="text-2xl font-black text-foreground">
-                                {item.qty}x {item.name}
-                              </span>
-                            </div>
-                            {(item.removedIngredients?.length > 0 || item.addedIngredients?.length > 0) && (
-                              <div className="text-sm pl-6 space-y-1">
-                                {item.removedIngredients?.length > 0 && (
-                                  <div className="text-red-500 font-bold">
-                                    ➖ Sans: {item.removedIngredients.join(', ')}
-                                  </div>
-                                )}
-                                {item.addedIngredients?.length > 0 && (
-                                  <div className="text-green-500 font-bold">
-                                    ➕ Avec: {item.addedIngredients.join(', ')}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+            {/* Section 2: Commandes non prises en charge - NON PAYÉES */}
+            <OrderSection 
+              title="Non prises en charge · Non payées" 
+              count={sortedNotAcceptedUnpaid.length}
+              color="orange-500"
+            >
+              {sortedNotAcceptedUnpaid.map((order) => {
+                const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.received;
+                const elapsed = getElapsedTime(order.createdAt);
+                const remaining = getRemainingTime(order, pizzaPerHour);
+                const estimatedTime = getEstimatedDeliveryTime(order, pizzaPerHour);
+                const estimatedTimeFormatted = formatDeliveryTime(estimatedTime);
 
-                    {/* Colonne 2: Actions */}
-                    <div className="flex flex-col gap-2" style={{ minWidth: '180px' }}>
-                      {order.source === 'manual' && order.payment?.paymentStatus !== 'paid' && (
-                        <Button
-                          onClick={() => handleMarkPaid(order.id)}
-                          className="w-full rounded-xl h-14 font-black text-sm bg-red-600 hover:bg-red-700 text-white flex items-center justify-center gap-2 animate-pulse shadow-lg shadow-red-500/50 border-2 border-red-400"
-                        >
-                          <CreditCard className="h-5 w-5" />
-                          💰 PAYÉ
-                        </Button>
-                      )}
-                      
-                      {order.source === 'manual' && order.payment?.paymentStatus === 'paid' && (
-                        <div className="w-full px-4 py-2 rounded-xl bg-green-600/20 border-2 border-green-600 flex items-center justify-center gap-2">
-                          <span className="text-green-600 font-black text-sm">💵 PAYÉ</span>
-                        </div>
-                      )}
-                      
-                      {order.status === 'received' ? (
-                        <Button
-                          onClick={() => handleAccept(order.id)}
-                          disabled={updating}
-                          className="w-full rounded-xl h-12 font-bold bg-blue-500 hover:bg-blue-600 text-white"
-                        >
-                          <ChefHat className="h-4 w-4 mr-2" />
-                          Prendre en charge
-                        </Button>
-                      ) : (
-                        // Bouton Délivré : uniquement si commande payée (ou non manuelle)
-                        !(order.source === 'manual' && order.payment?.paymentStatus !== 'paid') && (
-                          <Button
-                            onClick={() => handleDeliver(order.id)}
-                            disabled={updating}
-                            className="w-full rounded-xl h-12 font-bold bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center gap-2"
-                          >
-                            <CheckCircle className="h-4 w-4" />
-                            {order.deliveryMethod === 'delivery' ? 'Livré' : 'Délivré'}
-                          </Button>
-                        )
-                      )}
-                    </div>
+                return (
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    statusConfig={statusConfig}
+                    elapsed={elapsed}
+                    remaining={remaining}
+                    estimatedDeliveryTime={estimatedTimeFormatted}
+                    onAccept={handleAccept}
+                    onDeliver={handleDeliver}
+                    onMarkPaid={handleMarkPaid}
+                    onClick={() => setSelectedOrder(order)}
+                    updating={updating}
+                    borderVariant="unpaid"
+                  />
+                );
+              })}
+            </OrderSection>
 
-                    {/* Colonne 3: Timer */}
-                    <div className="text-center" style={{ minWidth: '120px' }}>
-                      {order.status === 'received' ? (
-                        <div className="space-y-1">
-                          <div className={`text-4xl font-black ${
-                            parseInt(elapsed) >= 60 
-                              ? 'text-red-500 animate-pulse'
-                              : 'text-orange-500'
-                          }`}>
-                            {elapsed}
-                          </div>
-                          <span className="text-xs font-bold text-muted-foreground uppercase block">Chrono</span>
-                        </div>
-                      ) : remaining ? (
-                        <div className="space-y-1">
-                          <div className={`text-4xl font-black ${remaining.isLate ? 'text-red-500 animate-pulse' : 'text-emerald-500'}`}>
-                            {remaining.text}
-                          </div>
-                          <span className="text-xs font-bold text-muted-foreground uppercase block">
-                            {remaining.isLate ? 'Retard' : 'Restant'}
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="text-2xl font-black text-muted-foreground">{elapsed}</div>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
+            {/* Section 3: Commandes prises en charge - PAYÉES */}
+            <OrderSection 
+              title="En préparation · Payées" 
+              count={sortedAcceptedPaid.length}
+              color="green-500"
+            >
+              {sortedAcceptedPaid.map((order) => {
+                const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.received;
+                const elapsed = getElapsedTime(order.createdAt);
+                const remaining = getRemainingTime(order, pizzaPerHour);
+                const estimatedTime = getEstimatedDeliveryTime(order, pizzaPerHour);
+                const estimatedTimeFormatted = formatDeliveryTime(estimatedTime);
+
+                return (
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    statusConfig={statusConfig}
+                    elapsed={elapsed}
+                    remaining={remaining}
+                    estimatedDeliveryTime={estimatedTimeFormatted}
+                    onAccept={handleAccept}
+                    onDeliver={handleDeliver}
+                    onMarkPaid={handleMarkPaid}
+                    onClick={() => setSelectedOrder(order)}
+                    updating={updating}
+                    borderVariant="paid"
+                  />
+                );
+              })}
+            </OrderSection>
+
+            {/* Section 4: Commandes prises en charge - NON PAYÉES */}
+            <OrderSection 
+              title="En préparation · Non payées" 
+              count={sortedAcceptedUnpaid.length}
+              color="orange-500"
+            >
+              {sortedAcceptedUnpaid.map((order) => {
+                const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.received;
+                const elapsed = getElapsedTime(order.createdAt);
+                const remaining = getRemainingTime(order, pizzaPerHour);
+                const estimatedTime = getEstimatedDeliveryTime(order, pizzaPerHour);
+                const estimatedTimeFormatted = formatDeliveryTime(estimatedTime);
+
+                return (
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    statusConfig={statusConfig}
+                    elapsed={elapsed}
+                    remaining={remaining}
+                    estimatedDeliveryTime={estimatedTimeFormatted}
+                    onAccept={handleAccept}
+                    onDeliver={handleDeliver}
+                    onMarkPaid={handleMarkPaid}
+                    onClick={() => setSelectedOrder(order)}
+                    updating={updating}
+                    borderVariant="unpaid"
+                  />
+                );
+              })}
+            </OrderSection>
           </div>
         )}
       </section>

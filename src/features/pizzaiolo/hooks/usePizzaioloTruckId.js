@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { onValue, ref } from 'firebase/database';
 import { db, isFirebaseConfigured } from '../../../lib/firebase';
 import { rtdbPaths } from '../../../lib/rtdbPaths';
@@ -12,77 +12,63 @@ import { devLog, devWarn } from '../../../lib/devLog';
  * @returns {{ truckId: string|null, loading: boolean, error: Error|null }}
  */
 export function usePizzaioloTruckId(userId) {
-  const [truckId, setTruckId] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // Déterminer l'état initial en fonction des conditions
+  const initialState = useMemo(() => {
+    if (!userId || !isFirebaseConfigured || !db) {
+      return { truckId: null, loading: false, error: null };
+    }
+    return { truckId: null, loading: true, error: null };
+  }, [userId]);
+
+  const [state, setState] = useState(initialState);
 
   useEffect(() => {
-    let cancelled = false;
-    const LOAD_TIMEOUT_MS = 8000;
-    let finished = false;
-
-    const finish = (next) => {
-      if (cancelled || finished) return;
-      finished = true;
-      next();
-    };
-
+    // Pas de userId : ne rien faire (état déjà correct)
     if (!userId) {
       devLog('[usePizzaioloTruckId] no userId');
-      setTruckId(null);
-      setError(null);
-      setLoading(false);
-      return () => {
-        cancelled = true;
-      };
+      return;
     }
 
+    // Firebase non configuré : ne rien faire (état déjà correct)
     if (!isFirebaseConfigured || !db) {
-      // Mode DEV sans Firebase (ou config manquante)
       devWarn('[usePizzaioloTruckId] firebase not configured');
-      setTruckId(null);
-      setError(null);
-      setLoading(false);
-      return () => {
-        cancelled = true;
-      };
+      return;
     }
 
-    // IMPORTANT: ne pas différer ce setState.
-    // Le callback initial de onValue peut arriver immédiatement et sinon on risque
-    // de remettre loading=true après avoir déjà reçu le snapshot.
-    setLoading(true);
-    setError(null);
+    // Variables de contrôle
+    let cancelled = false;
+    const LOAD_TIMEOUT_MS = 8000;
 
     const timeoutId = setTimeout(() => {
-      finish(() => {
-        devWarn('[usePizzaioloTruckId] timeout', { userId, path: rtdbPaths.pizzaiolo(userId) });
-        setTruckId(null);
-        setError(new Error('Timeout lors du chargement de votre camion (truckId).'));
-        setLoading(false);
+      if (cancelled) return;
+      devWarn('[usePizzaioloTruckId] timeout', { userId });
+      setState({
+        truckId: null,
+        loading: false,
+        error: new Error('Timeout lors du chargement de votre camion (truckId).')
       });
     }, LOAD_TIMEOUT_MS);
 
     const pizzaioloRef = ref(db, rtdbPaths.pizzaiolo(userId));
-    devLog('[usePizzaioloTruckId] subscribe', { userId, path: rtdbPaths.pizzaiolo(userId) });
+    devLog('[usePizzaioloTruckId] subscribe', { userId });
+
     const unsub = onValue(
       pizzaioloRef,
       (snap) => {
-        finish(() => {
-          clearTimeout(timeoutId);
-          const tid = snap.exists() ? snap.val()?.truckId ?? null : null;
-          devLog('[usePizzaioloTruckId] snapshot', { exists: snap.exists(), truckId: tid });
-          setTruckId(tid);
-          setLoading(false);
-        });
+        if (cancelled) return;
+        clearTimeout(timeoutId);
+        const tid = snap.exists() ? snap.val()?.truckId ?? null : null;
+        devLog('[usePizzaioloTruckId] snapshot', { exists: snap.exists(), truckId: tid });
+        setState({ truckId: tid, loading: false, error: null });
       },
       (err) => {
-        finish(() => {
-          clearTimeout(timeoutId);
-          devWarn('[usePizzaioloTruckId] error', err);
-          setTruckId(null);
-          setError(err instanceof Error ? err : new Error(String(err)));
-          setLoading(false);
+        if (cancelled) return;
+        clearTimeout(timeoutId);
+        devWarn('[usePizzaioloTruckId] error', err);
+        setState({
+          truckId: null,
+          loading: false,
+          error: err instanceof Error ? err : new Error(String(err))
         });
       }
     );
@@ -94,5 +80,5 @@ export function usePizzaioloTruckId(userId) {
     };
   }, [userId]);
 
-  return { truckId, loading, error };
+  return state;
 }
