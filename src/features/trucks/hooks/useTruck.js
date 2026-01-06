@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ref, onValue, query, orderByChild, equalTo, limitToFirst } from 'firebase/database';
+import { ref, get, query, orderByChild, equalTo, limitToFirst } from 'firebase/database';
 import { db, isFirebaseConfigured } from '../../../lib/firebase';
 import { rtdbPaths } from '../../../lib/rtdbPaths';
 import { devError, devWarn } from '../../../lib/devLog';
@@ -67,7 +67,6 @@ export function useTruck(slugOrId) {
   useEffect(() => {
     let cancelled = false;
     let resolved = false;
-    let unsub = () => {};
 
     if (!firebaseEnabled) {
       // Mode DEV sans Firebase: pas de listener RTDB, on expose le fallback (liste mock).
@@ -97,19 +96,19 @@ export function useTruck(slugOrId) {
     const resolveOnce = (nextTruck) => {
       if (resolved || cancelled) return;
       resolved = true;
-      try {
-        unsub();
-      } catch {
-        // noop
-      }
-      unsub = () => {};
       setTruck(nextTruck);
       setLoading(false);
     };
 
-    unsub = onValue(
-      sourceRefOrQuery,
-      (snapshot) => {
+    // One-shot RTDB (pas de listener temps réel)
+    // IMPORTANT: en DEV, React StrictMode monte/démonte/remonte les composants,
+    // et certains patterns "onValue + unsubscribe immédiat" peuvent déclencher
+    // un assert interne du SDK (listen() called twice). `get()` évite ces soucis.
+    (async () => {
+      try {
+        const snapshot = await get(sourceRefOrQuery);
+        if (cancelled) return;
+
         if (!snapshot.exists()) {
           resolveOnce(null);
           return;
@@ -129,14 +128,13 @@ export function useTruck(slugOrId) {
 
         const [id, val] = firstEntry;
         resolveOnce(normalizeTruck(id, val));
-      },
-      (err) => {
+      } catch (err) {
         const e = err instanceof Error ? err : new Error(String(err));
-        devError('[useTruck] RTDB onValue error:', e);
-        setError(e);
+        devError('[useTruck] RTDB get error:', e);
+        if (!cancelled) setError(e);
         resolveOnce(null);
       }
-    );
+    })();
 
     // Fallback: si le SDK ne répond pas (souvent dû à un transport bloqué),
     // on récupère en REST (lecture publique) pour éviter un loader infini.
@@ -194,11 +192,6 @@ export function useTruck(slugOrId) {
     return () => {
       cancelled = true;
       clearTimeout(fallbackTimer);
-      try {
-        unsub();
-      } catch {
-        // noop
-      }
     };
   }, [firebaseEnabled, slugOrId]);
 
