@@ -79,9 +79,23 @@ export default function TruckDetails() {
 
   const hasMenu = useMemo(() => (effectiveMenuItems?.length ?? 0) > 0, [effectiveMenuItems]);
 
+  const safeFrom = useMemo(() => {
+    const raw = location?.state?.from;
+    if (typeof raw !== 'string') return null;
+    // On n'accepte que des chemins internes simples.
+    if (!raw.startsWith('/')) return null;
+    if (raw.startsWith('//')) return null;
+    return raw;
+  }, [location?.state]);
+
   const handleBack = () => {
-    // UX souhaitée: revenir à l'exploration (avec filtres), sans dépendre de l'historique
-    // (évite les retours surprenants et les reloads complets selon le contexte).
+    // UX: retour cohérent vers la page d'origine quand elle est connue,
+    // sinon fallback sur /explore mémorisé.
+    if (safeFrom) {
+      navigate(safeFrom);
+      return;
+    }
+
     try {
       const lastExploreUrl = localStorage.getItem('planizza.lastExploreUrl');
       if (lastExploreUrl) {
@@ -97,7 +111,12 @@ export default function TruckDetails() {
 
   const handleCheckout = async () => {
     // Navigation MVP: passage par /cart puis /checkout
-    navigate(ROUTES.cart, { state: { truckId: truck.id } });
+    navigate(ROUTES.cart, {
+      state: {
+        truckId: truck.id,
+        from: `${location.pathname}${location.search}`,
+      },
+    });
   };
 
   return (

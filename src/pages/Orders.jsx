@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Store } from 'lucide-react';
 import { ref, query, orderByChild, equalTo, onValue, get } from 'firebase/database';
 import { db } from '../lib/firebase';
@@ -7,6 +7,7 @@ import { useAuth } from '../app/providers/AuthProvider';
 
 export default function Orders() {
   const { user } = useAuth();
+  const location = useLocation();
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [trucks, setTrucks] = useState({});
@@ -173,7 +174,9 @@ export default function Orders() {
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            navigate(ROUTES.truck(order.truckId));
+                            navigate(ROUTES.truck(order.truckId), {
+                              state: { from: `${location.pathname}${location.search}` },
+                            });
                           }}
                           className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:text-primary/80 transition-colors mb-2 group"
                         >

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { ShoppingBag, ArrowLeft, Trash2, Minus, Plus, Bike, Store } from 'lucide-react';
 import { Button } from '../components/ui/Button';
@@ -42,11 +42,28 @@ export default function Cart() {
     return ROUTES.explore;
   };
 
-  const handleContinueShopping = (e) => {
-    e?.preventDefault?.();
-    e?.stopPropagation?.();
-    navigate(getExploreUrl());
+  const safeFrom = useMemo(() => {
+    const raw = location?.state?.from;
+    if (typeof raw !== 'string') return null;
+    if (!raw.startsWith('/')) return null;
+    if (raw.startsWith('//')) return null;
+    // Ne jamais reboucler vers /panier
+    if (raw.startsWith(ROUTES.cart)) return null;
+    return raw;
+  }, [location?.state]);
+
+  const getBackToTruckUrl = (truckId) => {
+    // Si la page source semble être un écran 'camion', on la préfère.
+    if (safeFrom && !safeFrom.startsWith(ROUTES.explore) && !safeFrom.startsWith(ROUTES.checkout)) {
+      return safeFrom;
+    }
+
+    if (truckId) return ROUTES.truck(truckId);
+    return getExploreUrl();
   };
+
+  const truckId = location.state?.truckId ?? cartTruckId ?? null;
+  const continueUrl = useMemo(() => getBackToTruckUrl(truckId), [truckId, safeFrom]);
   
   // Adresse structurée
   const [deliveryAddress, setDeliveryAddress] = useState({
@@ -56,7 +73,6 @@ export default function Cart() {
     city: '',
   });
 
-  const truckId = location.state?.truckId ?? cartTruckId ?? null;
   const { truck, loading: loadingTruck, error: truckError } = useTruck(truckId);
 
   // Les données historiques peuvent stocker les horaires sous différentes clés.
@@ -213,10 +229,10 @@ export default function Cart() {
             <CardDescription className="mb-6">
               Ajoutez des pizzas depuis un camion pour commencer
             </CardDescription>
-            <Link to={getExploreUrl()}>
+            <Link to={continueUrl}>
               <Button>
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Explorer les camions
+                Continuer mes achats
               </Button>
             </Link>
           </CardContent>
@@ -230,8 +246,7 @@ export default function Cart() {
       {/* Header */}
       <div className="mb-8">
         <Link
-          to={getExploreUrl()}
-          onClick={handleContinueShopping}
+          to={continueUrl}
           className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />

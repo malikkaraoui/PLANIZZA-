@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { MapPin, Star, Clock, Pizza } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
@@ -20,6 +20,7 @@ function formatKm(km) {
 }
 
 export default function TruckCard({ truck }) {
+  const location = useLocation();
   const navigate = useNavigate();
   const hero = Array.isArray(truck.photos) && truck.photos.length ? truck.photos[0] : null;
   const href = ROUTES.truck(truck.slug || truck.id);
@@ -34,7 +35,7 @@ export default function TruckCard({ truck }) {
   const statusText = getOpeningStatusText(truck.openingHours);
 
   const handleCardClick = () => {
-    navigate(href);
+    navigate(href, { state: { from: `${location.pathname}${location.search}` } });
   };
 
   return (

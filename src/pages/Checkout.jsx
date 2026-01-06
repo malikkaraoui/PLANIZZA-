@@ -110,8 +110,15 @@ export default function Checkout() {
         )}
 
         <div className="mt-4 flex gap-2">
-          <Button
-            onClick={() => navigate(ROUTES.cart, { state: { truckId } })}
+            <Button
+              onClick={() =>
+                navigate(ROUTES.cart, {
+                  state: {
+                    truckId,
+                    from: truckId ? ROUTES.truck(truckId) : `${location.pathname}${location.search}`,
+                  },
+                })
+              }
             variant="outline"
           >
             Retour panier

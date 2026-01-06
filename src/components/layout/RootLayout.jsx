@@ -3,6 +3,7 @@ import Navbar from './Navbar';
 import Footer from './Footer';
 import PausedTruckWatcher from '../../features/cart/PausedTruckWatcher';
 import ErrorBoundary from '../ErrorBoundary';
+import RouteDebug from '../../app/RouteDebug';
 
 export default function RootLayout() {
   return (
@@ -15,6 +16,7 @@ export default function RootLayout() {
       </main>
       <Footer />
       <PausedTruckWatcher />
+      <RouteDebug />
       <ScrollRestoration getKey={(location) => `${location.pathname}${location.search}`} />
     </div>
   );
