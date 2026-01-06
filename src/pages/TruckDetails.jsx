@@ -5,6 +5,8 @@ import TruckHeader from '../features/trucks/TruckHeader';
 import { useTruck } from '../features/trucks/hooks/useTruck';
 import { useMenu } from '../features/menu/hooks/useMenu';
 import MenuItemCard from '../features/menu/MenuItemCard';
+import MenuItemTile from '../features/menu/MenuItemTile';
+import MenuPizzaTile from '../features/menu/MenuPizzaTile';
 import CartSidebar from '../features/cart/CartSidebar';
 import { useCart } from '../features/cart/hooks/useCart.jsx';
 import { ROUTES } from '../app/routes';
@@ -21,6 +23,7 @@ export default function TruckDetails() {
   const { addItem, items } = useCart();
   const [zoomedImage, setZoomedImage] = useState(null);
   const [showMap, setShowMap] = useState(false);
+  const [openPizzaId, setOpenPizzaId] = useState(null);
 
   const embeddedMenuItems = useMemo(() => {
     const raw = truck?.menu?.items;
@@ -30,6 +33,33 @@ export default function TruckDetails() {
 
   const effectiveMenuItems = (menuItems?.length ?? 0) > 0 ? menuItems : embeddedMenuItems;
   const hasEmbeddedMenu = embeddedMenuItems.length > 0;
+
+  const menuByGenre = useMemo(() => {
+    const normalize = (v) => (typeof v === 'string' ? v.trim().toLowerCase() : '');
+
+    const getGenre = (item) => {
+      const t = normalize(item?.type);
+
+      if (t === 'dessert') return 'dessert';
+      if (t === 'pizza' || t === 'calzone') return 'pizza';
+      if (t === 'boisson' || ['soda', 'eau', 'biere', 'vin'].includes(t)) return 'boisson';
+
+      return 'autre';
+    };
+
+    const buckets = {
+      boisson: [],
+      dessert: [],
+      pizza: [],
+      autre: [],
+    };
+
+    for (const it of effectiveMenuItems || []) {
+      buckets[getGenre(it)].push(it);
+    }
+
+    return buckets;
+  }, [effectiveMenuItems]);
 
   // IMPORTANT: si le camion contient déjà un menu embarqué, on ne bloque pas l'écran sur un listener RTDB menu.
   const isLoading = loadingTruck || (!hasEmbeddedMenu && loadingMenu);
@@ -66,7 +96,7 @@ export default function TruckDetails() {
   };
 
   return (
-    <div className="relative isolate mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-12 overflow-hidden">
+    <div className="relative isolate mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-12">
       {/* Background decorations - Ultra Dynamic */}
       <div className="absolute top-0 right-0 -z-10 w-150 h-150 bg-primary/10 rounded-full blur-[120px] animate-pulse" />
       <div className="absolute bottom-1/4 left-0 -z-10 w-100 h-100 bg-blue-500/10 rounded-full blur-[100px] animate-pulse duration-700" />
@@ -244,10 +274,8 @@ export default function TruckDetails() {
           </div>
 
           {/* Sidebar / Sidebar "Control Center" */}
-          <aside className="lg:col-start-2 lg:row-start-1 lg:row-span-2 animate-in slide-in-from-right-8 duration-700">
-            <div className="lg:sticky lg:top-24 h-[calc(100vh-7rem)]">
-              <CartSidebar onCheckout={handleCheckout} disabled={!canOrder} />
-            </div>
+          <aside className="animate-in slide-in-from-right-8 duration-700 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-24 self-start">
+            <CartSidebar onCheckout={handleCheckout} disabled={!canOrder} showPaymentInfo={false} compact />
           </aside>
 
           {/* Menu Section */}
@@ -285,14 +313,65 @@ export default function TruckDetails() {
                     )}
                   </div>
                 )}
-                {effectiveMenuItems.map((it) => (
-                  <MenuItemCard
-                    key={it.id}
-                    item={it}
-                    onAdd={(item) => addItem(item, { truckId: truck.id })}
-                    isDisabled={!canOrder}
-                  />
-                ))}
+                {/* Produits regroupés par genre */}
+                {[
+                  { key: 'pizza', title: '🍕 Pizzas & Calzones' },
+                  { key: 'boisson', title: '🥤 Boissons' },
+                  { key: 'autre', title: '✨ Autres' },
+                  { key: 'dessert', title: '🍰 Desserts' },
+                ].map((section) => {
+                  const list = menuByGenre?.[section.key] || [];
+                  if (list.length === 0) return null;
+
+                  return (
+                    <div key={section.key} className="space-y-6">
+                      <div className="flex items-center gap-4 px-2">
+                        <div className="h-8 w-1.5 bg-primary/20 rounded-full" />
+                        <h3 className="text-xl font-black tracking-tight uppercase">
+                          {section.title}
+                        </h3>
+                        <span className="text-xs font-bold text-muted-foreground/60">({list.length})</span>
+                      </div>
+
+                      {section.key === 'boisson' || section.key === 'dessert' ? (
+                        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                          {list.map((it) => (
+                            <MenuItemTile
+                              key={it.id}
+                              item={it}
+                              onAdd={(item) => addItem(item, { truckId: truck.id })}
+                              isDisabled={!canOrder}
+                            />
+                          ))}
+                        </div>
+                      ) : section.key === 'pizza' ? (
+                        <div className="grid gap-4 md:grid-cols-2 items-start">
+                          {list.map((it) => (
+                            <MenuPizzaTile
+                              key={it.id}
+                              item={it}
+                              open={openPizzaId === it.id}
+                              onToggle={() => setOpenPizzaId((prev) => (prev === it.id ? null : it.id))}
+                              onAdd={(item) => addItem(item, { truckId: truck.id })}
+                              isDisabled={!canOrder}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="grid gap-8">
+                          {list.map((it) => (
+                            <MenuItemCard
+                              key={it.id}
+                              item={it}
+                              onAdd={(item) => addItem(item, { truckId: truck.id })}
+                              isDisabled={!canOrder}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </section>

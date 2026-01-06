@@ -47,6 +47,7 @@ export default function PizzaioloMenu() {
     customFromages,
     canAddMore,
     addCustomIngredient,
+    removeCustomIngredient,
   } = useCustomIngredients(user?.uid);
 
   const loading = loadingTruck || loadingMenu;
@@ -278,6 +279,25 @@ export default function PizzaioloMenu() {
                 customGarnitures={customGarnitures}
                 customFromages={customFromages}
                 onAddCustomIngredient={addCustomIngredient}
+                onRemoveCustomIngredient={async (type, ingredient) => {
+                  await removeCustomIngredient(type, ingredient);
+
+                  // Nettoyer les sélections si on vient de supprimer un élément sélectionné.
+                  const removedName = ingredient?.name;
+                  if (!removedName) return;
+
+                  if (type === 'base' && selectedBase === removedName) {
+                    setSelectedBase('');
+                  }
+
+                  if (type === 'garniture') {
+                    setSelectedGarnitures((prev) => prev.filter((g) => g !== removedName));
+                  }
+
+                  if (type === 'fromage') {
+                    setSelectedFromages((prev) => prev.filter((f) => f !== removedName));
+                  }
+                }}
                 canAddMore={canAddMore && canAddMore()}
               />
 

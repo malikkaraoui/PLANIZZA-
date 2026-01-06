@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { BASES, FROMAGES, GARNITURES } from '../../constants';
 import { Input } from '../../../../components/ui/Input';
 import { CustomIngredientModal } from './CustomIngredientModal';
+import { Trash2 } from 'lucide-react';
 
 export function PizzaioloMenuPizzaCustomizer({
   selectedCategory,
@@ -18,6 +19,7 @@ export function PizzaioloMenuPizzaCustomizer({
   customGarnitures = [],
   customFromages = [],
   onAddCustomIngredient,
+  onRemoveCustomIngredient,
   canAddMore = true,
 }) {
   const [modalOpen, setModalOpen] = useState(false);
@@ -51,9 +53,35 @@ export function PizzaioloMenuPizzaCustomizer({
     }
   };
 
-  const allBases = [...BASES, ...customBases.map(b => b.name)];
-  const allGarnitures = [...GARNITURES, ...customGarnitures.map(g => g.name)];
-  const allFromages = [...FROMAGES, ...customFromages.map(f => f.name)];
+  const baseOptions = [
+    ...BASES.map((name) => ({ key: name, name, isCustom: false })),
+    ...customBases.map((b) => ({ key: b.id || b.name, id: b.id, name: b.name, isCustom: true })),
+  ];
+
+  const garnitureOptions = [
+    ...GARNITURES.map((name) => ({ key: name, name, isCustom: false })),
+    ...customGarnitures.map((g) => ({ key: g.id || g.name, id: g.id, name: g.name, isCustom: true })),
+  ];
+
+  const fromageOptions = [
+    ...FROMAGES.map((name) => ({ key: name, name, isCustom: false })),
+    ...customFromages.map((f) => ({ key: f.id || f.name, id: f.id, name: f.name, isCustom: true })),
+  ];
+
+  const handleRemove = async (type, option) => {
+    if (!option?.isCustom) return;
+    if (!onRemoveCustomIngredient) return;
+
+    const confirmLabel = option?.name ? `\"${option.name}\"` : 'cet élément';
+    if (!confirm(`Supprimer ${confirmLabel} ?`)) return;
+
+    try {
+      await onRemoveCustomIngredient(type, { id: option?.id, name: option?.name });
+    } catch (error) {
+      console.error('Erreur lors de la suppression de l\'ingrédient:', error);
+      alert(error?.message || 'Erreur lors de la suppression');
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -77,19 +105,33 @@ export function PizzaioloMenuPizzaCustomizer({
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Base *</label>
         <div className="grid grid-cols-2 gap-3">
-          {allBases.map((base) => (
-            <button
-              key={base}
-              type="button"
-              onClick={() => setSelectedBase(base)}
-              className={`p-3 rounded-lg border-2 transition-all text-sm ${
-                selectedBase === base
-                  ? 'border-emerald-500 bg-emerald-50 font-semibold'
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              {base}
-            </button>
+          {baseOptions.map((option) => (
+            <div key={option.key} className="relative">
+              <button
+                type="button"
+                onClick={() => setSelectedBase(option.name)}
+                className={`w-full p-3 rounded-lg border-2 transition-all text-sm text-left pr-10 ${
+                  selectedBase === option.name
+                    ? 'border-emerald-500 bg-emerald-50 font-semibold'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+                title={option.name}
+              >
+                {option.name}
+              </button>
+
+              {option.isCustom && (
+                <button
+                  type="button"
+                  onClick={() => handleRemove('base', option)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                  title="Supprimer cet ingrédient personnalisé"
+                  aria-label={`Supprimer ${option.name}`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
+            </div>
           ))}
           <button
             type="button"
@@ -104,23 +146,39 @@ export function PizzaioloMenuPizzaCustomizer({
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Garnitures</label>
         <div className="grid grid-cols-2 gap-2">
-          {allGarnitures.map((garniture) => (
-            <button
-              key={garniture}
-              type="button"
-              onClick={() => {
-                setSelectedGarnitures((prev) =>
-                  prev.includes(garniture) ? prev.filter((g) => g !== garniture) : [...prev, garniture]
-                );
-              }}
-              className={`p-2 rounded-lg border-2 transition-all text-xs ${
-                selectedGarnitures.includes(garniture)
-                  ? 'border-emerald-500 bg-emerald-50 font-semibold'
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              {garniture}
-            </button>
+          {garnitureOptions.map((option) => (
+            <div key={option.key} className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedGarnitures((prev) =>
+                    prev.includes(option.name)
+                      ? prev.filter((g) => g !== option.name)
+                      : [...prev, option.name]
+                  );
+                }}
+                className={`w-full p-2 rounded-lg border-2 transition-all text-xs text-left pr-9 ${
+                  selectedGarnitures.includes(option.name)
+                    ? 'border-emerald-500 bg-emerald-50 font-semibold'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+                title={option.name}
+              >
+                {option.name}
+              </button>
+
+              {option.isCustom && (
+                <button
+                  type="button"
+                  onClick={() => handleRemove('garniture', option)}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded-md text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                  title="Supprimer cet ingrédient personnalisé"
+                  aria-label={`Supprimer ${option.name}`}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
           ))}
           <button
             type="button"
@@ -135,23 +193,39 @@ export function PizzaioloMenuPizzaCustomizer({
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Fromages *</label>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-          {allFromages.map((fromage) => (
-            <button
-              key={fromage}
-              type="button"
-              onClick={() => {
-                setSelectedFromages((prev) =>
-                  prev.includes(fromage) ? prev.filter((f) => f !== fromage) : [...prev, fromage]
-                );
-              }}
-              className={`p-2 rounded-lg border-2 transition-all text-xs ${
-                selectedFromages.includes(fromage)
-                  ? 'border-emerald-500 bg-emerald-50 font-semibold'
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              {fromage}
-            </button>
+          {fromageOptions.map((option) => (
+            <div key={option.key} className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedFromages((prev) =>
+                    prev.includes(option.name)
+                      ? prev.filter((f) => f !== option.name)
+                      : [...prev, option.name]
+                  );
+                }}
+                className={`w-full p-2 rounded-lg border-2 transition-all text-xs text-left pr-9 ${
+                  selectedFromages.includes(option.name)
+                    ? 'border-emerald-500 bg-emerald-50 font-semibold'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+                title={option.name}
+              >
+                {option.name}
+              </button>
+
+              {option.isCustom && (
+                <button
+                  type="button"
+                  onClick={() => handleRemove('fromage', option)}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded-md text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                  title="Supprimer cet ingrédient personnalisé"
+                  aria-label={`Supprimer ${option.name}`}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
           ))}
           <button
             type="button"

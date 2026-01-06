@@ -100,6 +100,63 @@ export function useCustomIngredients(pizzaioloUid) {
     console.log('[addCustomIngredient] Sauvegarde réussie !');
   };
 
+  const removeCustomIngredient = async (type, ingredientToRemove) => {
+    if (!pizzaioloUid) {
+      const error = 'Utilisateur non authentifié';
+      console.error('[removeCustomIngredient]', error);
+      throw new Error(error);
+    }
+
+    const idToRemove = ingredientToRemove?.id;
+    const nameToRemove = ingredientToRemove?.name;
+
+    if (!idToRemove && !nameToRemove) {
+      const error = 'Ingrédient invalide (id/name manquant)';
+      console.error('[removeCustomIngredient]', error, ingredientToRemove);
+      throw new Error(error);
+    }
+
+    let currentList;
+    let pathKey;
+
+    switch (type) {
+      case 'base':
+        currentList = customBases;
+        pathKey = 'bases';
+        break;
+      case 'garniture':
+        currentList = customGarnitures;
+        pathKey = 'garnitures';
+        break;
+      case 'fromage':
+        currentList = customFromages;
+        pathKey = 'fromages';
+        break;
+      default:
+        throw new Error('Type ingrédient invalide');
+    }
+
+    const updatedList = (currentList || []).filter((item) => {
+      // Compat : anciens items stockés comme string
+      if (typeof item === 'string') {
+        return item !== nameToRemove;
+      }
+
+      if (idToRemove) return item?.id !== idToRemove;
+      return item?.name !== nameToRemove;
+    });
+
+    console.log(
+      '[removeCustomIngredient] Suppression dans:',
+      `pizzaiolos/${pizzaioloUid}/customIngredients/${pathKey}`,
+      '->',
+      ingredientToRemove
+    );
+
+    const ingredientRef = ref(db, `pizzaiolos/${pizzaioloUid}/customIngredients/${pathKey}`);
+    await set(ingredientRef, updatedList);
+  };
+
   return {
     customBases,
     customGarnitures,
@@ -109,5 +166,6 @@ export function useCustomIngredients(pizzaioloUid) {
     getTotalCount,
     canAddMore,
     addCustomIngredient,
+    removeCustomIngredient,
   };
 }

@@ -34,6 +34,10 @@ export default function PizzaioloLive() {
   const [menu, setMenu] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Validation UX: ne pas bloquer la saisie de l'heure au clavier.
+  // On valide à la fin (blur) et lors de la création de commande.
+  const [pickupTimeError, setPickupTimeError] = useState('');
+
   // Navigation entre catégories
   const [selectedCategory, setSelectedCategory] = useState(null);
   const pizzaRef = useRef(null);
@@ -148,15 +152,16 @@ export default function PizzaioloLive() {
       return;
     }
 
-    // Validation: empêcher les heures dans le passé
-    if (pickupTime) {
+    // Validation: empêcher les heures dans le passé (validation finale)
+    if (pickupTime && /^\d{2}:\d{2}$/.test(pickupTime)) {
       const now = new Date();
       const [hours, minutes] = pickupTime.split(':').map(Number);
       const pickupDate = new Date();
       pickupDate.setHours(hours, minutes, 0, 0);
-      
+
       if (pickupDate < now) {
-        alert('❌ L\'heure de retrait ne peut pas être dans le passé');
+        setPickupTimeError("L'heure de retrait ne peut pas être dans le passé");
+        alert("❌ L'heure de retrait ne peut pas être dans le passé");
         return;
       }
     }
@@ -665,24 +670,26 @@ export default function PizzaioloLive() {
                 value={pickupTime}
                 onChange={(e) => {
                   const newTime = e.target.value;
-                  // Validation temps réel: vérifier que l'heure n'est pas dans le passé
+                  // IMPORTANT: ne pas valider pendant la frappe.
+                  // Sinon l'input time "snap" sur une valeur (ex: 11:00) et déclenche l'erreur avant que
+                  // l'utilisateur finisse d'entrer (ex: 12:30).
+                  setPickupTimeError('');
+                  setPickupTime(newTime);
+                }}
+                onBlur={() => {
+                  // Validation douce à la fin de saisie (format complet)
+                  if (!pickupTime || !/^\d{2}:\d{2}$/.test(pickupTime)) return;
+
                   const now = new Date();
-                  const [hours, minutes] = newTime.split(':').map(Number);
+                  const [hours, minutes] = pickupTime.split(':').map(Number);
                   const selectedDate = new Date();
                   selectedDate.setHours(hours, minutes, 0, 0);
-                  
+
                   if (selectedDate < now) {
-                    alert('⚠️ L\'heure de retrait ne peut pas être dans le passé');
-                    // Réinitialiser à heure actuelle + 15 min
-                    const resetTime = new Date();
-                    resetTime.setMinutes(resetTime.getMinutes() + 15);
-                    const h = String(resetTime.getHours()).padStart(2, '0');
-                    const m = String(resetTime.getMinutes()).padStart(2, '0');
-                    setPickupTime(`${h}:${m}`);
-                    return;
+                    setPickupTimeError("L'heure de retrait ne peut pas être dans le passé");
+                  } else {
+                    setPickupTimeError('');
                   }
-                  
-                  setPickupTime(newTime);
                 }}
                 className="rounded-xl"
                 min={(() => {
@@ -693,6 +700,11 @@ export default function PizzaioloLive() {
                   return `${h}:${m}`;
                 })()}
               />
+              {pickupTimeError && (
+                <p className="mt-2 text-xs font-bold text-red-600">
+                  ⚠️ {pickupTimeError}
+                </p>
+              )}
             </div>
 
             {/* Items */}
