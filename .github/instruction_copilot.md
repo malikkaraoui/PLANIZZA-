@@ -64,6 +64,21 @@ Paiement :
 - Gestion erreurs + états `loading` propres.
 - Nettoyer abonnements (Firebase listeners, WebSockets si un jour) via `useEffect` cleanup.
 
+#### 3.4.1 Contrôle de flux (switch) — bonne pratique
+Quand on fait un mapping **discret** (type, statut, rôle, étape, clé de taille…), privilégier un `switch` plutôt qu’une longue chaîne de `if`/ternaires.
+
+- ✅ À privilégier :
+  - `switch (type)` pour `pizza | calzone | boisson | dessert | ...`
+  - `switch (status)` pour `received | prep | cook | ready | ...`
+  - `switch (sizeKey)` pour `s | m | l | classic | ...`
+- ✅ Toujours :
+  - inclure un `default` explicite.
+  - regrouper les cas (`case 'pizza': case 'calzone': ...`) plutôt que multiplier les conditions.
+- ✅ Alternative acceptable (quand c’est purement statique) : un objet de mapping (`const map = { ... }`) + fallback.
+- ❌ À éviter :
+  - chaînes de ternaires imbriqués (`a ? b : c ? d : e`) et enchaînements de `if` difficiles à relire.
+  - `switch` pour des conditions non-discrètes (comparaisons numériques, ranges) : dans ce cas, `if` reste le bon outil.
+
 ---
 
 ## 4) MVP : ce qui doit exister en premier
