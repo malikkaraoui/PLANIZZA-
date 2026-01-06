@@ -9,6 +9,12 @@ export function usePizzaioloMenuDraft() {
   const [showForm, setShowForm] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null); // 'pizza'|'calzone'|'boisson'|'dessert'
 
+  // Empêche la réapparition de la grille de sélection quand on vide l'input
+  const [hasStartedTyping, setHasStartedTyping] = useState(false);
+  
+  // Mode composition personnalisée (pizza/calzone "Autre")
+  const [isCustomMode, setIsCustomMode] = useState(false);
+
   // Champs communs
   const [itemName, setItemName] = useState('');
   const [itemDesc, setItemDesc] = useState('');
@@ -31,9 +37,17 @@ export function usePizzaioloMenuDraft() {
   const [selectedGarnitures, setSelectedGarnitures] = useState([]);
   const [selectedFromages, setSelectedFromages] = useState([]);
 
+  // Wrapper pour setItemName qui track l'interaction utilisateur
+  const handleSetItemName = (value) => {
+    setItemName(value);
+    if (!hasStartedTyping) setHasStartedTyping(true);
+  };
+
   const resetDraft = ({ keepItemType = false } = {}) => {
     setItemName('');
     setItemDesc('');
+    setHasStartedTyping(false);
+    setIsCustomMode(false);
     if (!keepItemType) setItemType('pizza');
 
     setPriceS('');
@@ -79,7 +93,7 @@ export function usePizzaioloMenuDraft() {
   };
 
   const computedPersoDescription = useMemo(() => {
-    if (itemName !== 'La Perso') return '';
+    if (!isCustomMode) return '';
 
     if (!selectedBase && selectedGarnitures.length === 0 && selectedFromages.length === 0) return '';
 
@@ -89,7 +103,7 @@ export function usePizzaioloMenuDraft() {
     if (selectedGarnitures.length > 0) ingredients.push(...selectedGarnitures);
 
     return ingredients.join(', ');
-  }, [itemName, selectedBase, selectedGarnitures, selectedFromages]);
+  }, [isCustomMode, selectedBase, selectedGarnitures, selectedFromages]);
 
   const effectiveDescription = computedPersoDescription || itemDesc;
 
@@ -138,7 +152,10 @@ export function usePizzaioloMenuDraft() {
 
     // Champs
     itemName,
-    setItemName,
+    setItemName: handleSetItemName,
+    hasStartedTyping,
+    isCustomMode,
+    setIsCustomMode,
     itemDesc: effectiveDescription,
     setItemDesc,
     itemType,

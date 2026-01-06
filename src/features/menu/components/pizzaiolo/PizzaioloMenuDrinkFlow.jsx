@@ -68,7 +68,7 @@ export function PizzaioloMenuDrinkPicker({
   if (selectedCategory !== 'boisson') return null;
 
   const showChooseDrink = Boolean(itemType) && !itemName && !selectedDrinkSize;
-  const showChooseSize = ['soda', 'eau', 'biere'].includes(itemType) && itemName && !selectedDrinkSize;
+  const showChooseSize = ['soda', 'eau', 'biere'].includes(itemType) && itemName && itemName !== 'Autre' && !selectedDrinkSize;
 
   return (
     <>
@@ -89,11 +89,16 @@ export function PizzaioloMenuDrinkPicker({
                   type="button"
                   onClick={() => {
                     setItemName(soda.name);
-                    const defaultSizes = {};
-                    DRINK_SIZES.soda.forEach((size) => {
-                      defaultSizes[size.value] = size.defaultPrice.toString();
-                    });
-                    setDrinkSizes(defaultSizes);
+                    if (soda.custom) {
+                      // Pour "Autre", on ne définit pas les tailles par défaut
+                      setDrinkSizes({});
+                    } else {
+                      const defaultSizes = {};
+                      DRINK_SIZES.soda.forEach((size) => {
+                        defaultSizes[size.value] = size.defaultPrice.toString();
+                      });
+                      setDrinkSizes(defaultSizes);
+                    }
                   }}
                   className="p-4 rounded-xl border-2 border-gray-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-center"
                 >
@@ -109,11 +114,15 @@ export function PizzaioloMenuDrinkPicker({
                   type="button"
                   onClick={() => {
                     setItemName(eau.name);
-                    const defaultSizes = {};
-                    DRINK_SIZES.eau.forEach((size) => {
-                      defaultSizes[size.value] = size.defaultPrice.toString();
-                    });
-                    setDrinkSizes(defaultSizes);
+                    if (eau.custom) {
+                      setDrinkSizes({});
+                    } else {
+                      const defaultSizes = {};
+                      DRINK_SIZES.eau.forEach((size) => {
+                        defaultSizes[size.value] = size.defaultPrice.toString();
+                      });
+                      setDrinkSizes(defaultSizes);
+                    }
                   }}
                   className="p-4 rounded-xl border-2 border-gray-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-center"
                 >
@@ -129,11 +138,15 @@ export function PizzaioloMenuDrinkPicker({
                   type="button"
                   onClick={() => {
                     setItemName(biere.name);
-                    const defaultSizes = {};
-                    DRINK_SIZES.biere.forEach((size) => {
-                      defaultSizes[size.value] = size.defaultPrice.toString();
-                    });
-                    setDrinkSizes(defaultSizes);
+                    if (biere.custom) {
+                      setDrinkSizes({});
+                    } else {
+                      const defaultSizes = {};
+                      DRINK_SIZES.biere.forEach((size) => {
+                        defaultSizes[size.value] = size.defaultPrice.toString();
+                      });
+                      setDrinkSizes(defaultSizes);
+                    }
                   }}
                   className="p-4 rounded-xl border-2 border-gray-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-center"
                 >
@@ -149,13 +162,18 @@ export function PizzaioloMenuDrinkPicker({
                   type="button"
                   onClick={() => {
                     setItemName(vin.name);
-                    setPriceS(vin.defaultPrice.toString());
+                    if (vin.custom) {
+                      // Pour "Autre", on ne définit pas de prix par défaut
+                      setPriceS('');
+                    } else {
+                      setPriceS(vin.defaultPrice.toString());
+                    }
                   }}
                   className="p-4 rounded-xl border-2 border-gray-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left"
                 >
                   <div className="text-3xl mb-2">{vin.emoji}</div>
                   <div className="font-semibold text-xs">{vin.name}</div>
-                  <div className="text-xs text-emerald-600 mt-1">{vin.defaultPrice.toFixed(2)}€</div>
+                  {vin.defaultPrice && <div className="text-xs text-emerald-600 mt-1">{vin.defaultPrice.toFixed(2)}€</div>}
                 </button>
               ))}
           </div>

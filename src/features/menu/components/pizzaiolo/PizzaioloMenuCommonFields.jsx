@@ -8,6 +8,7 @@ export function PizzaioloMenuCommonFields({
   setItemName,
   itemDesc,
   setItemDesc,
+  isCustomMode,
 
   priceS,
   setPriceS,
@@ -27,12 +28,16 @@ export function PizzaioloMenuCommonFields({
   setDrinkSizes,
   selectedDrinkSize,
 }) {
-  if (!itemName) return null;
-
   // Pour les boissons avec tailles, attendre la sélection de taille
   if (['soda', 'eau', 'biere'].includes(itemType) && !selectedDrinkSize) return null;
+  
+  // Pour pizza/calzone : toujours afficher les champs (même si itemName vide pour "La Perso")
+  // Pour autres catégories : afficher seulement si un item a été sélectionné
+  const shouldShow = (selectedCategory === 'pizza' || selectedCategory === 'calzone') || itemName;
+  if (!shouldShow) return null;
 
   const nameReadOnly =
+    itemName !== 'Autre' &&
     selectedCategory !== 'calzone' &&
     selectedCategory !== 'pizza' &&
     itemType !== 'soda' &&
@@ -40,17 +45,23 @@ export function PizzaioloMenuCommonFields({
     itemType !== 'biere' &&
     itemType !== 'vin';
 
+  // Masquer le champ nom en mode custom (il est déjà dans le customizer)
+  const showNameField = !isCustomMode;
+
   return (
     <>
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Nom</label>
-        <Input
-          value={itemName}
-          onChange={(e) => setItemName(e.target.value)}
-          className="mt-1"
-          readOnly={nameReadOnly}
-        />
-      </div>
+      {showNameField && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Nom</label>
+          <Input
+            value={itemName}
+            onChange={(e) => setItemName(e.target.value)}
+            className="mt-1"
+            readOnly={nameReadOnly}
+            placeholder={selectedCategory === 'pizza' ? 'Ex: Ma Pizza spéciale...' : 'Nom du produit'}
+          />
+        </div>
+      )}
 
       {(selectedCategory === 'pizza' || selectedCategory === 'calzone') && (
         <div>
@@ -60,7 +71,6 @@ export function PizzaioloMenuCommonFields({
             onChange={(e) => setItemDesc(e.target.value)}
             placeholder="Ex: Tomate, mozzarella, basilic frais..."
             className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-            readOnly={itemName === 'La Perso'}
             rows={3}
           />
         </div>

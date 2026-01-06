@@ -166,7 +166,19 @@ export default function PizzaioloOrders() {
     const elapsed = currentTime - order.timeline.acceptedAt;
     const remaining = estimatedMs - elapsed;
     
-    if (remaining <= 0) return { text: '0min', isLate: true };
+    // Si en retard, afficher le temps de retard écoulé
+    if (remaining <= 0) {
+      const lateMs = Math.abs(remaining);
+      const lateMinutes = Math.floor(lateMs / 1000 / 60);
+      const lateSeconds = Math.floor((lateMs / 1000) % 60);
+      
+      // Afficher en minutes si >= 1min, sinon en secondes
+      const lateText = lateMinutes >= 1 
+        ? `${lateMinutes}min` 
+        : `${lateSeconds}s`;
+      
+      return { text: lateText, isLate: true };
+    }
     
     const remainingMin = Math.ceil(remaining / 1000 / 60);
     return { text: `${remainingMin}min`, isLate: false };

@@ -1,25 +1,29 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../app/providers/AuthProvider';
 import Card from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { usePizzaioloTruckId } from '../../features/pizzaiolo/hooks/usePizzaioloTruckId';
-import { usePizzaioloMenuDraft, usePizzaioloMenuEditor } from '../../features/menu/hooks';
+import { usePizzaioloMenuDraft, usePizzaioloMenuEditor, useCustomIngredients } from '../../features/menu/hooks';
 import {
   PizzaioloMenuCategoryTiles,
   PizzaioloMenuCommonFields,
   PizzaioloMenuDessertPresetGrid,
+  PizzaioloMenuDessertCustomizer,
   PizzaioloMenuDrinkPicker,
   PizzaioloMenuDrinkTypeSelector,
   PizzaioloMenuItemList,
   PizzaioloMenuPizzaCustomizer,
   PizzaioloMenuPizzaPresetGrid,
+  PizzaioloMenuCalzonePresetGrid,
 } from '../../features/menu/components/pizzaiolo';
 
 export default function PizzaioloMenu() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const compositionRef = useRef(null);
+  
   const {
     truckId,
     loading: loadingTruck,
@@ -37,6 +41,14 @@ export default function PizzaioloMenu() {
     deleteItem,
   } = usePizzaioloMenuEditor(truckId);
 
+  const {
+    customBases,
+    customGarnitures,
+    customFromages,
+    canAddMore,
+    addCustomIngredient,
+  } = useCustomIngredients(user?.uid);
+
   const loading = loadingTruck || loadingMenu;
 
   const {
@@ -49,6 +61,9 @@ export default function PizzaioloMenu() {
 
     itemName,
     setItemName,
+    hasStartedTyping,
+    isCustomMode,
+    setIsCustomMode,
     itemDesc,
     setItemDesc,
     itemType,
@@ -90,6 +105,15 @@ export default function PizzaioloMenu() {
       setMessage('❌ Erreur chargement menu');
     }
   }, [truckError, menuError, setMessage]);
+
+  // Auto-scroll quand on active le mode personnalisation
+  useEffect(() => {
+    if (isCustomMode && compositionRef.current) {
+      setTimeout(() => {
+        compositionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }, [isCustomMode]);
 
   const handleAddItem = async (e) => {
     e.preventDefault();
@@ -136,11 +160,11 @@ export default function PizzaioloMenu() {
     <div className="space-y-6">
       {/* Bouton retour */}
       <button
-        onClick={() => navigate(-1)}
+        onClick={() => navigate('/pro/truck')}
         className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
-        Retour
+        Retour au tableau de bord
       </button>
 
       <Card className="p-6">
@@ -164,8 +188,10 @@ export default function PizzaioloMenu() {
           </div>
         )}
 
-        {/* Tuiles de sélection de catégorie - TOUJOURS VISIBLES */}
-        <PizzaioloMenuCategoryTiles selectedCategory={selectedCategory} onSelect={selectCategory} />
+        {/* Tuiles de sélection de catégorie - masquées en mode personnalisation */}
+        {!isCustomMode && (
+          <PizzaioloMenuCategoryTiles selectedCategory={selectedCategory} onSelect={selectCategory} />
+        )}
 
         {/* Formulaire selon la catégorie sélectionnée */}
         <PizzaioloMenuDrinkTypeSelector
@@ -181,22 +207,46 @@ export default function PizzaioloMenu() {
 
         {showForm && (
           <form onSubmit={handleAddItem} className="mt-6 space-y-6 border-t pt-6">
-            {/* Sélection Pizza prédéfinie ou Dessert prédéfini */}
+            {/* Sélection Pizza prédéfinie */}
             <PizzaioloMenuPizzaPresetGrid
               selectedCategory={selectedCategory}
               itemName={itemName}
+              hasStartedTyping={hasStartedTyping}
               onSelectPizza={(pizza) => {
                 setItemName(pizza.name);
                 setItemDesc(pizza.ingredients);
+                if (pizza.custom) {
+                  setIsCustomMode(true);
+                }
               }}
             />
 
+            {/* Sélection Calzone prédéfini */}
+            <PizzaioloMenuCalzonePresetGrid
+              selectedCategory={selectedCategory}
+              itemName={itemName}
+              hasStartedTyping={hasStartedTyping}
+              onSelectCalzone={(calzone) => {
+                setItemName(calzone.name);
+                setItemDesc(calzone.ingredients);
+                if (calzone.custom) {
+                  setIsCustomMode(true);
+                }
+              }}
+            />
+
+            {/* Sélection Dessert prédéfini */}
             <PizzaioloMenuDessertPresetGrid
               selectedCategory={selectedCategory}
               itemName={itemName}
               onSelectDessert={(dessert) => {
                 setItemName(dessert.name);
-                setPriceS(dessert.defaultPrice.toString());
+                if (dessert.defaultPrice) {
+                  setPriceS(dessert.defaultPrice.toString());
+                }
+                if (dessert.custom) {
+                  setIsCustomMode(true);
+                }
               }}
             />
 
@@ -211,15 +261,31 @@ export default function PizzaioloMenu() {
               setPriceS={setPriceS}
             />
 
-            <PizzaioloMenuPizzaCustomizer
-              itemName={itemName}
-              selectedBase={selectedBase}
-              setSelectedBase={setSelectedBase}
-              selectedGarnitures={selectedGarnitures}
-              setSelectedGarnitures={setSelectedGarnitures}
-              selectedFromages={selectedFromages}
-              setSelectedFromages={setSelectedFromages}
-            />
+            {/* Zone de composition (ref pour auto-scroll) */}
+            <div ref={compositionRef}>
+              <PizzaioloMenuPizzaCustomizer
+                selectedCategory={selectedCategory}
+                isCustomMode={isCustomMode}
+                itemName={itemName}
+                setItemName={setItemName}
+                selectedBase={selectedBase}
+                setSelectedBase={setSelectedBase}
+                selectedGarnitures={selectedGarnitures}
+                setSelectedGarnitures={setSelectedGarnitures}
+                selectedFromages={selectedFromages}
+                setSelectedFromages={setSelectedFromages}
+                customBases={customBases}
+                customGarnitures={customGarnitures}
+                customFromages={customFromages}
+                onAddCustomIngredient={addCustomIngredient}
+                canAddMore={canAddMore && canAddMore()}
+              />
+
+              <PizzaioloMenuDessertCustomizer
+                selectedCategory={selectedCategory}
+                isCustomMode={isCustomMode}
+              />
+            </div>
 
             {/* Champs communs une fois le produit sélectionné */}
             <PizzaioloMenuCommonFields
@@ -229,6 +295,7 @@ export default function PizzaioloMenu() {
               setItemName={setItemName}
               itemDesc={itemDesc}
               setItemDesc={setItemDesc}
+              isCustomMode={isCustomMode}
               priceS={priceS}
               setPriceS={setPriceS}
               priceM={priceM}

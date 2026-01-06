@@ -1,7 +1,8 @@
 import { DESSERTS } from '../../constants';
 
 export function PizzaioloMenuDessertPresetGrid({ selectedCategory, itemName, onSelectDessert }) {
-  if (selectedCategory !== 'dessert' || itemName) return null;
+  if (selectedCategory !== 'dessert') return null;
+  if (itemName) return null;
 
   return (
     <div>
@@ -16,7 +17,7 @@ export function PizzaioloMenuDessertPresetGrid({ selectedCategory, itemName, onS
           >
             <div className="text-4xl mb-2">{dessert.emoji}</div>
             <div className="font-semibold text-sm">{dessert.name}</div>
-            <div className="text-xs text-emerald-600 mt-1">{dessert.defaultPrice.toFixed(2)}€</div>
+            {dessert.defaultPrice && <div className="text-xs text-emerald-600 mt-1">{dessert.defaultPrice.toFixed(2)}€</div>}
           </button>
         ))}
       </div>

@@ -44,9 +44,33 @@ export const PIZZAS_PREDEFINES = [
     emoji: '🐟',
   },
   {
-    name: 'La Perso',
+    name: 'Autre',
     ingredients: '',
-    emoji: '✨',
+    emoji: '➕',
+    custom: true,
+  },
+];
+
+export const CALZONES_PREDEFINES = [
+  {
+    name: 'Calzone Classique',
+    ingredients: 'Sauce tomate, mozzarella, jambon, champignons',
+    emoji: '🥟',
+  },
+  {
+    name: 'Calzone 3 Fromages',
+    ingredients: 'Crème fraîche, mozzarella, gorgonzola, parmesan',
+    emoji: '🧀',
+  },
+  {
+    name: 'Calzone Végétarien',
+    ingredients: 'Sauce tomate, mozzarella, légumes grillés',
+    emoji: '🥗',
+  },
+  {
+    name: 'Autre',
+    ingredients: '',
+    emoji: '➕',
     custom: true,
   },
 ];
@@ -64,6 +88,7 @@ export const DESSERTS = [
   { name: 'Fondant chocolat', emoji: '🍰', defaultPrice: 6.0 },
   { name: 'Crumble pomme', emoji: '🍎', defaultPrice: 5.0 },
   { name: 'Crumble poire', emoji: '🍐', defaultPrice: 5.0 },
+  { name: 'Autre', emoji: '➕', custom: true },
 ];
 
 export const SODAS = [
@@ -73,23 +98,27 @@ export const SODAS = [
   { name: 'Fanta Citron', emoji: '🍋' },
   { name: 'Oasis Fruits Rouges', emoji: '🍓' },
   { name: 'Oasis Tropical', emoji: '🥭' },
+  { name: 'Autre', emoji: '➕', custom: true },
 ];
 
 export const EAUX = [
   { name: 'Badoit', emoji: '💧' },
   { name: 'Cristalline', emoji: '💧' },
   { name: 'Evian', emoji: '💧' },
+  { name: 'Autre', emoji: '➕', custom: true },
 ];
 
 export const BIERES = [
   { name: 'Heineken', emoji: '🍺' },
   { name: 'Affligem', emoji: '🍺' },
   { name: '1664', emoji: '🍺' },
+  { name: 'Autre', emoji: '➕', custom: true },
 ];
 
 export const VINS = [
   { name: 'GÉRARD BERTRAND : GRIS BLANC - 2023', defaultPrice: 11.5, emoji: '🍷' },
   { name: 'CLOS DES FEES - LES SORCIERES 2024', defaultPrice: 15.0, emoji: '🍷' },
+  { name: 'Autre', emoji: '➕', custom: true },
 ];
 
 export const DRINK_SIZES = {

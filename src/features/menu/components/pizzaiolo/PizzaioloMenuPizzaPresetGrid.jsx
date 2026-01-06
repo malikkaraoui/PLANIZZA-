@@ -1,7 +1,11 @@
 import { PIZZAS_PREDEFINES } from '../../constants';
 
-export function PizzaioloMenuPizzaPresetGrid({ selectedCategory, itemName, onSelectPizza }) {
-  if (selectedCategory !== 'pizza' || itemName) return null;
+export function PizzaioloMenuPizzaPresetGrid({ selectedCategory, itemName, hasStartedTyping, onSelectPizza }) {
+  // Afficher la grille seulement si:
+  // 1. On est en catégorie pizza
+  // 2. L'utilisateur n'a pas encore commencé à taper ou sélectionner
+  if (selectedCategory !== 'pizza') return null;
+  if (hasStartedTyping || itemName) return null;
 
   return (
     <div>

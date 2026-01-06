@@ -8,3 +8,4 @@ export { useMenuItem } from './useMenuItem';
 export { useLiveOrder } from './useLiveOrder';
 export { usePizzaioloMenuDraft } from './pizzaiolo/usePizzaioloMenuDraft';
 export { usePizzaioloMenuEditor } from './usePizzaioloMenuEditor';
+export { useCustomIngredients } from './pizzaiolo/useCustomIngredients';
