@@ -284,6 +284,8 @@ export default function PizzaioloMenu() {
               <PizzaioloMenuDessertCustomizer
                 selectedCategory={selectedCategory}
                 isCustomMode={isCustomMode}
+                itemName={itemName}
+                setItemName={setItemName}
               />
             </div>
 

@@ -76,7 +76,7 @@ export function PizzaioloMenuCommonFields({
         </div>
       )}
 
-      {(selectedCategory === 'pizza' || selectedCategory === 'calzone') && (
+      {selectedCategory === 'pizza' && (
         <div className="space-y-4">
           <p className="text-sm font-medium text-gray-700">Tailles et prix * (minimum 1, maximum 3)</p>
           <p className="text-xs text-gray-500">Prix : S {'<'} M {'<'} L • Diamètres : S {'<'} M {'<'} L</p>
@@ -151,6 +151,23 @@ export function PizzaioloMenuCommonFields({
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {selectedCategory === 'calzone' && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Prix (€) *</label>
+          <Input
+            value={priceS}
+            onChange={(e) => setPriceS(e.target.value)}
+            placeholder="Ex: 12.00"
+            type="number"
+            step="0.01"
+            min="0"
+            required
+            className="mt-1"
+          />
+          <p className="text-xs text-gray-500 mt-1">Prix unique pour la calzone (pas de tailles)</p>
         </div>
       )}
 

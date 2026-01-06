@@ -1,16 +1,20 @@
 import { useMemo, useState } from 'react';
 import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
-import { MapPin, Pizza, X } from 'lucide-react';
+import { MapPin, Pizza, X, ShoppingBag, Trash2, Minus, Plus } from 'lucide-react';
 import TruckHeader from '../features/trucks/TruckHeader';
 import { useTruck } from '../features/trucks/hooks/useTruck';
 import { useMenu } from '../features/menu/hooks/useMenu';
 import MenuItemCard from '../features/menu/MenuItemCard';
-import CartSidebar from '../features/cart/CartSidebar';
+import CartDrawer from '../features/cart/CartDrawer';
 import { useCart } from '../features/cart/hooks/useCart.jsx';
 import { ROUTES } from '../app/routes';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
 import { isCurrentlyOpen } from '../lib/openingHours';
+
+function formatEUR(cents) {
+  return (cents / 100).toFixed(2).replace('.', ',') + ' €';
+}
 
 export default function TruckDetails() {
   const { truckId: slugOrId } = useParams();
@@ -18,7 +22,7 @@ export default function TruckDetails() {
   const navigate = useNavigate();
   const { truck, loading: loadingTruck, error: truckError } = useTruck(slugOrId);
   const { items: menuItems, loading: loadingMenu } = useMenu(truck?.id);
-  const { addItem, items } = useCart();
+  const { addItem, items, removeItem, updateItemQty, totalCents } = useCart();
   const [zoomedImage, setZoomedImage] = useState(null);
   const [showMap, setShowMap] = useState(false);
 
@@ -132,10 +136,124 @@ export default function TruckDetails() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-12 items-start lg:grid-cols-[1fr_400px] lg:grid-rows-[auto_1fr]">
-          {/* Truck Info Section */}
-          <div className="lg:col-start-1 lg:row-start-1">
-            <div className="glass-premium glass-glossy p-2 rounded-[40px] shadow-2xl overflow-hidden border-white/20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-8 lg:grid-cols-[1fr_400px] items-start">
+            {/* Colonne principale (camion + menu) */}
+            <div className="space-y-12">
+                <Card className="glass-premium glass-glossy p-8 rounded-[40px] border-white/30 space-y-8 shadow-2xl relative overflow-hidden">
+                  <div className="absolute top-0 right-0 -z-10 w-32 h-32 bg-primary/10 rounded-full blur-2xl" />
+
+                  <div className="flex items-center gap-4 pb-6 border-b border-white/10">
+                    <div className="p-3 rounded-2xl glass-premium border-white/30 text-primary shadow-lg">
+                      <ShoppingBag className="h-6 w-6" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <div className="font-black text-2xl tracking-tighter uppercase">Panier</div>
+                      <div className="text-[10px] font-black text-muted-foreground/50 uppercase tracking-[0.2em]">{items.length} SELECTA</div>
+                    </div>
+                  </div>
+
+                  {items.length === 0 ? (
+                    <div className="py-12 text-center space-y-4">
+                      <div className="w-20 h-20 bg-primary/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Pizza className="h-10 w-10 text-primary/20 animate-pulse" />
+                      </div>
+                      <div className="text-sm font-black text-muted-foreground/40 uppercase tracking-[0.2em]">Votre panier est vide</div>
+                      <p className="text-xs font-medium text-muted-foreground/60 max-w-50 mx-auto">Ajoutez une création artisanale pour commencer l'aventure.</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="space-y-4">
+                        {items.map((it) => (
+                          <div key={it.id} className="group flex items-center justify-between gap-4 p-4 rounded-[28px] glass-premium hover:bg-white/10 transition-all border-white/10 shadow-sm relative overflow-hidden">
+                            <div className="flex-1 min-w-0">
+                              <div className="font-black text-sm tracking-tight truncate group-hover:text-primary transition-colors pr-8">
+                                {it.name}
+                              </div>
+                              <div className="flex items-center justify-between mt-3">
+                                <div className="flex items-center gap-1.5 p-1 rounded-xl glass-deep border-white/10">
+                                  {it.qty > 1 && (
+                                    <button
+                                      className="p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground/60 transition-colors"
+                                      onClick={() => updateItemQty(it.id, it.qty - 1)}
+                                    >
+                                      <Minus className="h-3 w-3" />
+                                    </button>
+                                  )}
+                                  <span className="w-6 text-center text-xs font-black">{it.qty}</span>
+                                  <button
+                                    className="p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground/60 transition-colors"
+                                    onClick={() => updateItemQty(it.id, it.qty + 1)}
+                                  >
+                                    <Plus className="h-3 w-3" />
+                                  </button>
+                                </div>
+                                <span className="text-xs font-black text-primary/80 tracking-tight">{formatEUR(it.priceCents * it.qty)}</span>
+                              </div>
+                            </div>
+                            <button
+                              className="absolute top-3 right-3 p-1.5 rounded-lg text-muted-foreground/20 hover:text-destructive hover:bg-destructive/10 transition-all opacity-0 group-hover:opacity-100"
+                              onClick={() => removeItem(it.id)}
+                              title="Retirer"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="space-y-4 pt-6 border-t border-white/10">
+                        <div className="glass-premium p-6 rounded-[24px] border-primary/20 text-center space-y-4 shadow-xl">
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">
+                              Paiement Sécurisé
+                            </p>
+                            <p className="text-xs font-medium text-muted-foreground">
+                              Paiement via Apple Pay, Google Pay ou Carte Bancaire.
+                            </p>
+                          </div>
+                          <div className="flex justify-center gap-2">
+                            <div className="h-1 w-8 bg-primary/20 rounded-full" />
+                            <div className="h-1 w-4 bg-primary/40 rounded-full" />
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </Card>
+              </div>
+
+              {/* Bouton fixe au bas du panier */}
+              {items.length > 0 && (
+                <div className="mt-4 glass-premium p-6 rounded-[32px] border-white/30 shadow-2xl">
+                  <div className="flex items-center justify-between px-2 mb-4">
+                    <div className="space-y-0.5">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">Total Premium</div>
+                      <div className="text-xs font-bold text-muted-foreground/40 italic">TVA incluse</div>
+                    </div>
+                    <div className="text-3xl font-black text-premium-gradient tracking-tighter">{formatEUR(totalCents)}</div>
+                  </div>
+
+                  <Button
+                    className="w-full h-16 rounded-[24px] bg-linear-to-r from-primary to-orange-500 hover:shadow-2xl hover:shadow-primary/40 transition-all text-sm font-black tracking-widest uppercase gap-3 disabled:opacity-20 relative overflow-hidden group"
+                    onClick={handleCheckout}
+                    disabled={!canOrder}
+                  >
+                    <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+                    <span className="relative z-10">Valider la commande</span>
+                    <div className="relative z-10 p-1.5 rounded-full bg-white/20">
+                      <ShoppingBag className="h-4 w-4" />
+                    </div>
+                  </Button>
+                </div>
+              )}
+            </div>
+          </aside>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de zoom pour les photos */}
               <TruckHeader truck={truck} />
 
               {/* Custom Detail Strip */}
@@ -243,15 +361,8 @@ export default function TruckDetails() {
             </div>
           </div>
 
-          {/* Sidebar / Sidebar "Control Center" */}
-          <aside className="lg:col-start-2 lg:row-start-1 lg:row-span-2 animate-in slide-in-from-right-8 duration-700">
-            <div className="lg:sticky lg:top-24 h-[calc(100vh-7rem)]">
-              <CartSidebar onCheckout={handleCheckout} disabled={!canOrder} />
-            </div>
-          </aside>
-
           {/* Menu Section */}
-          <section className="lg:col-start-1 lg:row-start-2 space-y-8 pb-32">
+          <section className="space-y-8 pb-32">
             <div className="flex items-center gap-4 px-2">
               <div className="h-10 w-2 bg-orange-500/20 rounded-full" />
               <h2 className="text-3xl font-black tracking-tighter uppercase">La Carte du Chef</h2>
@@ -264,7 +375,7 @@ export default function TruckDetails() {
                 </p>
               </div>
             ) : (
-              <div className="grid gap-8">
+              <div className="space-y-12">
                 {!canOrder && (
                   <div className="p-8 text-center glass-premium border-amber-500/30 rounded-[32px] bg-amber-50/5">
                     {isPaused && (
@@ -285,18 +396,104 @@ export default function TruckDetails() {
                     )}
                   </div>
                 )}
-                {effectiveMenuItems.map((it) => (
-                  <MenuItemCard
-                    key={it.id}
-                    item={it}
-                    onAdd={(item) => addItem(item, { truckId: truck.id })}
-                    isDisabled={!canOrder}
-                  />
-                ))}
+                
+                {/* Regroupement par catégorie */}
+                {(() => {
+                  // Grouper les items par type
+                  const grouped = {
+                    pizza: effectiveMenuItems.filter((it) => it.type === 'pizza'),
+                    calzone: effectiveMenuItems.filter((it) => it.type === 'calzone'),
+                    boisson: effectiveMenuItems.filter((it) => it.type === 'boisson'),
+                    dessert: effectiveMenuItems.filter((it) => it.type === 'dessert'),
+                  };
+
+                  // Métadonnées des catégories (style liquid glass harmonisé)
+                  const categoryMeta = {
+                    pizza: { icon: '🍕' },
+                    calzone: { icon: '🥟' },
+                    boisson: { icon: '🥤' },
+                    dessert: { icon: '🍰' }
+                  };
+
+                  // Helper pour obtenir le titre correct (singulier/pluriel)
+                  const getCategoryTitle = (type, items) => {
+                    const count = items.length;
+                    if (count === 0) return null;
+                    if (count === 1) {
+                      switch (type) {
+                        case 'pizza': return 'La pizza';
+                        case 'calzone': return 'La calzone';
+                        case 'boisson': return 'La boisson';
+                        case 'dessert': return 'Le dessert';
+                        default: return null;
+                      }
+                    }
+                    // Pluriel
+                    switch (type) {
+                      case 'pizza': return 'Les pizzas';
+                      case 'calzone': return 'Les calzones';
+                      case 'boisson': return 'Les boissons';
+                      case 'dessert': return 'Les desserts';
+                      default: return null;
+                    }
+                  };
+
+                  // Ordre d'affichage des catégories
+                  const categoryOrder = ['pizza', 'calzone', 'boisson', 'dessert'];
+
+                  return categoryOrder.map((type, idx) => {
+                    const items = grouped[type];
+                    if (items.length === 0) return null;
+                    
+                    const title = getCategoryTitle(type, items);
+                    const meta = categoryMeta[type];
+                    
+                    return (
+                      <div key={type} className="space-y-6 animate-in fade-in duration-500" style={{ animationDelay: `${idx * 80}ms` }}>
+                        {/* Titre de catégorie - Liquid Glass Style */}
+                        <div className="relative">
+                          <div className="flex items-center gap-4 px-2">
+                            {/* Icon subtil */}
+                            <div className="shrink-0 w-12 h-12 glass-premium rounded-[16px] flex items-center justify-center text-2xl shadow-lg border-white/30">
+                              {meta.icon}
+                            </div>
+                            
+                            {/* Title */}
+                            <div className="flex-1">
+                              <h3 className="text-2xl font-black tracking-tight text-foreground">
+                                {title}
+                              </h3>
+                              <p className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-[0.2em] mt-0.5">
+                                {items.length} {items.length === 1 ? 'produit' : 'produits'}
+                              </p>
+                            </div>
+
+                            {/* Decorative bar */}
+                            <div className="hidden sm:block h-0.5 w-20 bg-gradient-to-r from-primary/30 to-transparent rounded-full" />
+                          </div>
+                        </div>
+                        
+                        {/* Items de la catégorie */}
+                        <div className="space-y-6">
+                          {items.map((it) => (
+                            <MenuItemCard
+                              key={it.id}
+                              item={it}
+                              onAdd={(item) => addItem(item, { truckId: truck.id })}
+                              isDisabled={!canOrder}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
               </div>
             )}
           </section>
-        </div>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Modal de zoom pour les photos */}

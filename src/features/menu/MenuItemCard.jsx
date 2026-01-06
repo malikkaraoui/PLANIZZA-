@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Check } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -15,6 +15,7 @@ export default function MenuItemCard({ item, onAdd, isDisabled = false }) {
   // Initialiser avec la première taille disponible
   const firstAvailableSize = hasSizes ? Object.keys(item.sizes)[0] : 's';
   const [selectedSize, setSelectedSize] = useState(firstAvailableSize);
+  const [justAdded, setJustAdded] = useState(false);
 
   const displayPrice = hasSizes 
     ? (item.sizes?.[selectedSize]?.priceCents || 0)
@@ -38,6 +39,10 @@ export default function MenuItemCard({ item, onAdd, isDisabled = false }) {
     } else {
       onAdd(item);
     }
+
+    // Feedback visuel
+    setJustAdded(true);
+    setTimeout(() => setJustAdded(false), 2000);
   };
 
   return (
@@ -162,12 +167,20 @@ export default function MenuItemCard({ item, onAdd, isDisabled = false }) {
           size="lg"
           onClick={handleAdd}
           disabled={!isAvailable}
-          className="rounded-4xl h-14 px-8 bg-linear-to-r from-primary to-orange-500 shadow-xl shadow-primary/10 hover:shadow-primary/30 transition-all font-black text-xs tracking-widest uppercase gap-3 w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+          className={`rounded-4xl h-14 px-8 shadow-xl transition-all font-black text-xs tracking-widest uppercase gap-3 w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed ${
+            justAdded 
+              ? 'bg-green-500 hover:bg-green-500 shadow-green-500/30' 
+              : 'bg-linear-to-r from-primary to-orange-500 shadow-primary/10 hover:shadow-primary/30'
+          }`}
         >
-          <div className="p-1.5 rounded-full bg-white/20">
-            <Plus className="h-4 w-4" />
+          <div className={`p-1.5 rounded-full bg-white/20 transition-transform duration-300 ${justAdded ? 'scale-110' : ''}`}>
+            {justAdded ? (
+              <Check className="h-4 w-4 animate-in zoom-in duration-200" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
           </div>
-          Ajouter
+          {justAdded ? 'Ajouté !' : 'Ajouter'}
         </Button>
       </CardFooter>
     </Card>
