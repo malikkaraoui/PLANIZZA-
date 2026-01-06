@@ -118,7 +118,7 @@ export default function Orders() {
       <div className="max-w-4xl mx-auto">
         {/* Bouton retour */}
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate(ROUTES.account)}
           className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mb-6"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -145,7 +145,7 @@ export default function Orders() {
           <div className="bg-white border border-gray-200 shadow-sm rounded-2xl p-12 text-center">
             <div className="text-6xl mb-4">🍕</div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Aucune commande</h2>
-            <Link to="/trucks" className="inline-block px-6 py-3 bg-emerald-500 text-white rounded-xl font-semibold shadow-sm">Explorer</Link>
+            <Link to={ROUTES.explore} className="inline-block px-6 py-3 bg-emerald-500 text-white rounded-xl font-semibold shadow-sm">Explorer</Link>
           </div>
         ) : (
           <div className="space-y-4">
@@ -173,7 +173,7 @@ export default function Orders() {
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            navigate(`/truck/${order.truckId}`);
+                            navigate(ROUTES.truck(order.truckId));
                           }}
                           className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:text-primary/80 transition-colors mb-2 group"
                         >

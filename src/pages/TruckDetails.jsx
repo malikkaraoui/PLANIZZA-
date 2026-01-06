@@ -80,13 +80,8 @@ export default function TruckDetails() {
   const hasMenu = useMemo(() => (effectiveMenuItems?.length ?? 0) > 0, [effectiveMenuItems]);
 
   const handleBack = () => {
-    // Comportement attendu: revenir à la page précédente (ex: /explore avec sa recherche)
-    // Si on arrive directement sur /truck/:id (pas d'historique SPA), on fallback sur la dernière URL /explore mémorisée.
-    if (location.key && location.key !== 'default') {
-      navigate(-1);
-      return;
-    }
-
+    // UX souhaitée: revenir à l'exploration (avec filtres), sans dépendre de l'historique
+    // (évite les retours surprenants et les reloads complets selon le contexte).
     try {
       const lastExploreUrl = localStorage.getItem('planizza.lastExploreUrl');
       if (lastExploreUrl) {

@@ -422,7 +422,7 @@ export default function PizzaioloStats() {
   return (
     <div className="space-y-8">
       <button
-        onClick={() => navigate(-1)}
+        onClick={() => navigate(ROUTES.pizzaioloProfile)}
         className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />

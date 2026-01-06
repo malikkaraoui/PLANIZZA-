@@ -189,8 +189,8 @@ export default function PizzaioloProfile() {
       // Fermer le dialog
       setShowDeleteDialog(false);
       
-      // Rediriger vers l'exploration (reload pour réinitialiser l'état)
-      window.location.href = '/explore';
+      // Rediriger vers l'exploration (SPA)
+      navigate(ROUTES.explore, { replace: true });
     } catch (err) {
       console.error('[Profile] Erreur suppression compte pro:', err);
       alert('❌ Erreur lors de la suppression du compte pro. Réessayez.');
@@ -409,7 +409,7 @@ export default function PizzaioloProfile() {
     <div className="space-y-8">
       {/* Bouton retour */}
       <button
-        onClick={() => navigate(-1)}
+        onClick={() => navigate(ROUTES.pizzaioloProfile)}
         className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
