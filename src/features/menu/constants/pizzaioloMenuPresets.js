@@ -77,9 +77,62 @@ export const CALZONES_PREDEFINES = [
 
 export const BASES = ['Crème fraîche', 'Base Tomate'];
 
-export const GARNITURES = ['Champignons de Paris', 'Oignons rouge', 'Tomates cerises', 'Poivrons'];
+// Garnitures rangées par catégories pour une sélection plus lisible côté pizzaiolo.
+// NB: on conserve aussi un export plat `GARNITURES` pour compatibilité avec le code existant.
+export const GARNITURES_BY_CATEGORY = {
+  '🥩 Viandes': [
+    'Jambon de Parme',
+    'Jambon cru',
+    'Jambon de Bayonne',
+    'Chorizo',
+    'Boeuf',
+    'Kebab',
+    'Saucisson épicé',
+    'Poulet',
+    'Viande hachée',
+  ],
+  '🐟 Poissons': [
+    'Saumon',
+    'Anchois',
+    'Thon',
+  ],
+  '🥬 Légumes & végétal': [
+    'Olives noires',
+    'Champignons frais',
+    'Champignons de Paris',
+    'Roquette croquante',
+    'Aubergine grillée',
+    'Poivrons',
+    'Oignon rouge',
+    'Artichaut',
+    'Tomate cerise',
+    'Roquette',
+  ],
+  '🧄 Sauces & condiments': [
+    'Pesto',
+    'Huile d’olive vierge',
+    'Miel',
+  ],
+  '🥚 Extras': [
+    'Œuf',
+  ],
+};
 
-export const FROMAGES = ['Reblochon', 'Emmental', 'Gruyère', 'Burrata', 'Gorgonzola', 'Parmesan', 'Cabécou'];
+export const GARNITURES = Object.values(GARNITURES_BY_CATEGORY).flat();
+
+export const FROMAGES = [
+  'Crottin de chèvre',
+  'Cabécou',
+  'Gruyère',
+  'Emmental',
+  'Parmesan',
+  'Mozzarella',
+  'Burrata',
+  'Gorgonzola',
+  'Chèvre',
+  'Le Bleu',
+  'Brebis',
+];
 
 export const DESSERTS = [
   { name: 'Tiramisu café', emoji: '☕', defaultPrice: 5.0 },
@@ -103,7 +156,7 @@ export const SODAS = [
 
 export const EAUX = [
   { name: 'Badoit', emoji: '💧' },
-  { name: 'Cristalline', emoji: '💧' },
+  { name: 'Cristaline', emoji: '💧' },
   { name: 'Evian', emoji: '💧' },
   { name: 'Autre', emoji: '➕', custom: true },
 ];

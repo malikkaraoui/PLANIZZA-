@@ -8,6 +8,8 @@ export const INGREDIENT_CATEGORIES = {
   LEGUMES: 'Légumes',
   FROMAGES: 'Fromages',
   VIANDES: 'Viandes',
+  POISSONS: 'Poissons',
+  CONDIMENTS: 'Sauces & condiments',
   AUTRES: 'Autres'
 };
 
@@ -17,35 +19,54 @@ export const AVAILABLE_INGREDIENTS = {
     'Base Tomate'
   ],
   [INGREDIENT_CATEGORIES.LEGUMES]: [
-    'Champignons',
-    'Oignons rouge',
-    'Tomates cerises',
+    'Olives noires',
+    'Champignons frais',
+    'Champignons de Paris',
+    'Roquette croquante',
+    'Aubergine grillée',
     'Poivrons',
-    'Olives',
-    'Tomate',
-    'Roquette'
+    'Oignon rouge',
+    'Artichaut',
+    'Tomate cerise',
+    'Roquette',
+    'Œuf'
   ],
   [INGREDIENT_CATEGORIES.FROMAGES]: [
-    'Reblochon',
-    'Emmental',
+    'Crottin de chèvre',
+    'Cabécou',
     'Gruyère',
+    'Emmental',
+    'Parmesan',
+    'Mozzarella',
     'Burrata',
     'Gorgonzola',
-    'Parmesan',
-    'Cabécou',
-    'Mozzarella',
-    'Chèvre'
+    'Chèvre',
+    'Le Bleu',
+    'Brebis'
   ],
   [INGREDIENT_CATEGORIES.VIANDES]: [
-    'Jambon',
+    'Jambon de Parme',
+    'Jambon cru',
+    'Jambon de Bayonne',
     'Chorizo',
-    'Lardons',
-    'Saucisse',
-    'Poulet'
+    'Boeuf',
+    'Kebab',
+    'Saucisson épicé',
+    'Poulet',
+    'Viande hachée'
+  ],
+  [INGREDIENT_CATEGORIES.POISSONS]: [
+    'Saumon',
+    'Anchois',
+    'Thon'
+  ],
+  [INGREDIENT_CATEGORIES.CONDIMENTS]: [
+    'Pesto',
+    'Huile d’olive vierge',
+    'Miel'
   ],
   [INGREDIENT_CATEGORIES.AUTRES]: [
-    'Basilic',
-    'Miel'
+    'Basilic'
   ]
 };
 
