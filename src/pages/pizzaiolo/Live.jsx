@@ -26,6 +26,7 @@ import {
   hasValidPrice 
 } from '../../features/menu/utils/priceCalculations';
 import { formatDrinkVolumeLabel } from '../../features/menu/utils/formatDrinkVolumeLabel';
+import { normalizeProductName } from '../../features/menu/utils/normalizeProductName';
 
 export default function PizzaioloLive() {
   const { user } = useAuth();
@@ -405,7 +406,7 @@ export default function PizzaioloLive() {
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1">
-                              <h3 className="font-black text-lg group-hover:text-primary transition">{item.name}</h3>
+                              <h3 className="font-black text-lg group-hover:text-primary transition">{normalizeProductName(item.name)}</h3>
                               {item.description && (
                                 <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.description}</p>
                               )}
@@ -536,7 +537,7 @@ export default function PizzaioloLive() {
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-baseline gap-2 min-w-0">
                                     <h3 className="font-black text-lg group-hover:text-primary transition truncate min-w-0">
-                                      {item.name}
+                                      {normalizeProductName(item.name)}
                                     </h3>
                                     {drinkVolumeLabel && (
                                       <span className="shrink-0 text-[10px] font-medium text-muted-foreground/70 tracking-wide">
@@ -622,7 +623,7 @@ export default function PizzaioloLive() {
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1">
-                              <h3 className="font-black text-lg group-hover:text-primary transition">{item.name}</h3>
+                              <h3 className="font-black text-lg group-hover:text-primary transition">{normalizeProductName(item.name)}</h3>
                               {item.description && (
                                 <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.description}</p>
                               )}
@@ -732,7 +733,7 @@ export default function PizzaioloLive() {
                 cart.map((item) => (
                   <div key={item.id} className="glass-premium glass-glossy border-white/10 p-3 rounded-xl">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-bold text-sm">{item.name}</span>
+                      <span className="font-bold text-sm">{normalizeProductName(item.name)}</span>
                       <button
                         onClick={() => deleteFromCart(item.id)}
                         className="text-red-500 hover:text-red-600 transition"
@@ -751,7 +752,13 @@ export default function PizzaioloLive() {
                         </button>
                         <span className="font-black text-lg w-8 text-center">{item.qty}</span>
                         <button
-                          onClick={() => handleAddToCart({ id: item.id, name: item.name, priceCents: item.priceCents })}
+                          onClick={() =>
+                            handleAddToCart({
+                              id: item.id,
+                              name: normalizeProductName(item.name),
+                              priceCents: item.priceCents,
+                            })
+                          }
                           className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 transition flex items-center justify-center"
                         >
                           <Plus className="h-4 w-4" />

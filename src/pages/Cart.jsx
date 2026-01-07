@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { ShoppingBag, ArrowLeft, Trash2, Minus, Plus, Bike, Store } from 'lucide-react';
 import { Button } from '../components/ui/Button';
@@ -31,13 +31,12 @@ export default function Cart() {
   const [error, setError] = useState(null);
   const [deliveryMethod, setDeliveryMethod] = useState('pickup'); // 'pickup' ou 'delivery'
 
-  // Sur desktop: si la section “Méthode de récupération” est sous la fold (pas visible),
-  // on la “dock” à droite sous le récapitulatif.
-  const methodSentinelRef = useRef(null);
-  const recapCardRef = useRef(null);
-  const productsListRef = useRef(null);
-  const methodCardRef = useRef(null);
-  const [dockMethodRight, setDockMethodRight] = useState(false);
+  // Règle simple et stable (pas de scroll/mesures):
+  // - Sur desktop, si le panier est "petit", on met la méthode à droite sous le récap.
+  // - Sinon, on la met sous la liste (colonne gauche).
+  // Cette règle ne dépend PAS du mode pickup/delivery, et ne bouge pas au scroll/clic.
+  const DOCK_METHOD_RIGHT_MAX_ITEMS = 3;
+  const dockMethodRight = items.length <= DOCK_METHOD_RIGHT_MAX_ITEMS;
 
   const getExploreUrl = () => {
     try {
@@ -148,95 +147,6 @@ export default function Cart() {
     loadUserPreferences();
   }, [user?.uid]);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const sentinelEl = methodSentinelRef.current;
-    if (!sentinelEl) return;
-
-    const mql = window.matchMedia('(min-width: 1024px)');
-    let raf = 0;
-
-    const compute = () => {
-      // Hors desktop: jamais docké
-      if (!mql.matches) {
-        setDockMethodRight(false);
-        return;
-      }
-
-      const recapRect = recapCardRef.current?.getBoundingClientRect?.();
-      const productsRect = productsListRef.current?.getBoundingClientRect?.();
-      const methodHeight = methodCardRef.current?.offsetHeight;
-      const sentinelRect = sentinelEl.getBoundingClientRect();
-
-      const canMeasure =
-        Boolean(recapRect) &&
-        Boolean(productsRect) &&
-        typeof methodHeight === 'number' &&
-        Number.isFinite(methodHeight) &&
-        methodHeight > 0;
-
-      if (!canMeasure) {
-        setDockMethodRight(false);
-        return;
-      }
-
-      const dockTop = (recapRect?.bottom ?? 0) + 24; // mt-6
-      const dockBottom = dockTop + methodHeight;
-
-      // Condition 1: la carte dockée doit être entièrement visible dans le viewport
-      const fitsInViewport = dockBottom <= (window.innerHeight - 12);
-      // Condition 2: la colonne droite (récap + méthode) ne doit pas dépasser la fin de la liste produits
-      const notLongerThanProducts = dockBottom <= ((productsRect?.bottom ?? 0) + 8);
-      const canDockNow = Boolean(fitsInViewport && notLongerThanProducts);
-
-      // Si la zone méthode (sous la liste) est très bas (sous la fold), on préfère la dock.
-      // Sinon, on dock seulement si ça tient proprement (pour combler le vide sous le récap).
-      const isBelowFold = sentinelRect.top > window.innerHeight;
-
-      if (isBelowFold) {
-        setDockMethodRight(canDockNow);
-      } else {
-        setDockMethodRight(canDockNow);
-      }
-    };
-
-    const schedule = () => {
-      if (raf) cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(compute);
-    };
-
-    // Initial
-    schedule();
-
-    window.addEventListener('scroll', schedule, { passive: true });
-    window.addEventListener('resize', schedule);
-
-    const handleMediaChange = () => {
-      setDockMethodRight(false);
-      schedule();
-    };
-
-    try {
-      mql.addEventListener('change', handleMediaChange);
-    } catch {
-      // Safari < 14
-      mql.addListener?.(handleMediaChange);
-    }
-
-    return () => {
-      if (raf) cancelAnimationFrame(raf);
-      window.removeEventListener('scroll', schedule);
-      window.removeEventListener('resize', schedule);
-      try {
-        mql.removeEventListener('change', handleMediaChange);
-      } catch {
-        mql.removeListener?.(handleMediaChange);
-      }
-    };
-    // items.length influe la position de la zone sous la liste
-  }, [items.length]);
-
   const handleCheckout = async () => {
     // Vérifier l'authentification
     if (!isAuthenticated || !user) {
@@ -340,7 +250,7 @@ export default function Cart() {
   }
 
   const methodCard = (
-    <Card ref={methodCardRef} className="glass-premium glass-glossy border-white/30">
+    <Card className="glass-premium glass-glossy border-white/30">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg font-black tracking-tight">Méthode de récupération</CardTitle>
         <CardDescription className="text-xs">Comment souhaitez-vous récupérer votre commande ?</CardDescription>
@@ -523,7 +433,7 @@ export default function Cart() {
         {/* Colonne gauche: pile verticale indépendante de la hauteur du récapitulatif */}
         <div className="lg:col-span-2 space-y-6">
           {/* Liste des articles */}
-          <div ref={productsListRef} className="space-y-4">
+          <div className="space-y-4">
             {items.map((item) => (
               <Card key={item.id}>
                 <CardContent className="p-4 sm:p-5">
@@ -603,10 +513,7 @@ export default function Cart() {
           </div>
 
           {/* Zone “Méthode” sous la liste (position normale) */}
-          <div>
-            <div ref={methodSentinelRef} className="h-px" aria-hidden="true" />
-            {!dockMethodRight && methodCard}
-          </div>
+          <div className={dockMethodRight ? 'lg:hidden' : ''}>{methodCard}</div>
 
           {/* Formulaire livraison: toujours dans la colonne gauche pour éviter les sauts de layout */}
           {deliveryAddressCard}
@@ -615,7 +522,7 @@ export default function Cart() {
         {/* Récapitulatif */}
         <div className="lg:col-span-1 lg:col-start-3 lg:row-start-1">
           <StickyAside>
-            <Card ref={recapCardRef} className="glass-premium glass-glossy border-white/30 flex flex-col min-h-0 lg:max-h-[calc(100vh-12rem)]">
+            <Card className="glass-premium glass-glossy border-white/30 flex flex-col min-h-0 lg:max-h-[calc(100vh-12rem)]">
               <CardHeader className="shrink-0">
                 <CardTitle className="text-xl font-black tracking-tight">Récapitulatif</CardTitle>
               </CardHeader>
@@ -697,12 +604,8 @@ export default function Cart() {
               </div>
             </Card>
 
-            {/* Zone “Méthode” dockée à droite (uniquement si la zone sous la liste n'est pas visible) */}
-            {dockMethodRight && (
-              <div className="mt-6">
-                {methodCard}
-              </div>
-            )}
+            {/* Zone “Méthode” dockée à droite (uniquement desktop, règle basée sur nb d'articles) */}
+            {dockMethodRight && <div className="mt-6 hidden lg:block">{methodCard}</div>}
           </StickyAside>
         </div>
       </div>

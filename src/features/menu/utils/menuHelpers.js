@@ -1,4 +1,5 @@
 import { MENU_CATEGORIES, DRINK_SIZE_LABELS } from '../constants/menuConfig';
+import { normalizeProductName } from './normalizeProductName';
 
 /**
  * Filtre le menu par catégorie
@@ -51,7 +52,7 @@ export const generateCartItemId = (item, size = null) => {
 export const generateCartItemName = (item, size = null, customization = null) => {
   if (!item?.name) return '';
   
-  let name = item.name;
+  let name = normalizeProductName(item.name);
   
   // Ajouter la taille pour pizzas
   if (item.type === 'pizza' && size) {
