@@ -4,6 +4,7 @@ import { ArrowLeft, Plus, Minus, Trash2, User, ShoppingCart, Check, Pizza, Wine,
 import { ref, push, set } from 'firebase/database';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../app/providers/AuthProvider';
+import { ROUTES } from '../../app/routes';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -24,6 +25,7 @@ import {
   getDisplayPrice,
   hasValidPrice 
 } from '../../features/menu/utils/priceCalculations';
+import { formatDrinkVolumeLabel } from '../../features/menu/utils/formatDrinkVolumeLabel';
 
 export default function PizzaioloLive() {
   const { user } = useAuth();
@@ -504,6 +506,10 @@ export default function PizzaioloLive() {
                         const singleSizeData = getSingleSize(item);
                         const isExpanded = isItemSelected(item.id);
                         const isFlashing = isItemFlashing(item.id);
+
+                        const drinkVolumeLabel = singleSizeData?.size
+                          ? formatDrinkVolumeLabel(singleSizeData.size)
+                          : null;
                         
                         return (
                           <div key={item.id} className={`transition-all ${isExpanded ? 'md:col-span-2' : ''}`}>
@@ -527,7 +533,18 @@ export default function PizzaioloLive() {
                               }`}
                             >
                               <div className="flex items-center justify-between">
-                                <h3 className="font-black text-lg group-hover:text-primary transition">{item.name}</h3>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-baseline gap-2 min-w-0">
+                                    <h3 className="font-black text-lg group-hover:text-primary transition truncate min-w-0">
+                                      {item.name}
+                                    </h3>
+                                    {drinkVolumeLabel && (
+                                      <span className="shrink-0 text-[10px] font-medium text-muted-foreground/70 tracking-wide">
+                                        {drinkVolumeLabel}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
                                 {singleSizeData ? (
                                   <div className="text-xl font-black text-primary">
                                     {formatPrice(singleSizeData.data.priceCents)}
@@ -550,7 +567,7 @@ export default function PizzaioloLive() {
                                   >
                                     <div className="text-center">
                                       <div className="text-sm font-black text-primary">
-                                        {size}
+                                        {formatDrinkVolumeLabel(size) || size}
                                       </div>
                                       <div className="text-lg font-bold mt-1">
                                         {formatPrice(sizeData.priceCents)}

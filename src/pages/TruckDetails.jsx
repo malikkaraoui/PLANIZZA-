@@ -8,6 +8,7 @@ import MenuItemCard from '../features/menu/MenuItemCard';
 import MenuItemTile from '../features/menu/MenuItemTile';
 import MenuPizzaTile from '../features/menu/MenuPizzaTile';
 import CartSidebar from '../features/cart/CartSidebar';
+import StickyAside from '../components/layout/StickyAside';
 import { useCart } from '../features/cart/hooks/useCart.jsx';
 import { ROUTES } from '../app/routes';
 import { Button } from '../components/ui/Button';
@@ -20,7 +21,7 @@ export default function TruckDetails() {
   const navigate = useNavigate();
   const { truck, loading: loadingTruck, error: truckError } = useTruck(slugOrId);
   const { items: menuItems, loading: loadingMenu } = useMenu(truck?.id);
-  const { addItem, items } = useCart();
+  const { addItem } = useCart();
   const [zoomedImage, setZoomedImage] = useState(null);
   const [showMap, setShowMap] = useState(false);
   const [openPizzaId, setOpenPizzaId] = useState(null);
@@ -80,13 +81,13 @@ export default function TruckDetails() {
   const hasMenu = useMemo(() => (effectiveMenuItems?.length ?? 0) > 0, [effectiveMenuItems]);
 
   const safeFrom = useMemo(() => {
-    const raw = location?.state?.from;
+    const raw = location.state?.from;
     if (typeof raw !== 'string') return null;
     // On n'accepte que des chemins internes simples.
     if (!raw.startsWith('/')) return null;
     if (raw.startsWith('//')) return null;
     return raw;
-  }, [location?.state]);
+  }, [location.state?.from]);
 
   const handleBack = () => {
     // UX: retour cohérent vers la page d'origine quand elle est connue,
@@ -298,9 +299,9 @@ export default function TruckDetails() {
           </div>
 
           {/* Sidebar / Sidebar "Control Center" */}
-          <aside className="animate-in slide-in-from-right-8 duration-700 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-24 self-start">
+          <StickyAside className="animate-in slide-in-from-right-8 duration-700 lg:col-start-2 lg:row-start-1 lg:row-span-2">
             <CartSidebar onCheckout={handleCheckout} disabled={!canOrder} showPaymentInfo={false} compact />
-          </aside>
+          </StickyAside>
 
           {/* Menu Section */}
           <section className="lg:col-start-1 lg:row-start-2 space-y-8 pb-32">

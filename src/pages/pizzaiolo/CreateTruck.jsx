@@ -5,7 +5,7 @@ import { useAuth } from '../../app/providers/AuthProvider';
 import { db } from '../../lib/firebase';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
-import { generateSlug } from '../../lib/utils';
+import { generateUniqueTruckSlug } from '../../features/trucks/utils/truckSlug';
 import LocationPicker from '../../components/ui/LocationPicker';
 import ImageUploader from '../../components/ui/ImageUploader';
 import { ROUTES } from '../../app/routes';
@@ -296,7 +296,11 @@ export default function CreateTruck() {
     setError('');
 
     try {
-      const slug = generateSlug(truckName);
+      const slug = await generateUniqueTruckSlug({
+        db,
+        name: truckName.trim(),
+        suffixLength: 3,
+      });
       const truckRef = push(ref(db, 'public/trucks'));
       const truckId = truckRef.key;
 

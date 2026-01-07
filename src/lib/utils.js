@@ -27,7 +27,7 @@ export function generateSlug(name, existingSlugs = []) {
     return baseSlug;
   }
   
-  // Si doublon, ajouter un suffixe aléatoire de 4 caractères
-  const suffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+  // Si doublon, ajouter un suffixe aléatoire de 3 caractères
+  const suffix = Math.random().toString(36).substring(2, 5).toUpperCase();
   return `${baseSlug}_${suffix}`;
 }

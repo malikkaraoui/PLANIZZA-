@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { X } from 'lucide-react';
 import { Button } from '../../../../components/ui/Button';
 import { Input } from '../../../../components/ui/Input';
 
@@ -90,15 +91,16 @@ export function CustomIngredientModal({
             type="button"
             variant="outline"
             onClick={handleCancel}
-            className="flex-1"
+            className="flex-1 rounded-2xl font-bold border-orange-500/40 text-orange-600 hover:bg-orange-500/10"
           >
+            <X className="h-4 w-4" />
             Annuler
           </Button>
           <Button
             type="button"
             onClick={handleSave}
             disabled={!name.trim()}
-            className="flex-1"
+            className="flex-1 rounded-2xl font-bold bg-orange-500 hover:bg-orange-600"
           >
             Valider
           </Button>

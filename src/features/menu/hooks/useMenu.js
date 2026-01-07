@@ -15,6 +15,7 @@ export function useMenu(truckId) {
     // IMPORTANT: setLoading(true) DOIT être synchrone au début de l'effet
     // pour éviter race condition: si snapshot arrive avant microtask,
     // le setLoading(true) différé arrive APRÈS setLoading(false) → bloqué pour toujours.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setError(null);
 

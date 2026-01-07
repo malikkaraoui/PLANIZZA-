@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { ShoppingBag, ArrowLeft, Trash2, Minus, Plus, Bike, Store } from 'lucide-react';
 import { Button } from '../components/ui/Button';
@@ -14,6 +14,7 @@ import { db } from '../lib/firebase';
 import { useTruck } from '../features/trucks/hooks/useTruck';
 import { isCurrentlyOpen } from '../lib/openingHours';
 import { devLog } from '../lib/devLog';
+import StickyAside from '../components/layout/StickyAside';
 
 const TVA_RATE = 0.10; // 10% TVA restauration
 
@@ -29,6 +30,14 @@ export default function Cart() {
   const { createOrder, loading: creatingOrder } = useCreateOrder();
   const [error, setError] = useState(null);
   const [deliveryMethod, setDeliveryMethod] = useState('pickup'); // 'pickup' ou 'delivery'
+
+  // Sur desktop: si la section “Méthode de récupération” est sous la fold (pas visible),
+  // on la “dock” à droite sous le récapitulatif.
+  const methodSentinelRef = useRef(null);
+  const recapCardRef = useRef(null);
+  const productsListRef = useRef(null);
+  const methodCardRef = useRef(null);
+  const [dockMethodRight, setDockMethodRight] = useState(false);
 
   const getExploreUrl = () => {
     try {
@@ -50,7 +59,7 @@ export default function Cart() {
     // Ne jamais reboucler vers /panier
     if (raw.startsWith(ROUTES.cart)) return null;
     return raw;
-  }, [location?.state]);
+  }, [location?.state?.from]);
 
   const getBackToTruckUrl = (truckId) => {
     // Si la page source semble être un écran 'camion', on la préfère.
@@ -63,7 +72,7 @@ export default function Cart() {
   };
 
   const truckId = location.state?.truckId ?? cartTruckId ?? null;
-  const continueUrl = useMemo(() => getBackToTruckUrl(truckId), [truckId, safeFrom]);
+  const continueUrl = getBackToTruckUrl(truckId);
   
   // Adresse structurée
   const [deliveryAddress, setDeliveryAddress] = useState({
@@ -138,6 +147,95 @@ export default function Cart() {
 
     loadUserPreferences();
   }, [user?.uid]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const sentinelEl = methodSentinelRef.current;
+    if (!sentinelEl) return;
+
+    const mql = window.matchMedia('(min-width: 1024px)');
+    let raf = 0;
+
+    const compute = () => {
+      // Hors desktop: jamais docké
+      if (!mql.matches) {
+        setDockMethodRight(false);
+        return;
+      }
+
+      const recapRect = recapCardRef.current?.getBoundingClientRect?.();
+      const productsRect = productsListRef.current?.getBoundingClientRect?.();
+      const methodHeight = methodCardRef.current?.offsetHeight;
+      const sentinelRect = sentinelEl.getBoundingClientRect();
+
+      const canMeasure =
+        Boolean(recapRect) &&
+        Boolean(productsRect) &&
+        typeof methodHeight === 'number' &&
+        Number.isFinite(methodHeight) &&
+        methodHeight > 0;
+
+      if (!canMeasure) {
+        setDockMethodRight(false);
+        return;
+      }
+
+      const dockTop = (recapRect?.bottom ?? 0) + 24; // mt-6
+      const dockBottom = dockTop + methodHeight;
+
+      // Condition 1: la carte dockée doit être entièrement visible dans le viewport
+      const fitsInViewport = dockBottom <= (window.innerHeight - 12);
+      // Condition 2: la colonne droite (récap + méthode) ne doit pas dépasser la fin de la liste produits
+      const notLongerThanProducts = dockBottom <= ((productsRect?.bottom ?? 0) + 8);
+      const canDockNow = Boolean(fitsInViewport && notLongerThanProducts);
+
+      // Si la zone méthode (sous la liste) est très bas (sous la fold), on préfère la dock.
+      // Sinon, on dock seulement si ça tient proprement (pour combler le vide sous le récap).
+      const isBelowFold = sentinelRect.top > window.innerHeight;
+
+      if (isBelowFold) {
+        setDockMethodRight(canDockNow);
+      } else {
+        setDockMethodRight(canDockNow);
+      }
+    };
+
+    const schedule = () => {
+      if (raf) cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(compute);
+    };
+
+    // Initial
+    schedule();
+
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
+
+    const handleMediaChange = () => {
+      setDockMethodRight(false);
+      schedule();
+    };
+
+    try {
+      mql.addEventListener('change', handleMediaChange);
+    } catch {
+      // Safari < 14
+      mql.addListener?.(handleMediaChange);
+    }
+
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
+      try {
+        mql.removeEventListener('change', handleMediaChange);
+      } catch {
+        mql.removeListener?.(handleMediaChange);
+      }
+    };
+    // items.length influe la position de la zone sous la liste
+  }, [items.length]);
 
   const handleCheckout = async () => {
     // Vérifier l'authentification
@@ -241,10 +339,169 @@ export default function Cart() {
     );
   }
 
+  const methodCard = (
+    <Card ref={methodCardRef} className="glass-premium glass-glossy border-white/30">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg font-black tracking-tight">Méthode de récupération</CardTitle>
+        <CardDescription className="text-xs">Comment souhaitez-vous récupérer votre commande ?</CardDescription>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3">
+          {/* Retrait au camion */}
+          <button
+            onClick={() => setDeliveryMethod('pickup')}
+            className={`group relative overflow-hidden rounded-[22px] p-4 transition-all duration-300 ${
+              deliveryMethod === 'pickup'
+                ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-[1.02]'
+                : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
+            }`}
+          >
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div
+                className={`p-3 rounded-2xl transition-all ${
+                  deliveryMethod === 'pickup' ? 'bg-white/20' : 'bg-primary/10 group-hover:bg-primary/20'
+                }`}
+              >
+                <Store className="h-6 w-6" />
+              </div>
+              <div>
+                <div className="font-black text-base tracking-tight">Retrait au camion</div>
+                <div
+                  className={`text-[11px] mt-1 ${
+                    deliveryMethod === 'pickup' ? 'text-white/80' : 'text-muted-foreground'
+                  }`}
+                >
+                  Gratuit • Prêt en 15-20 min
+                </div>
+              </div>
+              {deliveryMethod === 'pickup' && (
+                <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-white flex items-center justify-center">
+                  <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+                </div>
+              )}
+            </div>
+          </button>
+
+          {/* Livraison à domicile */}
+          <button
+            onClick={() => setDeliveryMethod('delivery')}
+            className={`group relative overflow-hidden rounded-[22px] p-4 transition-all duration-300 ${
+              deliveryMethod === 'delivery'
+                ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-[1.02]'
+                : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
+            }`}
+          >
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div
+                className={`p-3 rounded-2xl transition-all ${
+                  deliveryMethod === 'delivery' ? 'bg-white/20' : 'bg-primary/10 group-hover:bg-primary/20'
+                }`}
+              >
+                <Bike className="h-6 w-6" />
+              </div>
+              <div>
+                <div className="font-black text-base tracking-tight">Livraison à domicile</div>
+                <div
+                  className={`text-[11px] mt-1 ${
+                    deliveryMethod === 'delivery' ? 'text-white/80' : 'text-muted-foreground'
+                  }`}
+                >
+                  + 3,50€ • 30-40 min
+                </div>
+              </div>
+              {deliveryMethod === 'delivery' && (
+                <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-white flex items-center justify-center">
+                  <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+                </div>
+              )}
+            </div>
+          </button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const deliveryAddressCard = deliveryMethod === 'delivery' ? (
+    <Card className="glass-premium glass-glossy border-white/30">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg font-black tracking-tight">Adresse de livraison</CardTitle>
+        <CardDescription className="text-xs">Renseignez l'adresse pour la livraison à domicile.</CardDescription>
+      </CardHeader>
+      <CardContent className="pt-0">
+        {/* Numéro et rue sur la même ligne */}
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <Input
+              type="text"
+              value={deliveryAddress.streetNumber}
+              onChange={(e) => setDeliveryAddress((prev) => ({ ...prev, streetNumber: e.target.value }))}
+              placeholder="N°"
+              className="bg-white/50 border-white/20"
+            />
+          </div>
+          <div className="col-span-2">
+            <Input
+              type="text"
+              value={deliveryAddress.street}
+              onChange={(e) => setDeliveryAddress((prev) => ({ ...prev, street: e.target.value }))}
+              placeholder="Nom de la rue"
+              className="bg-white/50 border-white/20"
+            />
+          </div>
+        </div>
+
+        {/* Code postal et ville */}
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <div>
+            <Input
+              type="text"
+              value={deliveryAddress.postalCode}
+              onChange={async (e) => {
+                const cp = e.target.value;
+                setDeliveryAddress((prev) => ({ ...prev, postalCode: cp }));
+
+                // Auto-complétion ville depuis code postal
+                if (cp.length === 5) {
+                  try {
+                    const res = await fetch(
+                      `https://geo.api.gouv.fr/communes?codePostal=${cp}&fields=nom`,
+                    );
+                    const data = await res.json();
+                    if (data.length > 0) {
+                      setDeliveryAddress((prev) => ({ ...prev, city: data[0].nom }));
+                    }
+                  } catch (err) {
+                    console.error('Erreur API commune:', err);
+                  }
+                }
+              }}
+              placeholder="Code postal"
+              maxLength={5}
+              className="bg-white/50 border-white/20"
+            />
+          </div>
+          <div>
+            <Input
+              type="text"
+              value={deliveryAddress.city}
+              onChange={(e) => setDeliveryAddress((prev) => ({ ...prev, city: e.target.value }))}
+              placeholder="Ville"
+              className="bg-white/50 border-white/20"
+            />
+          </div>
+        </div>
+
+        <p className="mt-3 text-xs text-muted-foreground">
+          🚨 La livraison via Uber Direct sera implémentée prochainement
+        </p>
+      </CardContent>
+    </Card>
+  ) : null;
+
   return (
     <div className="container mx-auto max-w-4xl px-4 py-8 sm:px-6">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <Link
           to={continueUrl}
           className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4"
@@ -252,322 +509,201 @@ export default function Cart() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Continuer mes achats
         </Link>
-        <h1 className="text-3xl font-bold tracking-tight">Panier</h1>
-        <p className="text-muted-foreground mt-2">
-          {items.length} article{items.length > 1 ? 's' : ''} dans votre panier
-        </p>
+
+        {/* Titre + compteur sur UNE ligne (gain de place) */}
+        <div className="flex items-baseline justify-between gap-3">
+          <h1 className="text-3xl font-bold tracking-tight">Panier</h1>
+          <div className="shrink-0 text-sm text-muted-foreground font-medium whitespace-nowrap">
+            {items.length} article{items.length > 1 ? 's' : ''} dans votre panier
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Liste des articles */}
-        <div className="lg:col-span-2 space-y-4">
-          {items.map((item) => (
-            <Card key={item.id}>
-              <CardContent className="p-6">
-                <div className="flex items-start gap-4">
-                  {/* Image (si disponible) */}
-                  {item.photo && (
-                    <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-md bg-muted">
-                      <img
-                        src={item.photo}
-                        alt={item.name}
-                        className="h-full w-full object-cover"
-                        loading="lazy"
-                      />
-                    </div>
-                  )}
-
-                  {/* Détails */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <h3 className="font-semibold">{item.name}</h3>
-                        {item.description && (
-                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                            {item.description}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Bouton supprimer */}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeItem(item.id)}
-                        className="shrink-0"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Supprimer</span>
-                      </Button>
-                    </div>
-
-                    {/* Prix et quantité */}
-                    <div className="mt-4 flex items-center justify-between">
-                      <span className="text-lg font-bold text-primary">
-                        {formatEUR(item.priceCents * item.qty)}
-                      </span>
-
-                      {/* Contrôles quantité */}
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => updateItemQty(item.id, Math.max(0, item.qty - 1))}
-                        >
-                          <Minus className="h-3 w-3" />
-                          <span className="sr-only">Diminuer la quantité</span>
-                        </Button>
-
-                        <span className="w-8 text-center font-medium">{item.qty}</span>
-
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => updateItemQty(item.id, item.qty + 1)}
-                        >
-                          <Plus className="h-3 w-3" />
-                          <span className="sr-only">Augmenter la quantité</span>
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Méthode de livraison */}
-        <div className="lg:col-span-2">
-          <Card className="glass-premium glass-glossy border-white/30">
-            <CardHeader>
-              <CardTitle className="text-xl font-black tracking-tight">Méthode de récupération</CardTitle>
-              <CardDescription>Comment souhaitez-vous récupérer votre commande ?</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Retrait au camion */}
-                <button
-                  onClick={() => setDeliveryMethod('pickup')}
-                  className={`group relative overflow-hidden rounded-[28px] p-6 transition-all duration-300 ${
-                    deliveryMethod === 'pickup'
-                      ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-[1.02]'
-                      : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
-                  }`}
-                >
-                  <div className="flex flex-col items-center gap-4 text-center">
-                    <div className={`p-4 rounded-2xl transition-all ${
-                      deliveryMethod === 'pickup' 
-                        ? 'bg-white/20' 
-                        : 'bg-primary/10 group-hover:bg-primary/20'
-                    }`}>
-                      <Store className="h-8 w-8" />
-                    </div>
-                    <div>
-                      <div className="font-black text-lg tracking-tight">Retrait au camion</div>
-                      <div className={`text-sm mt-1 ${
-                        deliveryMethod === 'pickup' 
-                          ? 'text-white/80' 
-                          : 'text-muted-foreground'
-                      }`}>
-                        Gratuit • Prêt en 15-20 min
-                      </div>
-                    </div>
-                    {deliveryMethod === 'pickup' && (
-                      <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white flex items-center justify-center">
-                        <div className="w-3 h-3 rounded-full bg-primary" />
+        {/* Colonne gauche: pile verticale indépendante de la hauteur du récapitulatif */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Liste des articles */}
+          <div ref={productsListRef} className="space-y-4">
+            {items.map((item) => (
+              <Card key={item.id}>
+                <CardContent className="p-4 sm:p-5">
+                  <div className="flex items-start gap-3">
+                    {/* Image (si disponible) */}
+                    {item.photo && (
+                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md bg-muted">
+                        <img
+                          src={item.photo}
+                          alt={item.name}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                        />
                       </div>
                     )}
-                  </div>
-                </button>
 
-                {/* Livraison à domicile */}
-                <button
-                  onClick={() => setDeliveryMethod('delivery')}
-                  className={`group relative overflow-hidden rounded-[28px] p-6 transition-all duration-300 ${
-                    deliveryMethod === 'delivery'
-                      ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-[1.02]'
-                      : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
-                  }`}
-                >
-                  <div className="flex flex-col items-center gap-4 text-center">
-                    <div className={`p-4 rounded-2xl transition-all ${
-                      deliveryMethod === 'delivery' 
-                        ? 'bg-white/20' 
-                        : 'bg-primary/10 group-hover:bg-primary/20'
-                    }`}>
-                      <Bike className="h-8 w-8" />
-                    </div>
-                    <div>
-                      <div className="font-black text-lg tracking-tight">Livraison à domicile</div>
-                      <div className={`text-sm mt-1 ${
-                        deliveryMethod === 'delivery' 
-                          ? 'text-white/80' 
-                          : 'text-muted-foreground'
-                      }`}>
-                        + 3,50€ • 30-40 min
+                    {/* Détails */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <h3 className="font-semibold leading-tight">{item.name}</h3>
+                          {item.description && (
+                            <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
+                              {item.description}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Bouton supprimer */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeItem(item.id)}
+                          className="shrink-0"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">Supprimer</span>
+                        </Button>
+                      </div>
+
+                      {/* Prix et quantité */}
+                      <div className="mt-3 flex items-center justify-between">
+                        <span className="text-base font-bold text-primary">
+                          {formatEUR(item.priceCents * item.qty)}
+                        </span>
+
+                        {/* Contrôles quantité */}
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => updateItemQty(item.id, Math.max(0, item.qty - 1))}
+                          >
+                            <Minus className="h-3 w-3" />
+                            <span className="sr-only">Diminuer la quantité</span>
+                          </Button>
+
+                          <span className="w-7 text-center text-sm font-medium">{item.qty}</span>
+
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => updateItemQty(item.id, item.qty + 1)}
+                          >
+                            <Plus className="h-3 w-3" />
+                            <span className="sr-only">Augmenter la quantité</span>
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                    {deliveryMethod === 'delivery' && (
-                      <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white flex items-center justify-center">
-                        <div className="w-3 h-3 rounded-full bg-primary" />
-                      </div>
-                    )}
                   </div>
-                </button>
-              </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
-              {/* Adresse de livraison si livraison sélectionnée */}
-              {deliveryMethod === 'delivery' && (
-                <div className="mt-6 p-4 rounded-2xl glass-deep border-white/10 space-y-4">
-                  <label className="block text-sm font-bold mb-3">Adresse de livraison</label>
-                  
-                  {/* Numéro et rue sur la même ligne */}
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <Input
-                        type="text"
-                        value={deliveryAddress.streetNumber}
-                        onChange={(e) => setDeliveryAddress(prev => ({ ...prev, streetNumber: e.target.value }))}
-                        placeholder="N°"
-                        className="bg-white/50 border-white/20"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <Input
-                        type="text"
-                        value={deliveryAddress.street}
-                        onChange={(e) => setDeliveryAddress(prev => ({ ...prev, street: e.target.value }))}
-                        placeholder="Nom de la rue"
-                        className="bg-white/50 border-white/20"
-                      />
-                    </div>
-                  </div>
+          {/* Zone “Méthode” sous la liste (position normale) */}
+          <div>
+            <div ref={methodSentinelRef} className="h-px" aria-hidden="true" />
+            {!dockMethodRight && methodCard}
+          </div>
 
-                  {/* Code postal et ville */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Input
-                        type="text"
-                        value={deliveryAddress.postalCode}
-                        onChange={async (e) => {
-                          const cp = e.target.value;
-                          setDeliveryAddress(prev => ({ ...prev, postalCode: cp }));
-                          
-                          // Auto-complétion ville depuis code postal
-                          if (cp.length === 5) {
-                            try {
-                              const res = await fetch(`https://geo.api.gouv.fr/communes?codePostal=${cp}&fields=nom`);
-                              const data = await res.json();
-                              if (data.length > 0) {
-                                setDeliveryAddress(prev => ({ ...prev, city: data[0].nom }));
-                              }
-                            } catch (err) {
-                              console.error('Erreur API commune:', err);
-                            }
-                          }
-                        }}
-                        placeholder="Code postal"
-                        maxLength={5}
-                        className="bg-white/50 border-white/20"
-                      />
-                    </div>
-                    <div>
-                      <Input
-                        type="text"
-                        value={deliveryAddress.city}
-                        onChange={(e) => setDeliveryAddress(prev => ({ ...prev, city: e.target.value }))}
-                        placeholder="Ville"
-                        className="bg-white/50 border-white/20"
-                      />
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-muted-foreground mt-2">
-                    🚨 La livraison via Uber Direct sera implémentée prochainement
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* Formulaire livraison: toujours dans la colonne gauche pour éviter les sauts de layout */}
+          {deliveryAddressCard}
         </div>
 
         {/* Récapitulatif */}
-        <div className="lg:col-span-1">
-          <Card className="lg:sticky lg:top-24 glass-premium glass-glossy border-white/30">
-            <CardHeader>
-              <CardTitle className="text-xl font-black tracking-tight">Récapitulatif</CardTitle>
-            </CardHeader>
+        <div className="lg:col-span-1 lg:col-start-3 lg:row-start-1">
+          <StickyAside>
+            <Card ref={recapCardRef} className="glass-premium glass-glossy border-white/30 flex flex-col min-h-0 lg:max-h-[calc(100vh-12rem)]">
+              <CardHeader className="shrink-0">
+                <CardTitle className="text-xl font-black tracking-tight">Récapitulatif</CardTitle>
+              </CardHeader>
 
-            <CardContent className="space-y-4">
-              {error && (
-                <div className="rounded-lg bg-destructive/15 p-3 text-sm text-destructive">
-                  {error}
-                </div>
-              )}
-              
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Sous-total HT</span>
-                  <span>{formatEUR(totalCents)}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">TVA (10%)</span>
-                  <span>{formatEUR(Math.round(totalCents * TVA_RATE))}</span>
-                </div>
-                {deliveryMethod === 'delivery' && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Frais de livraison</span>
-                    <span>{formatEUR(350)}</span>
+              {/* Contenu scrollable si besoin (garde le bouton toujours visible) */}
+              <CardContent className="flex-1 min-h-0 overflow-y-auto space-y-4">
+                {error && (
+                  <div className="rounded-lg bg-destructive/15 p-3 text-sm text-destructive">
+                    {error}
                   </div>
                 )}
-                <Separator />
-                <div className="flex items-center justify-between font-bold text-lg">
-                  <span>Total TTC</span>
-                  <span className="text-primary">{formatEUR(Math.round(totalCents * (1 + TVA_RATE)) + (deliveryMethod === 'delivery' ? 350 : 0))}</span>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Sous-total HT</span>
+                    <span>{formatEUR(totalCents)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">TVA (10%)</span>
+                    <span>{formatEUR(Math.round(totalCents * TVA_RATE))}</span>
+                  </div>
+                  {deliveryMethod === 'delivery' && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Frais de livraison</span>
+                      <span>{formatEUR(350)}</span>
+                    </div>
+                  )}
+                  <Separator />
+                  <div className="flex items-center justify-between font-bold text-lg">
+                    <span>Total TTC</span>
+                    <span className="text-primary">
+                      {formatEUR(
+                        Math.round(totalCents * (1 + TVA_RATE)) + (deliveryMethod === 'delivery' ? 350 : 0),
+                      )}
+                    </span>
+                  </div>
                 </div>
+              </CardContent>
+
+              <div className="shrink-0">
+                <CardFooter>
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    onClick={handleCheckout}
+                    disabled={creatingOrder || loadingTruck || !truckId || !canOrder}
+                  >
+                    {creatingOrder ? 'Préparation du paiement...' : loadingTruck ? 'Vérification...' : 'Commander'}
+                  </Button>
+                </CardFooter>
+
+                {!loadingTruck && !truckError && !canOrder && truckId && (
+                  <CardFooter className="pt-0">
+                    <p className="text-xs text-destructive text-center w-full">
+                      {isPaused
+                        ? '⏸️ Le camion est en pause. Les commandes sont temporairement suspendues.'
+                        : '🔒 Le camion est actuellement fermé. Consultez les horaires d\'ouverture.'}
+                    </p>
+                  </CardFooter>
+                )}
+
+                {(loadingTruck || truckError) && truckId && (
+                  <CardFooter className="pt-0">
+                    <p className="text-xs text-muted-foreground text-center w-full">
+                      {loadingTruck
+                        ? '⏳ Vérification du statut du camion…'
+                        : '⚠️ Statut du camion indisponible (réseau).'}
+                    </p>
+                  </CardFooter>
+                )}
+
+                {!truckId && (
+                  <CardFooter className="pt-0">
+                    <p className="text-xs text-destructive text-center w-full">
+                      ⚠️ Veuillez retourner à la fiche camion pour finaliser votre commande
+                    </p>
+                  </CardFooter>
+                )}
               </div>
-            </CardContent>
+            </Card>
 
-            <CardFooter>
-              <Button 
-                className="w-full" 
-                size="lg" 
-                onClick={handleCheckout}
-                disabled={creatingOrder || loadingTruck || !truckId || !canOrder}
-              >
-                {creatingOrder ? 'Préparation du paiement...' : loadingTruck ? 'Vérification...' : 'Commander'}
-              </Button>
-            </CardFooter>
-
-            {!loadingTruck && !truckError && !canOrder && truckId && (
-              <CardFooter className="pt-0">
-                <p className="text-xs text-destructive text-center w-full">
-                  {isPaused 
-                    ? '⏸️ Le camion est en pause. Les commandes sont temporairement suspendues.'
-                    : '🔒 Le camion est actuellement fermé. Consultez les horaires d\'ouverture.'}
-                </p>
-              </CardFooter>
+            {/* Zone “Méthode” dockée à droite (uniquement si la zone sous la liste n'est pas visible) */}
+            {dockMethodRight && (
+              <div className="mt-6">
+                {methodCard}
+              </div>
             )}
-
-            {(loadingTruck || truckError) && truckId && (
-              <CardFooter className="pt-0">
-                <p className="text-xs text-muted-foreground text-center w-full">
-                  {loadingTruck ? '⏳ Vérification du statut du camion…' : '⚠️ Statut du camion indisponible (réseau).'}
-                </p>
-              </CardFooter>
-            )}
-
-            {!truckId && (
-              <CardFooter className="pt-0">
-                <p className="text-xs text-destructive text-center w-full">
-                  ⚠️ Veuillez retourner à la fiche camion pour finaliser votre commande
-                </p>
-              </CardFooter>
-            )}
-          </Card>
+          </StickyAside>
         </div>
       </div>
     </div>

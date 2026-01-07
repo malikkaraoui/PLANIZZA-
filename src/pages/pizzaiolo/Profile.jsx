@@ -2,14 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ref, get, set, push, update, remove, query, orderByChild, equalTo } from 'firebase/database';
 import { ref as storageRef, deleteObject } from 'firebase/storage';
-import { Pause, Play, Pizza, Edit2, ArrowLeft, Trash2, Radio, ListOrdered, Utensils, TrendingUp } from 'lucide-react';
+import { Pause, Play, Pizza, Edit2, ArrowLeft, Trash2, Radio, ListOrdered, Utensils, TrendingUp, X } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import Card from '../../components/ui/Card';
 import { useAuth } from '../../app/providers/AuthProvider';
 import { db, storage } from '../../lib/firebase';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
-import { generateSlug } from '../../lib/utils';
+import { generateUniqueTruckSlug } from '../../features/trucks/utils/truckSlug';
 import LocationPicker from '../../components/ui/LocationPicker';
 import ImageUploader from '../../components/ui/ImageUploader';
 import { useTruckPause } from '../../features/trucks/hooks/useTruckPause';
@@ -260,6 +260,7 @@ export default function PizzaioloProfile() {
     setMessage('');
 
     try {
+      const isNewTruck = !truckId;
       let finalTruckId = truckId;
 
       // Si pas de truckId, en créer un nouveau
@@ -279,28 +280,35 @@ export default function PizzaioloProfile() {
       // Charger le menu existant pour le préserver
       const existingTruckRef = ref(db, `public/trucks/${finalTruckId}`);
       const existingTruckSnap = await get(existingTruckRef);
-      const existingMenu = existingTruckSnap.exists() ? existingTruckSnap.val().menu : null;
-      const existingSlug = existingTruckSnap.exists() ? existingTruckSnap.val().slug : null;
+      const existingTruck = existingTruckSnap.exists() ? (existingTruckSnap.val() || {}) : {};
+      const existingMenu = existingTruck.menu || null;
+      const existingSlug = existingTruck.slug || null;
+      const existingName = existingTruck.name || '';
 
-      // Générer le slug si nouveau camion ou si pas de slug existant
+      const nextName = truckName.trim();
+      const nameChanged = existingTruckSnap.exists() && String(existingName).trim() !== nextName;
+
+      // Générer / régénérer le slug si:
+      // - nouveau camion
+      // - pas de slug existant
+      // - renommage (=> nouvelle URL + nouveau QRCode)
       let finalSlug = existingSlug;
-      if (!existingSlug) {
-        // Récupérer tous les slugs existants pour éviter les doublons
-        const allTrucksRef = ref(db, 'public/trucks');
-        const allTrucksSnap = await get(allTrucksRef);
-        const existingSlugs = [];
-        if (allTrucksSnap.exists()) {
-          Object.values(allTrucksSnap.val()).forEach(t => {
-            if (t.slug) existingSlugs.push(t.slug);
-          });
-        }
-        finalSlug = generateSlug(truckName.trim(), existingSlugs);
+      if (!existingSlug || isNewTruck || nameChanged) {
+        finalSlug = await generateUniqueTruckSlug({
+          db,
+          name: nextName,
+          excludeTruckId: finalTruckId,
+          suffixLength: 3,
+        });
       }
 
       // Sauvegarder les données du camion
       const truckData = {
+        // Préserver les champs non gérés par ce formulaire (ex: ownerId, legal, siret, etc.)
+        ...existingTruck,
+
         slug: finalSlug,
-        name: truckName.trim(),
+        name: nextName,
         description: truckDescription.trim(),
         logoUrl: logoUrl.trim(),
         photoUrl: photoUrl.trim(),
@@ -310,13 +318,17 @@ export default function PizzaioloProfile() {
         badges,
         deliveryOptions,
         openingHours,
-        capacity: { minPerPizza: 10, pizzaPerHour: parseInt(pizzaPerHour) || 30 },
-        ratingAvg: 0,
-        ratingCount: 0,
-        isOpenNow: true,
-        openingToday: 'Ouvert maintenant',
-        estimatedPrepMin: 15,
-        updatedAt: Date.now()
+        capacity: {
+          ...(existingTruck.capacity || {}),
+          minPerPizza: 10,
+          pizzaPerHour: parseInt(pizzaPerHour) || 30,
+        },
+        ratingAvg: typeof existingTruck.ratingAvg === 'number' ? existingTruck.ratingAvg : 0,
+        ratingCount: typeof existingTruck.ratingCount === 'number' ? existingTruck.ratingCount : 0,
+        isOpenNow: existingTruck.isOpenNow ?? true,
+        openingToday: existingTruck.openingToday || 'Ouvert maintenant',
+        estimatedPrepMin: existingTruck.estimatedPrepMin || 15,
+        updatedAt: Date.now(),
       };
 
       // Préserver le menu existant
@@ -325,13 +337,17 @@ export default function PizzaioloProfile() {
       }
 
       // Ajouter createdAt uniquement si nouveau camion
-      if (!truckId) {
+      if (isNewTruck) {
         truckData.createdAt = Date.now();
       }
 
       await set(ref(db, `public/trucks/${finalTruckId}`), truckData);
 
-      setMessage('✅ Camion sauvegardé avec succès !');
+      if (nameChanged && finalSlug && finalSlug !== existingSlug) {
+        setMessage(`✅ Camion renommé ! Nouvelle URL : ${window.location.origin}${ROUTES.truck(finalSlug)}`);
+      } else {
+        setMessage('✅ Camion sauvegardé avec succès !');
+      }
       
       console.log('[PLANIZZA] Camion créé/mis à jour:', {
         truckId: finalTruckId,
@@ -778,7 +794,12 @@ export default function PizzaioloProfile() {
                 {saving ? 'Enregistrement...' : '✓ Valider'}
               </Button>
               {truckId && (
-                <Button onClick={() => setIsEditing(false)} variant="outline" className="rounded-2xl font-bold">
+                <Button
+                  onClick={() => setIsEditing(false)}
+                  variant="outline"
+                  className="rounded-2xl font-bold border-orange-500/40 text-orange-600 hover:bg-orange-500/10"
+                >
+                  <X className="h-4 w-4" />
                   Annuler
                 </Button>
               )}

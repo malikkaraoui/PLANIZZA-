@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, X } from 'lucide-react';
 import { useAuth } from '../../app/providers/AuthProvider';
 import Card from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -175,9 +175,16 @@ export default function PizzaioloMenu() {
             <p className="mt-1 text-sm text-gray-600">Gérez votre carte : pizzas, calzones, boissons, desserts</p>
           </div>
           {showForm && (
-            <Button variant="outline" onClick={() => {
-              cancelForm();
-            }}>
+            <Button
+              size="sm"
+              onClick={() => {
+                cancelForm();
+              }}
+              title="Annuler la création / modification en cours"
+              variant="outline"
+              className="rounded-2xl font-bold border-orange-500/40 text-orange-600 hover:bg-orange-500/10"
+            >
+              <X className="h-4 w-4" />
               Annuler
             </Button>
           )}

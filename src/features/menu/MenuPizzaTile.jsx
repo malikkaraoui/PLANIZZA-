@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { ChevronDown, Check, Plus } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/Card';
-import { Button } from '../../components/ui/Button';
+import AddToCartButton from './AddToCartButton';
 
 function formatEUR(cents) {
   return (cents / 100).toFixed(2).replace('.', ',') + ' €';
@@ -225,25 +225,17 @@ export default function MenuPizzaTile({
                 ) : null}
               </div>
 
-              <Button
+              <AddToCartButton
+                mode="expanded"
                 size="sm"
+                justAdded={justAdded}
+                disabled={!isAvailable}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   handleAdd();
                 }}
-                disabled={!isAvailable}
-                className={`shrink-0 h-10 px-4 rounded-3xl shadow-lg transition-all font-black text-[10px] tracking-widest uppercase gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                  justAdded
-                    ? 'bg-green-500 hover:bg-green-500 shadow-green-500/30'
-                    : 'bg-linear-to-r from-primary to-orange-500 shadow-primary/10 hover:shadow-primary/25'
-                }`}
-              >
-                <div className="p-1.5 rounded-full bg-white/20">
-                  {justAdded ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                </div>
-                {justAdded ? 'Ajouté' : 'Ajouter'}
-              </Button>
+              />
             </div>
           </div>
         </div>

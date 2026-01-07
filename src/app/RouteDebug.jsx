@@ -29,6 +29,7 @@ export default function RouteDebug() {
 
   useEffect(() => {
     const ts = Date.now();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLines((prev) => {
       const next = [
         ...prev,

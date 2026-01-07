@@ -79,7 +79,7 @@ export function PizzaioloMenuPizzaCustomizer({
     if (!option?.isCustom) return;
     if (!onRemoveCustomIngredient) return;
 
-    const confirmLabel = option?.name ? `\"${option.name}\"` : 'cet élément';
+    const confirmLabel = option?.name ? `"${option.name}"` : 'cet élément';
     if (!confirm(`Supprimer ${confirmLabel} ?`)) return;
 
     try {
@@ -88,6 +88,68 @@ export function PizzaioloMenuPizzaCustomizer({
       console.error('Erreur lors de la suppression de l\'ingrédient:', error);
       alert(error?.message || 'Erreur lors de la suppression');
     }
+  };
+
+  const getTone = (groupLabel) => {
+    // IMPORTANT: pas de classes Tailwind dynamiques (sinon purge/JIT). On retourne des strings complètes.
+    switch (groupLabel) {
+      case '🥩 Viandes':
+        return {
+          groupWrap: 'border-rose-200 bg-rose-50/60',
+          groupBar: 'bg-rose-50 border-rose-200 text-rose-800',
+          chipIdle: 'border-rose-200 hover:border-rose-300 bg-white/70 text-gray-800',
+          chipActive: 'border-rose-500 bg-rose-50 text-rose-900',
+        };
+      case '🐟 Poissons':
+        return {
+          groupWrap: 'border-sky-200 bg-sky-50/60',
+          groupBar: 'bg-sky-50 border-sky-200 text-sky-800',
+          chipIdle: 'border-sky-200 hover:border-sky-300 bg-white/70 text-gray-800',
+          chipActive: 'border-sky-500 bg-sky-50 text-sky-900',
+        };
+      case '🥬 Légumes & végétal':
+        return {
+          groupWrap: 'border-emerald-200 bg-emerald-50/60',
+          groupBar: 'bg-emerald-50 border-emerald-200 text-emerald-800',
+          chipIdle: 'border-emerald-200 hover:border-emerald-300 bg-white/70 text-gray-800',
+          chipActive: 'border-emerald-500 bg-emerald-50 text-emerald-900',
+        };
+      case '🧄 Sauces & condiments':
+        return {
+          groupWrap: 'border-amber-200 bg-amber-50/60',
+          groupBar: 'bg-amber-50 border-amber-200 text-amber-900',
+          chipIdle: 'border-amber-200 hover:border-amber-300 bg-white/70 text-gray-800',
+          chipActive: 'border-amber-500 bg-amber-50 text-amber-950',
+        };
+      case '🥚 Extras':
+        return {
+          groupWrap: 'border-violet-200 bg-violet-50/60',
+          groupBar: 'bg-violet-50 border-violet-200 text-violet-800',
+          chipIdle: 'border-violet-200 hover:border-violet-300 bg-white/70 text-gray-800',
+          chipActive: 'border-violet-500 bg-violet-50 text-violet-900',
+        };
+      default:
+        return {
+          groupWrap: 'border-gray-200 bg-white/50',
+          groupBar: 'bg-white border-gray-200 text-gray-700',
+          chipIdle: 'border-gray-200 hover:border-gray-300 bg-white/70 text-gray-800',
+          chipActive: 'border-gray-500 bg-gray-50 text-gray-900',
+        };
+    }
+  };
+
+  const fromagesTone = {
+    groupWrap: 'border-amber-200 bg-amber-50/50',
+    groupBar: 'bg-amber-50 border-amber-200 text-amber-900',
+    chipIdle: 'border-amber-200 hover:border-amber-300 bg-white/70 text-gray-800',
+    chipActive: 'border-amber-500 bg-amber-50 text-amber-950',
+  };
+
+  const customTone = {
+    groupWrap: 'border-fuchsia-200 bg-fuchsia-50/50',
+    groupBar: 'bg-fuchsia-50 border-fuchsia-200 text-fuchsia-800',
+    chipIdle: 'border-fuchsia-200 hover:border-fuchsia-300 bg-white/70 text-gray-800',
+    chipActive: 'border-fuchsia-500 bg-fuchsia-50 text-fuchsia-900',
   };
 
   return (
@@ -108,7 +170,7 @@ export function PizzaioloMenuPizzaCustomizer({
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2 items-start">
         {/* Colonne 1 : identité + base + fromages (AVANT garnitures) */}
         <div className="glass-premium glass-glossy border-white/20 p-5 rounded-[24px] space-y-5">
           {/* Nom de la pizza/calzone */}
@@ -173,12 +235,13 @@ export function PizzaioloMenuPizzaCustomizer({
 
           {/* Fromages (avant garnitures) */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-semibold text-gray-800">🧀 Fromages *</label>
-              <span className="text-xs text-gray-600">(multi)</span>
-            </div>
+            <div className={`rounded-2xl border p-3 ${fromagesTone.groupWrap}`}>
+              <div className={`flex items-center justify-between rounded-xl border px-3 py-2 ${fromagesTone.groupBar}`}>
+                <label className="block text-sm font-black">🧀 Fromages *</label>
+                <span className="text-xs">(multi)</span>
+              </div>
 
-            <div className="flex flex-wrap gap-2">
+              <div className="mt-3 flex flex-wrap gap-2">
               {fromageOptions.map((option) => (
                 <div key={option.key} className="relative">
                   <button
@@ -191,9 +254,7 @@ export function PizzaioloMenuPizzaCustomizer({
                       );
                     }}
                     className={`px-3 py-2 rounded-full border-2 transition-all text-xs font-medium ${
-                      selectedFromages.includes(option.name)
-                        ? 'border-emerald-500 bg-emerald-50 text-emerald-900'
-                        : 'border-gray-200 hover:border-gray-300 bg-white/60 text-gray-800'
+                      selectedFromages.includes(option.name) ? fromagesTone.chipActive : fromagesTone.chipIdle
                     }`}
                     title={option.name}
                   >
@@ -216,10 +277,11 @@ export function PizzaioloMenuPizzaCustomizer({
               <button
                 type="button"
                 onClick={() => handleOpenModal('fromage')}
-                className="px-3 py-2 rounded-full border-2 border-dashed border-gray-300 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-xs font-semibold text-gray-700"
+                className="px-3 py-2 rounded-full border-2 border-dashed border-amber-300 hover:border-amber-500 hover:bg-amber-50 transition-all text-xs font-semibold text-amber-900"
               >
                 ➕ Autre
               </button>
+              </div>
             </div>
           </div>
         </div>
@@ -233,9 +295,12 @@ export function PizzaioloMenuPizzaCustomizer({
 
           <div className="space-y-4">
             {garniturePresetGroups.map((group) => (
-              <div key={group.groupLabel} className="space-y-2">
-                <div className="text-xs font-semibold text-gray-600">{group.groupLabel}</div>
-                <div className="flex flex-wrap gap-2">
+              <div key={group.groupLabel} className={`rounded-2xl border p-3 ${getTone(group.groupLabel).groupWrap}`}>
+                <div className={`inline-flex items-center rounded-xl border px-3 py-1.5 text-xs font-black ${getTone(group.groupLabel).groupBar}`}>
+                  {group.groupLabel}
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
                   {group.options.map((option) => (
                     <button
                       key={option.key}
@@ -249,8 +314,8 @@ export function PizzaioloMenuPizzaCustomizer({
                       }}
                       className={`px-3 py-2 rounded-full border-2 transition-all text-xs font-medium ${
                         selectedGarnitures.includes(option.name)
-                          ? 'border-emerald-500 bg-emerald-50 text-emerald-900'
-                          : 'border-gray-200 hover:border-gray-300 bg-white/60 text-gray-800'
+                          ? getTone(group.groupLabel).chipActive
+                          : getTone(group.groupLabel).chipIdle
                       }`}
                       title={option.name}
                     >
@@ -262,9 +327,12 @@ export function PizzaioloMenuPizzaCustomizer({
             ))}
 
             {garnitureCustomOptions.length > 0 && (
-              <div className="space-y-2">
-                <div className="text-xs font-semibold text-gray-600">✨ Personnalisées</div>
-                <div className="flex flex-wrap gap-2">
+              <div className={`rounded-2xl border p-3 ${customTone.groupWrap}`}>
+                <div className={`inline-flex items-center rounded-xl border px-3 py-1.5 text-xs font-black ${customTone.groupBar}`}>
+                  ✨ Personnalisées
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
                   {garnitureCustomOptions.map((option) => (
                     <div key={option.key} className="relative">
                       <button
@@ -277,9 +345,7 @@ export function PizzaioloMenuPizzaCustomizer({
                           );
                         }}
                         className={`px-3 py-2 rounded-full border-2 transition-all text-xs font-medium pr-8 ${
-                          selectedGarnitures.includes(option.name)
-                            ? 'border-emerald-500 bg-emerald-50 text-emerald-900'
-                            : 'border-gray-200 hover:border-gray-300 bg-white/60 text-gray-800'
+                          selectedGarnitures.includes(option.name) ? customTone.chipActive : customTone.chipIdle
                         }`}
                         title={option.name}
                       >
@@ -304,7 +370,7 @@ export function PizzaioloMenuPizzaCustomizer({
             <button
               type="button"
               onClick={() => handleOpenModal('garniture')}
-              className="w-full p-2.5 rounded-xl border-2 border-dashed border-gray-300 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-xs font-semibold text-gray-700"
+              className="w-full p-2.5 rounded-xl border-2 border-dashed border-emerald-300 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-xs font-semibold text-emerald-900"
             >
               ➕ Ajouter une garniture personnalisée
             </button>
