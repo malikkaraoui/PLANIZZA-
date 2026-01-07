@@ -16,6 +16,7 @@ import { useTruckPause } from '../../features/trucks/hooks/useTruckPause';
 import { useActiveOrdersCount } from '../../features/orders/hooks/useActiveOrdersCount';
 import { Badge } from '../../components/ui/Badge';
 import { ROUTES } from '../../app/routes';
+import { useAutoDismissMessage } from '../../hooks/useAutoDismissMessage';
 import {
   Dialog,
   DialogContent,
@@ -73,6 +74,9 @@ export default function PizzaioloProfile() {
 
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+
+  // Les messages de succès/info doivent disparaître après 5s (les ❌ restent).
+  useAutoDismissMessage(message, setMessage, { delayMs: 5000, dismissErrors: false });
   const [truckId, setTruckId] = useState(null);
   const [truckSlug, setTruckSlug] = useState(null);
   const [isPaused, setIsPaused] = useState(false);

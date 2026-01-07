@@ -1,11 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ShoppingBag, Pizza, Trash2, Minus, Plus, ChevronDown } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { useCart } from './hooks/useCart.jsx';
+import { buildCartSections } from './utils/cartSections';
 
 function formatEUR(cents) {
   return (cents / 100).toFixed(2).replace('.', ',') + ' €';
+}
+
+function isPizzaLikeCartItem(it) {
+  const t = String(it?.type || '').toLowerCase();
+  return t === 'pizza' || t === 'calzone';
 }
 
 /**
@@ -22,6 +28,7 @@ export default function CartSidebar({
   className = ""
 }) {
   const { items, removeItem, updateItemQty, totalCents } = useCart();
+  const sections = useMemo(() => buildCartSections(items), [items]);
 
   const scrollRef = useRef(null);
   const [isScrollable, setIsScrollable] = useState(false);
@@ -125,49 +132,66 @@ export default function CartSidebar({
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {items.map((it) => (
-                <div
-                  key={it.id}
-                  className="group flex items-center justify-between gap-3 p-3 rounded-[24px] glass-premium hover:bg-white/10 transition-all border-white/10 shadow-sm relative overflow-hidden"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="font-black text-sm tracking-tight truncate group-hover:text-primary transition-colors pr-8">
-                      {it.name}
-                    </div>
-                    <div className="flex items-center justify-between mt-2">
-                      <div className="flex items-center gap-1.5 p-1 rounded-xl glass-deep border-white/10">
+            <div className="space-y-5">
+              {sections.map((section) => (
+                <div key={section.key} className="space-y-2">
+                  <div className="px-1 text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground/50">
+                    {section.label}
+                  </div>
+
+                  <div className="space-y-3">
+                    {section.items.map((it) => (
+                      <div
+                        key={it.id}
+                        className="group flex items-center justify-between gap-3 p-3 rounded-[24px] glass-premium hover:bg-white/10 transition-all border-white/10 shadow-sm relative overflow-hidden"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="font-black text-sm tracking-tight truncate group-hover:text-primary transition-colors pr-8">
+                            {it.name}
+                          </div>
+
+                          {isPizzaLikeCartItem(it) && it.description && (
+                            <div className="mt-1 text-[11px] font-medium text-muted-foreground/70 line-clamp-2 pr-8">
+                              {it.description}
+                            </div>
+                          )}
+
+                          <div className="flex items-center justify-between mt-2">
+                            <div className="flex items-center gap-1.5 p-1 rounded-xl glass-deep border-white/10">
+                              <button
+                                className={`p-1.5 rounded-lg transition-colors ${
+                                  it.qty > 1 
+                                    ? 'hover:bg-white/10 text-muted-foreground/60 cursor-pointer' 
+                                    : 'text-transparent pointer-events-none'
+                                }`}
+                                onClick={() => it.qty > 1 && updateItemQty(it.id, it.qty - 1)}
+                                disabled={it.qty === 1}
+                              >
+                                <Minus className="h-3 w-3" />
+                              </button>
+                              <span className="w-6 text-center text-xs font-black">{it.qty}</span>
+                              <button
+                                className="p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground/60 transition-colors"
+                                onClick={() => updateItemQty(it.id, it.qty + 1)}
+                              >
+                                <Plus className="h-3 w-3" />
+                              </button>
+                            </div>
+                            <span className="text-xs font-black text-primary/80 tracking-tight">
+                              {formatEUR(it.priceCents * it.qty)}
+                            </span>
+                          </div>
+                        </div>
                         <button
-                          className={`p-1.5 rounded-lg transition-colors ${
-                            it.qty > 1 
-                              ? 'hover:bg-white/10 text-muted-foreground/60 cursor-pointer' 
-                              : 'text-transparent pointer-events-none'
-                          }`}
-                          onClick={() => it.qty > 1 && updateItemQty(it.id, it.qty - 1)}
-                          disabled={it.qty === 1}
+                          className="absolute top-2.5 right-2.5 p-1.5 rounded-lg text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-all"
+                          onClick={() => removeItem(it.id)}
+                          title="Retirer"
                         >
-                          <Minus className="h-3 w-3" />
-                        </button>
-                        <span className="w-6 text-center text-xs font-black">{it.qty}</span>
-                        <button
-                          className="p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground/60 transition-colors"
-                          onClick={() => updateItemQty(it.id, it.qty + 1)}
-                        >
-                          <Plus className="h-3 w-3" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
-                      <span className="text-xs font-black text-primary/80 tracking-tight">
-                        {formatEUR(it.priceCents * it.qty)}
-                      </span>
-                    </div>
+                    ))}
                   </div>
-                  <button
-                    className="absolute top-2.5 right-2.5 p-1.5 rounded-lg text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-all"
-                    onClick={() => removeItem(it.id)}
-                    title="Retirer"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
                 </div>
               ))}
             </div>

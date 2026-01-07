@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Separator } from '../components/ui/separator';
 import { Input } from '../components/ui/Input';
 import { useCart } from '../features/cart/hooks/useCart.jsx';
+import { buildCartSections } from '../features/cart/utils/cartSections';
 import { useAuth } from '../app/providers/AuthProvider';
 import { useCreateOrder } from '../features/orders/hooks/useCreateOrder';
 import { ROUTES } from '../app/routes';
@@ -20,6 +21,11 @@ const TVA_RATE = 0.10; // 10% TVA restauration
 
 function formatEUR(cents) {
   return (cents / 100).toFixed(2).replace('.', ',') + ' €';
+}
+
+function isPizzaLikeCartItem(it) {
+  const t = String(it?.type || '').toLowerCase();
+  return t === 'pizza' || t === 'calzone';
 }
 
 export default function Cart() {
@@ -37,6 +43,8 @@ export default function Cart() {
   // Cette règle ne dépend PAS du mode pickup/delivery, et ne bouge pas au scroll/clic.
   const DOCK_METHOD_RIGHT_MAX_ITEMS = 3;
   const dockMethodRight = items.length <= DOCK_METHOD_RIGHT_MAX_ITEMS;
+
+  const cartSections = useMemo(() => buildCartSections(items), [items]);
 
   const getExploreUrl = () => {
     try {
@@ -433,82 +441,97 @@ export default function Cart() {
         {/* Colonne gauche: pile verticale indépendante de la hauteur du récapitulatif */}
         <div className="lg:col-span-2 space-y-6">
           {/* Liste des articles */}
-          <div className="space-y-4">
-            {items.map((item) => (
-              <Card key={item.id}>
-                <CardContent className="p-4 sm:p-5">
-                  <div className="flex items-start gap-3">
-                    {/* Image (si disponible) */}
-                    {item.photo && (
-                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md bg-muted">
-                        <img
-                          src={item.photo}
-                          alt={item.name}
-                          className="h-full w-full object-cover"
-                          loading="lazy"
-                        />
-                      </div>
-                    )}
+          <div className="space-y-6">
+            {cartSections.map((section) => (
+              <div key={section.key} className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xs font-black uppercase tracking-[0.25em] text-muted-foreground">
+                    {section.label}
+                  </h2>
+                  <span className="text-xs text-muted-foreground">
+                    {section.items.length}
+                  </span>
+                </div>
 
-                    {/* Détails */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <h3 className="font-semibold leading-tight">{item.name}</h3>
-                          {item.description && (
-                            <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
-                              {item.description}
-                            </p>
+                <div className="space-y-4">
+                  {section.items.map((item) => (
+                    <Card key={item.id}>
+                      <CardContent className="p-4 sm:p-5">
+                        <div className="flex items-start gap-3">
+                          {/* Image (si disponible) */}
+                          {item.photo && (
+                            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md bg-muted">
+                              <img
+                                src={item.photo}
+                                alt={item.name}
+                                className="h-full w-full object-cover"
+                                loading="lazy"
+                              />
+                            </div>
                           )}
+
+                          {/* Détails */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-4">
+                              <div>
+                                <h3 className="font-semibold leading-tight">{item.name}</h3>
+                                {isPizzaLikeCartItem(item) && item.description && (
+                                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                                    {item.description}
+                                  </p>
+                                )}
+                              </div>
+
+                              {/* Bouton supprimer */}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeItem(item.id)}
+                                className="shrink-0"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                <span className="sr-only">Supprimer</span>
+                              </Button>
+                            </div>
+
+                            {/* Prix et quantité */}
+                            <div className="mt-3 flex items-center justify-between">
+                              <span className="text-base font-bold text-primary">
+                                {formatEUR(item.priceCents * item.qty)}
+                              </span>
+
+                              {/* Contrôles quantité */}
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => updateItemQty(item.id, Math.max(0, item.qty - 1))}
+                                >
+                                  <Minus className="h-3 w-3" />
+                                  <span className="sr-only">Diminuer la quantité</span>
+                                </Button>
+
+                                <span className="w-7 text-center text-sm font-medium">{item.qty}</span>
+
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => updateItemQty(item.id, item.qty + 1)}
+                                >
+                                  <Plus className="h-3 w-3" />
+                                  <span className="sr-only">Augmenter la quantité</span>
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-
-                        {/* Bouton supprimer */}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeItem(item.id)}
-                          className="shrink-0"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          <span className="sr-only">Supprimer</span>
-                        </Button>
-                      </div>
-
-                      {/* Prix et quantité */}
-                      <div className="mt-3 flex items-center justify-between">
-                        <span className="text-base font-bold text-primary">
-                          {formatEUR(item.priceCents * item.qty)}
-                        </span>
-
-                        {/* Contrôles quantité */}
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => updateItemQty(item.id, Math.max(0, item.qty - 1))}
-                          >
-                            <Minus className="h-3 w-3" />
-                            <span className="sr-only">Diminuer la quantité</span>
-                          </Button>
-
-                          <span className="w-7 text-center text-sm font-medium">{item.qty}</span>
-
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => updateItemQty(item.id, item.qty + 1)}
-                          >
-                            <Plus className="h-3 w-3" />
-                            <span className="sr-only">Augmenter la quantité</span>
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
 

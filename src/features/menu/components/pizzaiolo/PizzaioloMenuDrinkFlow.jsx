@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { Input } from '../../../../components/ui/Input';
 import { BIERES, DRINK_SIZES, EAUX, SODAS, VINS } from '../../constants';
 
 export function PizzaioloMenuDrinkTypeSelector({ show, itemType, onSelectType }) {
@@ -60,15 +62,27 @@ export function PizzaioloMenuDrinkPicker({
   itemType,
   itemName,
   selectedDrinkSize,
+  priceS,
+  drinkSizes,
   setItemName,
   setDrinkSizes,
   setSelectedDrinkSize,
   setPriceS,
 }) {
+  const [customMode, setCustomMode] = useState(false);
+  const [customVolume, setCustomVolume] = useState('');
+
   if (selectedCategory !== 'boisson') return null;
 
-  const showChooseDrink = Boolean(itemType) && !itemName && !selectedDrinkSize;
-  const showChooseSize = ['soda', 'eau', 'biere'].includes(itemType) && itemName && itemName !== 'Autre' && !selectedDrinkSize;
+  const showChooseDrink = Boolean(itemType) && !itemName && !selectedDrinkSize && !customMode;
+  const showChooseSize = ['soda', 'eau', 'biere'].includes(itemType) && Boolean(itemName) && !selectedDrinkSize && !customMode;
+
+  const isSizedDrink = ['soda', 'eau', 'biere'].includes(itemType);
+  const customModeActive = customMode && !showChooseDrink;
+
+  const sizeOptions = isSizedDrink ? DRINK_SIZES[itemType] || [] : [];
+  const selectedSizeLabel =
+    sizeOptions.find((s) => s.value === selectedDrinkSize)?.label || selectedDrinkSize || '—';
 
   return (
     <>
@@ -88,11 +102,24 @@ export function PizzaioloMenuDrinkPicker({
                   key={soda.name}
                   type="button"
                   onClick={() => {
-                    setItemName(soda.name);
                     if (soda.custom) {
-                      // Pour "Autre", on ne définit pas les tailles par défaut
-                      setDrinkSizes({});
-                    } else {
+                      // Mode "Autre": on affiche tout d'un coup (nom + volume + prix)
+                      setCustomMode(true);
+                      setCustomVolume('');
+                      setItemName('');
+
+                      const defaultSize = DRINK_SIZES.soda?.[0]?.value || '';
+                      setSelectedDrinkSize(defaultSize);
+                      setDrinkSizes(defaultSize ? { [defaultSize]: '' } : {});
+                      return;
+                    }
+
+                    setCustomMode(false);
+                    setCustomVolume('');
+                    setItemName(soda.name);
+                    setSelectedDrinkSize('');
+
+                    {
                       const defaultSizes = {};
                       DRINK_SIZES.soda.forEach((size) => {
                         defaultSizes[size.value] = size.defaultPrice.toString();
@@ -113,10 +140,23 @@ export function PizzaioloMenuDrinkPicker({
                   key={eau.name}
                   type="button"
                   onClick={() => {
-                    setItemName(eau.name);
                     if (eau.custom) {
-                      setDrinkSizes({});
-                    } else {
+                      setCustomMode(true);
+                      setCustomVolume('');
+                      setItemName('');
+
+                      const defaultSize = DRINK_SIZES.eau?.[0]?.value || '';
+                      setSelectedDrinkSize(defaultSize);
+                      setDrinkSizes(defaultSize ? { [defaultSize]: '' } : {});
+                      return;
+                    }
+
+                    setCustomMode(false);
+                    setCustomVolume('');
+                    setItemName(eau.name);
+                    setSelectedDrinkSize('');
+
+                    {
                       const defaultSizes = {};
                       DRINK_SIZES.eau.forEach((size) => {
                         defaultSizes[size.value] = size.defaultPrice.toString();
@@ -137,10 +177,23 @@ export function PizzaioloMenuDrinkPicker({
                   key={biere.name}
                   type="button"
                   onClick={() => {
-                    setItemName(biere.name);
                     if (biere.custom) {
-                      setDrinkSizes({});
-                    } else {
+                      setCustomMode(true);
+                      setCustomVolume('');
+                      setItemName('');
+
+                      const defaultSize = DRINK_SIZES.biere?.[0]?.value || '';
+                      setSelectedDrinkSize(defaultSize);
+                      setDrinkSizes(defaultSize ? { [defaultSize]: '' } : {});
+                      return;
+                    }
+
+                    setCustomMode(false);
+                    setCustomVolume('');
+                    setItemName(biere.name);
+                    setSelectedDrinkSize('');
+
+                    {
                       const defaultSizes = {};
                       DRINK_SIZES.biere.forEach((size) => {
                         defaultSizes[size.value] = size.defaultPrice.toString();
@@ -161,11 +214,15 @@ export function PizzaioloMenuDrinkPicker({
                   key={vin.name}
                   type="button"
                   onClick={() => {
-                    setItemName(vin.name);
                     if (vin.custom) {
-                      // Pour "Autre", on ne définit pas de prix par défaut
+                      setCustomMode(true);
+                      setCustomVolume('');
+                      setItemName('');
                       setPriceS('');
                     } else {
+                      setCustomMode(false);
+                      setCustomVolume('');
+                      setItemName(vin.name);
                       setPriceS(vin.defaultPrice.toString());
                     }
                   }}
@@ -176,6 +233,160 @@ export function PizzaioloMenuDrinkPicker({
                   {vin.defaultPrice && <div className="text-xs text-emerald-600 mt-1">{vin.defaultPrice.toFixed(2)}€</div>}
                 </button>
               ))}
+          </div>
+        </div>
+      )}
+
+      {/* Mode "Autre" : afficher tout d'un coup */}
+      {customModeActive && isSizedDrink && (
+        <div className="mt-6 space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Nouvelle boisson</h3>
+              <p className="text-xs text-gray-600">Nom + litrage + prix, puis validez.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                // Sortie propre du mode Autre: revenir au choix boisson.
+                setCustomMode(false);
+                setCustomVolume('');
+                setItemName('');
+                setSelectedDrinkSize('');
+                setDrinkSizes({});
+              }}
+              className="shrink-0 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+              title="Revenir à la liste des boissons"
+            >
+              ← Retour à la liste
+            </button>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Nom</label>
+            <Input
+              value={itemName}
+              onChange={(e) => setItemName(e.target.value)}
+              placeholder={itemType === 'eau' ? 'Ex: Perrier' : 'Nom de la boisson'}
+              className="mt-1"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Litrage</label>
+            <div className="grid grid-cols-2 gap-3">
+              {sizeOptions.map((size) => {
+                const active = size.value === selectedDrinkSize;
+                return (
+                  <button
+                    key={size.value}
+                    type="button"
+                    onClick={() => {
+                      setSelectedDrinkSize(size.value);
+                      setDrinkSizes({ [size.value]: '' });
+                    }}
+                    className={`p-4 rounded-xl border-2 transition-all text-center ${
+                      active
+                        ? 'border-emerald-500 bg-emerald-50'
+                        : 'border-gray-200 hover:border-emerald-500 hover:bg-emerald-50'
+                    }`}
+                  >
+                    <div className="text-xl font-black text-gray-900">{size.label}</div>
+                  </button>
+                );
+              })}
+
+              <div className="p-4 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50">
+                <div className="text-sm font-semibold text-gray-900">Autre litrage</div>
+                <p className="mt-1 text-xs text-gray-600">Ex: 33cL, 50cL, 75cL, 1L, 1,5L…</p>
+                <div className="mt-3 flex gap-2">
+                  <Input
+                    value={customVolume}
+                    onChange={(e) => setCustomVolume(e.target.value)}
+                    placeholder="Ex: 75cl"
+                    className="h-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const raw = String(customVolume || '').trim();
+                      if (!raw) return;
+                      const normalized = raw.replace(/\s+/g, '').toLowerCase();
+                      setSelectedDrinkSize(normalized);
+                      setDrinkSizes({ [normalized]: '' });
+                    }}
+                    className="h-10 px-4 rounded-lg border border-emerald-500 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors text-sm font-semibold"
+                  >
+                    Ajouter
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Prix ({selectedSizeLabel})</label>
+            <Input
+              value={selectedDrinkSize ? (drinkSizes[selectedDrinkSize] || '') : ''}
+              onChange={(e) => {
+                if (!selectedDrinkSize) return;
+                setDrinkSizes({ [selectedDrinkSize]: e.target.value });
+              }}
+              placeholder="Ex: 2.50"
+              type="number"
+              step="0.01"
+              min="0"
+              className="mt-1"
+            />
+          </div>
+        </div>
+      )}
+
+      {customModeActive && itemType === 'vin' && (
+        <div className="mt-6 space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Nouveau vin</h3>
+              <p className="text-xs text-gray-600">Bouteille (75cL) • Nom + prix, puis validez.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setCustomMode(false);
+                setCustomVolume('');
+                setItemName('');
+                setSelectedDrinkSize('');
+                setDrinkSizes({});
+                setPriceS('');
+              }}
+              className="shrink-0 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+              title="Revenir à la liste des vins"
+            >
+              ← Retour à la liste
+            </button>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Nom</label>
+            <Input
+              value={itemName}
+              onChange={(e) => setItemName(e.target.value)}
+              placeholder="Ex: Côtes du Rhône"
+              className="mt-1"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Prix (75cL)</label>
+            <Input
+              value={priceS}
+              onChange={(e) => setPriceS(e.target.value)}
+              placeholder="Ex: 11.50"
+              type="number"
+              step="0.01"
+              min="0"
+              className="mt-1"
+            />
           </div>
         </div>
       )}

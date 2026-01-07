@@ -19,6 +19,7 @@ import { useActiveOrdersCount } from '../features/orders/hooks/useActiveOrdersCo
 import LoyaltyProgressBar from '../components/loyalty/LoyaltyProgressBar';
 import AddressAutocomplete from '../components/ui/AddressAutocomplete';
 import { usePizzaioloTruckId } from '../features/pizzaiolo/hooks/usePizzaioloTruckId';
+import { useAutoDismissMessage } from '../hooks/useAutoDismissMessage';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -57,6 +58,9 @@ export default function Dashboard() {
   
   // Carte de fidélité
   const { points, currentTier, nextTier, progress, maxTierReached, loading: loyaltyLoading } = useLoyaltyPoints(user?.uid);
+
+  // Les messages d'info/succès d'adresse doivent disparaître après 5s (les ❌ restent).
+  useAutoDismissMessage(addressMessage, setAddressMessage, { delayMs: 5000, dismissErrors: false });
 
   // Charger les infos du camion (si pizzaiolo)
   useEffect(() => {

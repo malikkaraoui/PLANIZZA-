@@ -1,15 +1,22 @@
+import { useMemo } from 'react';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
-import { Badge } from '../../components/ui/Badge';
 import { ShoppingBag, Trash2, Pizza, Minus, Plus } from 'lucide-react';
 import { useCart } from './hooks/useCart.jsx';
+import { buildCartSections } from './utils/cartSections';
 
 function formatEUR(cents) {
   return (cents / 100).toFixed(2).replace('.', ',') + ' €';
 }
 
+function isPizzaLikeCartItem(it) {
+  const t = String(it?.type || '').toLowerCase();
+  return t === 'pizza' || t === 'calzone';
+}
+
 export default function CartDrawer({ onCheckout, disabled = false }) {
   const { items, removeItem, updateItemQty, totalCents } = useCart();
+  const sections = useMemo(() => buildCartSections(items), [items]);
 
   return (
     <Card className="glass-premium glass-glossy p-8 rounded-[40px] border-white/30 space-y-8 shadow-2xl relative overflow-hidden">
@@ -35,38 +42,55 @@ export default function CartDrawer({ onCheckout, disabled = false }) {
         </div>
       ) : (
         <div className="space-y-4 max-h-110 overflow-y-auto pr-2 custom-scrollbar">
-          {items.map((it) => (
-            <div key={it.id} className="group flex items-center justify-between gap-4 p-4 rounded-[28px] glass-premium hover:bg-white/10 transition-all border-white/10 shadow-sm relative overflow-hidden">
-              <div className="flex-1 min-w-0">
-                <div className="font-black text-sm tracking-tight truncate group-hover:text-primary transition-colors pr-8">
-                  {it.name}
-                </div>
-                <div className="flex items-center justify-between mt-3">
-                  <div className="flex items-center gap-1.5 p-1 rounded-xl glass-deep border-white/10">
+          {sections.map((section) => (
+            <div key={section.key} className="space-y-2">
+              <div className="px-1 text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground/50">
+                {section.label}
+              </div>
+
+              <div className="space-y-4">
+                {section.items.map((it) => (
+                  <div key={it.id} className="group flex items-center justify-between gap-4 p-4 rounded-[28px] glass-premium hover:bg-white/10 transition-all border-white/10 shadow-sm relative overflow-hidden">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-black text-sm tracking-tight truncate group-hover:text-primary transition-colors pr-8">
+                        {it.name}
+                      </div>
+
+                      {isPizzaLikeCartItem(it) && it.description && (
+                        <div className="mt-1 text-[11px] font-medium text-muted-foreground/70 line-clamp-2 pr-8">
+                          {it.description}
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between mt-3">
+                        <div className="flex items-center gap-1.5 p-1 rounded-xl glass-deep border-white/10">
+                          <button
+                            className="p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground/60 transition-colors disabled:opacity-20"
+                            onClick={() => updateItemQty(it.id, it.qty - 1)}
+                          >
+                            <Minus className="h-3 w-3" />
+                          </button>
+                          <span className="w-6 text-center text-xs font-black">{it.qty}</span>
+                          <button
+                            className="p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground/60 transition-colors"
+                            onClick={() => updateItemQty(it.id, it.qty + 1)}
+                          >
+                            <Plus className="h-3 w-3" />
+                          </button>
+                        </div>
+                        <span className="text-xs font-black text-primary/80 tracking-tight">{formatEUR(it.priceCents * it.qty)}</span>
+                      </div>
+                    </div>
                     <button
-                      className="p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground/60 transition-colors disabled:opacity-20"
-                      onClick={() => updateItemQty(it.id, it.qty - 1)}
+                      className="absolute top-3 right-3 p-1.5 rounded-lg text-muted-foreground/20 hover:text-destructive hover:bg-destructive/10 transition-all opacity-0 group-hover:opacity-100"
+                      onClick={() => removeItem(it.id)}
+                      title="Retirer"
                     >
-                      <Minus className="h-3 w-3" />
-                    </button>
-                    <span className="w-6 text-center text-xs font-black">{it.qty}</span>
-                    <button
-                      className="p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground/60 transition-colors"
-                      onClick={() => updateItemQty(it.id, it.qty + 1)}
-                    >
-                      <Plus className="h-3 w-3" />
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
-                  <span className="text-xs font-black text-primary/80 tracking-tight">{formatEUR(it.priceCents * it.qty)}</span>
-                </div>
+                ))}
               </div>
-              <button
-                className="absolute top-3 right-3 p-1.5 rounded-lg text-muted-foreground/20 hover:text-destructive hover:bg-destructive/10 transition-all opacity-0 group-hover:opacity-100"
-                onClick={() => removeItem(it.id)}
-                title="Retirer"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
             </div>
           ))}
         </div>

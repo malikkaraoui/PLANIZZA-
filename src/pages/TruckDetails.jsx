@@ -14,6 +14,7 @@ import { ROUTES } from '../app/routes';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
 import { isCurrentlyOpen } from '../lib/openingHours';
+import { useSingleOpenItem } from '../features/menu/tiles/useSingleOpenItem';
 
 export default function TruckDetails() {
   const { truckId: slugOrId } = useParams();
@@ -24,7 +25,7 @@ export default function TruckDetails() {
   const { addItem } = useCart();
   const [zoomedImage, setZoomedImage] = useState(null);
   const [showMap, setShowMap] = useState(false);
-  const [openPizzaId, setOpenPizzaId] = useState(null);
+  const pizzaDisclosure = useSingleOpenItem(null);
 
   const embeddedMenuItems = useMemo(() => {
     const raw = truck?.menu?.items;
@@ -375,8 +376,8 @@ export default function TruckDetails() {
                             <MenuPizzaTile
                               key={it.id}
                               item={it}
-                              open={openPizzaId === it.id}
-                              onToggle={() => setOpenPizzaId((prev) => (prev === it.id ? null : it.id))}
+                              open={pizzaDisclosure.isOpen(it.id)}
+                              onToggle={() => pizzaDisclosure.toggle(it.id)}
                               onAdd={(item) => addItem(item, { truckId: truck.id })}
                               isDisabled={!canOrder}
                             />

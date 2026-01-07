@@ -39,6 +39,7 @@ export default function PizzaioloMenu() {
     setMessage,
     addItem,
     deleteItem,
+    setItemAvailability,
   } = usePizzaioloMenuEditor(truckId);
 
   const {
@@ -172,7 +173,6 @@ export default function PizzaioloMenu() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">📋 Mon Menu</h2>
-            <p className="mt-1 text-sm text-gray-600">Gérez votre carte : pizzas, calzones, boissons, desserts</p>
           </div>
           {showForm && (
             <Button
@@ -196,10 +196,8 @@ export default function PizzaioloMenu() {
           </div>
         )}
 
-        {/* Tuiles de sélection de catégorie - masquées en mode personnalisation */}
-        {!isCustomMode && (
-          <PizzaioloMenuCategoryTiles selectedCategory={selectedCategory} onSelect={selectCategory} />
-        )}
+        {/* Tuiles de sélection de catégorie - toujours visibles (même en mode perso) */}
+        <PizzaioloMenuCategoryTiles selectedCategory={selectedCategory} onSelect={selectCategory} />
 
         {/* Formulaire selon la catégorie sélectionnée */}
         <PizzaioloMenuDrinkTypeSelector
@@ -259,10 +257,13 @@ export default function PizzaioloMenu() {
             />
 
             <PizzaioloMenuDrinkPicker
+              key={`${selectedCategory || 'none'}:${itemType || 'none'}`}
               selectedCategory={selectedCategory}
               itemType={itemType}
               itemName={itemName}
               selectedDrinkSize={selectedDrinkSize}
+              priceS={priceS}
+              drinkSizes={drinkSizes}
               setItemName={setItemName}
               setDrinkSizes={setDrinkSizes}
               setSelectedDrinkSize={setSelectedDrinkSize}
@@ -274,6 +275,11 @@ export default function PizzaioloMenu() {
               <PizzaioloMenuPizzaCustomizer
                 selectedCategory={selectedCategory}
                 isCustomMode={isCustomMode}
+                onExitCustom={() => {
+                  // Revenir à la grille (pizza/calzone) sans fermer le formulaire.
+                  // resetDraft remet hasStartedTyping=false, itemName='', isCustomMode=false, etc.
+                  resetDraft({ keepItemType: true });
+                }}
                 itemName={itemName}
                 setItemName={setItemName}
                 selectedBase={selectedBase}
@@ -311,6 +317,10 @@ export default function PizzaioloMenu() {
               <PizzaioloMenuDessertCustomizer
                 selectedCategory={selectedCategory}
                 isCustomMode={isCustomMode}
+                onExitCustom={() => {
+                  // Revenir à la grille desserts sans fermer le formulaire.
+                  resetDraft({ keepItemType: true });
+                }}
                 itemName={itemName}
                 setItemName={setItemName}
               />
@@ -350,7 +360,14 @@ export default function PizzaioloMenu() {
       </Card>
 
       {/* Liste des items */}
-      <PizzaioloMenuItemList items={menuItems} onDelete={handleDeleteItem} formatPrice={formatPrice} />
+      <PizzaioloMenuItemList
+        items={menuItems}
+        onDelete={handleDeleteItem}
+        onSetAvailability={async (itemId, available) => {
+          await setItemAvailability(itemId, available);
+        }}
+        formatPrice={formatPrice}
+      />
     </div>
   );
 }

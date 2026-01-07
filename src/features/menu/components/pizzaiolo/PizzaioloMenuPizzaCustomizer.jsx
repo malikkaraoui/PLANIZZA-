@@ -7,6 +7,7 @@ import { Trash2 } from 'lucide-react';
 export function PizzaioloMenuPizzaCustomizer({
   selectedCategory,
   isCustomMode,
+  onExitCustom,
   itemName,
   setItemName,
   selectedBase,
@@ -162,10 +163,29 @@ export function PizzaioloMenuPizzaCustomizer({
               Base + Fromages requis. Les garnitures sont optionnelles.
             </p>
           </div>
-          <div className="text-right text-[11px] text-gray-600 leading-5">
-            <div><span className="font-semibold">Base :</span> {selectedBase || '—'}</div>
-            <div><span className="font-semibold">Fromages :</span> {selectedFromages.length}</div>
-            <div><span className="font-semibold">Garnitures :</span> {selectedGarnitures.length}</div>
+          <div className="text-right">
+            {typeof onExitCustom === 'function' && (
+              <button
+                type="button"
+                onClick={() => onExitCustom()}
+                className="mb-2 inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                title={selectedCategory === 'calzone' ? 'Revenir à la liste des calzones' : 'Revenir à la liste des pizzas'}
+              >
+                ← Retour à la liste
+              </button>
+            )}
+
+            <div className="text-[11px] text-gray-600 leading-5">
+              <div>
+                <span className="font-semibold">Base :</span> {selectedBase || '—'}
+              </div>
+              <div>
+                <span className="font-semibold">Fromages :</span> {selectedFromages.length}
+              </div>
+              <div>
+                <span className="font-semibold">Garnitures :</span> {selectedGarnitures.length}
+              </div>
+            </div>
           </div>
         </div>
       </div>

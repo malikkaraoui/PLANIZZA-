@@ -89,7 +89,14 @@ export function buildMenuItemData(draft) {
     const finalPrice = priceParsed ?? (typeof defaultPrice === 'number' && defaultPrice > 0 ? defaultPrice : null);
     if (!finalPrice) return { ok: false, error: 'Prix vin invalide' };
 
-    itemData.priceCents = Math.round(finalPrice * 100);
+    const cents = Math.round(finalPrice * 100);
+
+    // Par défaut: bouteille 75cL.
+    // - On stocke aussi `priceCents` pour compatibilité avec l'existant.
+    itemData.sizes = {
+      '75cl': { priceCents: cents },
+    };
+    itemData.priceCents = cents;
     return { ok: true, itemData };
   }
 

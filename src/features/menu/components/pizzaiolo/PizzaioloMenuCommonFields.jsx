@@ -48,6 +48,12 @@ export function PizzaioloMenuCommonFields({
   // Masquer le champ nom en mode custom (il est déjà dans le customizer)
   const showNameField = !isCustomMode;
 
+  const selectedSizeDef = ['soda', 'eau', 'biere'].includes(itemType)
+    ? DRINK_SIZES[itemType]?.find((s) => s.value === selectedDrinkSize)
+    : null;
+  const selectedSizeLabel = selectedSizeDef?.label || selectedDrinkSize;
+  const selectedSizeDefaultPrice = selectedSizeDef?.defaultPrice;
+
   return (
     <>
       {showNameField && (
@@ -174,12 +180,12 @@ export function PizzaioloMenuCommonFields({
       {['soda', 'eau', 'biere'].includes(itemType) && selectedDrinkSize && (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Prix {DRINK_SIZES[itemType]?.find((s) => s.value === selectedDrinkSize)?.label} (€) *
+            Prix {selectedSizeLabel} (€) *
           </label>
           <Input
             value={drinkSizes[selectedDrinkSize] || ''}
             onChange={(e) => setDrinkSizes({ [selectedDrinkSize]: e.target.value })}
-            placeholder={`${DRINK_SIZES[itemType]?.find((s) => s.value === selectedDrinkSize)?.defaultPrice.toFixed(2)}`}
+            placeholder={typeof selectedSizeDefaultPrice === 'number' ? selectedSizeDefaultPrice.toFixed(2) : '0.00'}
             type="number"
             step="0.01"
             min="0"

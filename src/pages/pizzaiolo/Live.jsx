@@ -82,7 +82,7 @@ export default function PizzaioloLive() {
     isItemFlashing
   } = useMenuItem();
   
-  const { clearLiveOrder } = useLiveOrder(truckId, user?.uid, cart, customerName);
+  const { clearLiveOrder } = useLiveOrder(truckId, user?.uid, cart, customerName, pickupTime);
 
   // Initialiser l'heure de retrait avec heure actuelle + 15 minutes
   useEffect(() => {
@@ -245,7 +245,8 @@ export default function PizzaioloLive() {
       await set(newOrderRef, orderData);
 
       // 2. Supprimer de liveOrders (brouillon)
-      await clearLiveOrder();
+      // Important: supprimer tous les brouillons (passés + en cours) du pizzaiolo.
+      await clearLiveOrder({ clearAllMyDrafts: true });
 
       // 3. Nettoyer le panier
       clearCart();

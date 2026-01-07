@@ -11,6 +11,37 @@ const CART_SAVE_DEBOUNCE_MS = 350;
 const CART_EXPIRES_MAX_AHEAD_MS = 35 * 60 * 1000; // tolérance côté rules/clients
 const CART_STORAGE_KEY = 'planizza:cart:v1';
 
+function inferBaseItemIdFromCartItem(it) {
+  if (!it) return null;
+  if (it.baseItemId) return String(it.baseItemId);
+
+  const id = it.id == null ? '' : String(it.id);
+  if (!id) return null;
+
+  // Les items ajoutés avec tailles sont sérialisés en `${baseId}_${sizeKey}`.
+  // On prend le segment avant le dernier '_' (fallback).
+  const idx = id.lastIndexOf('_');
+  if (idx <= 0) return id;
+  return id.slice(0, idx);
+}
+
+function normalizeMenuItemType(raw) {
+  const t = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
+  return t || '';
+}
+
+function pickDescriptionFromMenuItem(v) {
+  // Pour les pizzas/calzones, la base de code utilise souvent `description` comme liste d'ingrédients.
+  // On garde un fallback robuste.
+  const d = typeof v?.description === 'string' ? v.description.trim() : '';
+  if (d) return d;
+  const ing = typeof v?.ingredients === 'string' ? v.ingredients.trim() : '';
+  if (ing) return ing;
+  const comp = typeof v?.composition === 'string' ? v.composition.trim() : '';
+  if (comp) return comp;
+  return '';
+}
+
 function safeParseJSON(raw) {
   try {
     return JSON.parse(raw);
@@ -54,6 +85,12 @@ function saveCartToStorage({ truckId, items, expiresAt }) {
     items: items.map((it) => ({
       id: String(it.id),
       name: it.name == null ? '' : String(it.name),
+      type: it.type == null ? undefined : String(it.type),
+      baseItemId: it.baseItemId == null ? undefined : String(it.baseItemId),
+      description: it.description == null ? undefined : String(it.description),
+      photo: it.photo == null ? undefined : String(it.photo),
+      size: it.size == null ? undefined : String(it.size),
+      diameter: typeof it.diameter === 'number' ? it.diameter : undefined,
       priceCents: Number(it.priceCents || 0),
       qty: normalizeQty(it.qty),
       available: it.available !== false,
@@ -78,6 +115,12 @@ function serializeItems(items) {
     out[String(it.id)] = {
       id: String(it.id),
       name: it.name == null ? '' : String(it.name),
+      type: it.type == null ? undefined : String(it.type),
+      baseItemId: it.baseItemId == null ? undefined : String(it.baseItemId),
+      description: it.description == null ? undefined : String(it.description),
+      photo: it.photo == null ? undefined : String(it.photo),
+      size: it.size == null ? undefined : String(it.size),
+      diameter: typeof it.diameter === 'number' ? it.diameter : undefined,
       priceCents: Number(it.priceCents || 0),
       qty: normalizeQty(it.qty),
       available: it.available !== false,
@@ -93,6 +136,12 @@ function deserializeItems(itemsObj) {
     .map((it) => ({
       id: String(it.id),
       name: it.name == null ? '' : String(it.name),
+      type: it.type == null ? undefined : String(it.type),
+      baseItemId: it.baseItemId == null ? undefined : String(it.baseItemId),
+      description: it.description == null ? undefined : String(it.description),
+      photo: it.photo == null ? undefined : String(it.photo),
+      size: it.size == null ? undefined : String(it.size),
+      diameter: typeof it.diameter === 'number' ? it.diameter : undefined,
       priceCents: Number(it.priceCents || 0),
       qty: normalizeQty(it.qty),
       available: it.available !== false,
@@ -117,6 +166,8 @@ export function CartProvider({ children }) {
   const truckIdRef = useRef(truckId);
   const lastSavedSignatureRef = useRef(null);
 
+  const enrichRef = useRef({ inFlight: false, lastKey: null });
+
   useEffect(() => {
     itemsRef.current = items;
   }, [items]);
@@ -139,6 +190,12 @@ export function CartProvider({ children }) {
       if (stored.items) setItems(stored.items.map((it) => ({
         id: String(it.id),
         name: it.name == null ? '' : String(it.name),
+        type: it.type == null ? undefined : String(it.type),
+        baseItemId: it.baseItemId == null ? undefined : String(it.baseItemId),
+        description: it.description == null ? undefined : String(it.description),
+        photo: it.photo == null ? undefined : String(it.photo),
+        size: it.size == null ? undefined : String(it.size),
+        diameter: typeof it.diameter === 'number' ? it.diameter : undefined,
         priceCents: Number(it.priceCents || 0),
         qty: normalizeQty(it.qty),
         available: it.available !== false,
@@ -251,6 +308,109 @@ export function CartProvider({ children }) {
       unsub();
     };
   }, [uid]);
+
+  // Backfill: certains anciens paniers (storage/RTDB) ne contiennent pas `type` / `description` / `photo`.
+  // On les enrichit depuis le menu public du camion pour pouvoir trier et afficher les ingrédients.
+  useEffect(() => {
+    if (!truckIdRef.current) return;
+    if (!isFirebaseConfigured || !db) return;
+    if (itemsRef.current.length === 0) return;
+
+    const missing = itemsRef.current.filter((it) => {
+      if (!it) return false;
+      // Si on n'a pas le type, impossible de classer correctement.
+      if (!it.type) return true;
+
+      const t = normalizeMenuItemType(it.type);
+      const isPizzaLike = t === 'pizza' || t === 'calzone';
+      // Pour pizzas/calzones, on veut le texte d'ingrédients (souvent `description`).
+      if (isPizzaLike && !it.description) return true;
+      // Photo optionnelle (best-effort)
+      if (!it.photo) return true;
+
+      return false;
+    });
+
+    if (missing.length === 0) return;
+
+    const baseIds = Array.from(
+      new Set(missing.map(inferBaseItemIdFromCartItem).filter(Boolean))
+    );
+    if (baseIds.length === 0) return;
+
+    const key = `${truckIdRef.current}:${baseIds.slice().sort().join(',')}`;
+    if (enrichRef.current.lastKey === key) return;
+    if (enrichRef.current.inFlight) return;
+
+    enrichRef.current.inFlight = true;
+    enrichRef.current.lastKey = key;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const entries = await Promise.all(
+          baseIds.map(async (baseId) => {
+            try {
+              const snap = await get(ref(db, `public/trucks/${truckIdRef.current}/menu/items/${baseId}`));
+              if (!snap.exists()) return [baseId, null];
+              const v = snap.val() || {};
+              return [baseId, v];
+            } catch {
+              return [baseId, null];
+            }
+          })
+        );
+
+        if (cancelled) return;
+
+        const byBaseId = new Map(entries);
+
+        setItems((prev) => {
+          let changed = false;
+
+          const next = prev.map((it) => {
+            const baseId = inferBaseItemIdFromCartItem(it);
+            if (!baseId) return it;
+            const v = byBaseId.get(baseId);
+            if (!v) return it;
+
+            const nextType = it.type ? it.type : normalizeMenuItemType(v.type) || undefined;
+            const nextDesc = it.description ? it.description : pickDescriptionFromMenuItem(v) || undefined;
+            const nextPhoto = it.photo ? it.photo : (v.photo || v.photoUrl || undefined);
+            const nextBase = it.baseItemId ? it.baseItemId : baseId;
+
+            // Éviter de recréer un objet si rien ne change (perf)
+            if (
+              it.type === nextType &&
+              it.description === nextDesc &&
+              it.photo === nextPhoto &&
+              it.baseItemId === nextBase
+            ) {
+              return it;
+            }
+
+            changed = true;
+            return {
+              ...it,
+              type: nextType,
+              description: nextDesc,
+              photo: nextPhoto,
+              baseItemId: nextBase,
+            };
+          });
+
+          return changed ? next : prev;
+        });
+      } finally {
+        enrichRef.current.inFlight = false;
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [truckId, items]);
 
   const addItem = useCallback((item, options = {}) => {
     setItems((prev) => {

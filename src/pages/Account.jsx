@@ -14,6 +14,7 @@ import { auth, db, storage, isFirebaseConfigured } from '../lib/firebase';
 import { useCart } from '../features/cart/hooks/useCart.jsx';
 import { useLoyaltyPoints } from '../features/users/hooks/useLoyaltyPoints';
 import LoyaltyProgressBar from '../components/loyalty/LoyaltyProgressBar';
+import { useAutoDismissMessage } from '../hooks/useAutoDismissMessage';
 
 export default function Account() {
   const { isAuthenticated, user, loading, refreshUser } = useAuth();
@@ -45,6 +46,9 @@ export default function Account() {
   
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+
+  // Les messages de succès/info doivent disparaître après 5s (les ❌ restent).
+  useAutoDismissMessage(message, setMessage, { delayMs: 5000, dismissErrors: false });
 
   // Suppression de compte
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
