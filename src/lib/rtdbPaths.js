@@ -15,4 +15,8 @@ export const rtdbPaths = {
   publicTrucksRoot: () => 'public/trucks',
   truck: (truckId) => `public/trucks/${truckId}`,
   truckMenuItems: (truckId) => `public/trucks/${truckId}/menu/items`,
+
+  // Ingrédients (personnalisation) : géré par le pizzaiolo, lecture publique.
+  // On le met sous `menus/` car les règles RTDB existantes protègent l'écriture par owner.
+  truckIngredients: (truckId) => `menus/${truckId}/ingredients`,
 };

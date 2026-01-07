@@ -9,7 +9,7 @@ export function PizzaioloMenuCalzonePresetGrid({ selectedCategory, itemName, has
 
   return (
     <div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Choisissez un calzone</h3>
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">Choisissez une calzone</h3>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {CALZONES_PREDEFINES.map((calzone) => (
           <button

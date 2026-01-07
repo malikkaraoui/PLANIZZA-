@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Minus, Trash2, User, ShoppingCart, Check, Pizza, Wine, IceCream, Clock } from 'lucide-react';
-import { ref, push, set } from 'firebase/database';
+import { ref, push, set, update } from 'firebase/database';
 import { db } from '../../lib/firebase';
+import { rtdbPaths } from '../../lib/rtdbPaths';
 import { useAuth } from '../../app/providers/AuthProvider';
 import { ROUTES } from '../../app/routes';
 import { Card } from '../../components/ui/Card';
@@ -10,13 +11,13 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { usePizzaioloTruckId } from '../../features/pizzaiolo/hooks/usePizzaioloTruckId';
 import { useMenu } from '../../features/menu/hooks/useMenu';
+import { useIngredients } from '../../features/menu/hooks/useIngredients';
 
 // Hooks et utilitaires menu
 import { useLiveCart } from '../../features/menu/hooks/useLiveCart';
 import { usePizzaCustomization } from '../../features/menu/hooks/usePizzaCustomization';
 import { useMenuItem } from '../../features/menu/hooks/useMenuItem';
 import { useLiveOrder } from '../../features/menu/hooks/useLiveOrder';
-import { ALL_INGREDIENTS } from '../../features/menu/constants/ingredients';
 import { filterMenuByCategory, hasMultipleSizes, getSingleSize } from '../../features/menu/utils/menuHelpers';
 import { 
   calculateTVA, 
@@ -26,13 +27,13 @@ import {
   hasValidPrice 
 } from '../../features/menu/utils/priceCalculations';
 import { formatDrinkVolumeLabel } from '../../features/menu/utils/formatDrinkVolumeLabel';
-import { normalizeProductName } from '../../features/menu/utils/normalizeProductName';
 
 export default function PizzaioloLive() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { truckId, loading: loadingTruckId, error: truckIdError } = usePizzaioloTruckId(user?.uid);
   const { items: menuItems, loading: loadingMenu, error: menuError } = useMenu(truckId);
+  const { ingredients } = useIngredients(truckId);
 
   const [menu, setMenu] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,9 +44,11 @@ export default function PizzaioloLive() {
 
   // Navigation entre catégories
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [compactCategoryHeader, setCompactCategoryHeader] = useState(false);
   const pizzaRef = useRef(null);
   const boissonRef = useRef(null);
   const dessertRef = useRef(null);
+  const migratedMenuNamesRef = useRef(new Set());
   
   // Hooks métier
   const { 
@@ -101,6 +104,35 @@ export default function PizzaioloLive() {
     setMenu(menuItems);
   }, [menuItems]);
 
+  // Migration "donnée": corriger les libellés erronés directement dans RTDB (ex: Cristalline -> Cristaline)
+  // (On ne touche PAS l'affichage à la volée, on corrige la source.)
+  useEffect(() => {
+    if (!truckId) return;
+    if (!menuItems || !Array.isArray(menuItems) || menuItems.length === 0) return;
+
+    const toFix = menuItems.filter((it) => {
+      if (!it?.id || typeof it?.name !== 'string') return false;
+      if (migratedMenuNamesRef.current.has(it.id)) return false;
+      return /\bCristalline\b/i.test(it.name);
+    });
+
+    if (toFix.length === 0) return;
+
+    toFix.forEach((it) => {
+      const corrected = it.name.replace(/\bCristalline\b/gi, 'Cristaline');
+      if (corrected === it.name) return;
+
+      migratedMenuNamesRef.current.add(it.id);
+
+      // menu items sont stockés sous public/trucks/{truckId}/menu/items/{itemId}
+      update(ref(db, `${rtdbPaths.truckMenuItems(truckId)}/${it.id}`), { name: corrected }).catch((err) => {
+        // En cas d'erreur, on retire l'id pour permettre une tentative ultérieure.
+        migratedMenuNamesRef.current.delete(it.id);
+        console.error('[Live] Migration nom produit échouée:', err);
+      });
+    });
+  }, [truckId, menuItems]);
+
   // Scroll automatique vers la catégorie ouverte
   useEffect(() => {
     if (selectedCategory) {
@@ -116,6 +148,17 @@ export default function PizzaioloLive() {
         }, 100);
       }
     }
+  }, [selectedCategory]);
+
+  // Une fois la catégorie ouverte, on compacte la "tuile" header.
+  useEffect(() => {
+    if (!selectedCategory) {
+      setCompactCategoryHeader(false);
+      return;
+    }
+
+    const t = window.setTimeout(() => setCompactCategoryHeader(true), 250);
+    return () => window.clearTimeout(t);
   }, [selectedCategory]);
 
   // Gestionnaire d'ajout au panier avec feedback visuel
@@ -324,7 +367,7 @@ export default function PizzaioloLive() {
                 <div>
                   <h4 className="text-sm font-black text-muted-foreground mb-3 uppercase">Ajouter des ingrédients</h4>
                   <div className="flex flex-wrap gap-2">
-                    {ALL_INGREDIENTS
+                    {ingredients
                       .filter(ing => !customizingPizza.currentIngredients.includes(ing))
                       .map((ingredient) => {
                         const isAdded = customizingPizza.addedIngredients.includes(ingredient);
@@ -360,20 +403,43 @@ export default function PizzaioloLive() {
                 {/* Pizza */}
                 <div ref={pizzaRef}>
                   <button
-                    onClick={() => setSelectedCategory(selectedCategory === 'pizza' ? null : 'pizza')}
-                    className={`w-full glass-premium glass-glossy p-8 rounded-[24px] hover:scale-105 transition-all group ${
+                    onClick={() => {
+                      const next = selectedCategory === 'pizza' ? null : 'pizza';
+                      setSelectedCategory(next);
+                      setCompactCategoryHeader(false);
+                    }}
+                    className={`w-full glass-premium glass-glossy rounded-[24px] transition-all group ${
                       selectedCategory === 'pizza' ? 'border-2 border-orange-500' : 'border-white/20'
+                    } ${
+                      selectedCategory === 'pizza' && compactCategoryHeader
+                        ? 'p-4 hover:border-orange-500/70'
+                        : 'p-8 hover:scale-105'
                     }`}
                   >
-                    <div className="text-center space-y-4">
-                      <div className="w-20 h-20 mx-auto rounded-full bg-orange-500/20 flex items-center justify-center group-hover:bg-orange-500/30 transition">
-                        <Pizza className="h-10 w-10 text-orange-500" />
+                    {selectedCategory === 'pizza' && compactCategoryHeader ? (
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-2xl bg-orange-500/20 flex items-center justify-center">
+                            <Pizza className="h-5 w-5 text-orange-500" />
+                          </div>
+                          <div className="text-left">
+                            <h3 className="text-lg font-black">Pizza</h3>
+                            <p className="text-xs text-muted-foreground">{pizzas.length} produits</p>
+                          </div>
+                        </div>
+                        <span className="text-xs font-bold text-muted-foreground">Réduire</span>
                       </div>
-                      <div>
-                        <h3 className="text-2xl font-black">Pizza</h3>
-                        <p className="text-sm text-muted-foreground mt-1">{pizzas.length} produits</p>
+                    ) : (
+                      <div className="text-center space-y-4">
+                        <div className="w-20 h-20 mx-auto rounded-full bg-orange-500/20 flex items-center justify-center group-hover:bg-orange-500/30 transition">
+                          <Pizza className="h-10 w-10 text-orange-500" />
+                        </div>
+                        <div>
+                          <h3 className="text-2xl font-black">Pizza</h3>
+                          <p className="text-sm text-muted-foreground mt-1">{pizzas.length} produits</p>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </button>
 
                   {/* Contenu pizzas */}
@@ -406,7 +472,7 @@ export default function PizzaioloLive() {
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1">
-                              <h3 className="font-black text-lg group-hover:text-primary transition">{normalizeProductName(item.name)}</h3>
+                              <h3 className="font-black text-lg group-hover:text-primary transition">{item.name}</h3>
                               {item.description && (
                                 <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.description}</p>
                               )}
@@ -480,20 +546,43 @@ export default function PizzaioloLive() {
                 {/* Boisson */}
                 <div ref={boissonRef}>
                   <button
-                    onClick={() => setSelectedCategory(selectedCategory === 'boisson' ? null : 'boisson')}
-                    className={`w-full glass-premium glass-glossy p-8 rounded-[24px] hover:scale-105 transition-all group ${
+                    onClick={() => {
+                      const next = selectedCategory === 'boisson' ? null : 'boisson';
+                      setSelectedCategory(next);
+                      setCompactCategoryHeader(false);
+                    }}
+                    className={`w-full glass-premium glass-glossy rounded-[24px] transition-all group ${
                       selectedCategory === 'boisson' ? 'border-2 border-blue-500' : 'border-white/20'
+                    } ${
+                      selectedCategory === 'boisson' && compactCategoryHeader
+                        ? 'p-4 hover:border-blue-500/70'
+                        : 'p-8 hover:scale-105'
                     }`}
                   >
-                    <div className="text-center space-y-4">
-                      <div className="w-20 h-20 mx-auto rounded-full bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/30 transition">
-                        <Wine className="h-10 w-10 text-blue-500" />
+                    {selectedCategory === 'boisson' && compactCategoryHeader ? (
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-2xl bg-blue-500/20 flex items-center justify-center">
+                            <Wine className="h-5 w-5 text-blue-500" />
+                          </div>
+                          <div className="text-left">
+                            <h3 className="text-lg font-black">Boisson</h3>
+                            <p className="text-xs text-muted-foreground">{boissons.length} produits</p>
+                          </div>
+                        </div>
+                        <span className="text-xs font-bold text-muted-foreground">Réduire</span>
                       </div>
-                      <div>
-                        <h3 className="text-2xl font-black">Boisson</h3>
-                        <p className="text-sm text-muted-foreground mt-1">{boissons.length} produits</p>
+                    ) : (
+                      <div className="text-center space-y-4">
+                        <div className="w-20 h-20 mx-auto rounded-full bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/30 transition">
+                          <Wine className="h-10 w-10 text-blue-500" />
+                        </div>
+                        <div>
+                          <h3 className="text-2xl font-black">Boisson</h3>
+                          <p className="text-sm text-muted-foreground mt-1">{boissons.length} produits</p>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </button>
 
                   {/* Contenu boissons */}
@@ -537,7 +626,7 @@ export default function PizzaioloLive() {
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-baseline gap-2 min-w-0">
                                     <h3 className="font-black text-lg group-hover:text-primary transition truncate min-w-0">
-                                      {normalizeProductName(item.name)}
+                                      {item.name}
                                     </h3>
                                     {drinkVolumeLabel && (
                                       <span className="shrink-0 text-[10px] font-medium text-muted-foreground/70 tracking-wide">
@@ -589,20 +678,43 @@ export default function PizzaioloLive() {
                 {/* Dessert */}
                 <div ref={dessertRef}>
                   <button
-                    onClick={() => setSelectedCategory(selectedCategory === 'dessert' ? null : 'dessert')}
-                    className={`w-full glass-premium glass-glossy p-8 rounded-[24px] hover:scale-105 transition-all group ${
+                    onClick={() => {
+                      const next = selectedCategory === 'dessert' ? null : 'dessert';
+                      setSelectedCategory(next);
+                      setCompactCategoryHeader(false);
+                    }}
+                    className={`w-full glass-premium glass-glossy rounded-[24px] transition-all group ${
                       selectedCategory === 'dessert' ? 'border-2 border-pink-500' : 'border-white/20'
+                    } ${
+                      selectedCategory === 'dessert' && compactCategoryHeader
+                        ? 'p-4 hover:border-pink-500/70'
+                        : 'p-8 hover:scale-105'
                     }`}
                   >
-                    <div className="text-center space-y-4">
-                      <div className="w-20 h-20 mx-auto rounded-full bg-pink-500/20 flex items-center justify-center group-hover:bg-pink-500/30 transition">
-                        <IceCream className="h-10 w-10 text-pink-500" />
+                    {selectedCategory === 'dessert' && compactCategoryHeader ? (
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-2xl bg-pink-500/20 flex items-center justify-center">
+                            <IceCream className="h-5 w-5 text-pink-500" />
+                          </div>
+                          <div className="text-left">
+                            <h3 className="text-lg font-black">Dessert</h3>
+                            <p className="text-xs text-muted-foreground">{desserts.length} produits</p>
+                          </div>
+                        </div>
+                        <span className="text-xs font-bold text-muted-foreground">Réduire</span>
                       </div>
-                      <div>
-                        <h3 className="text-2xl font-black">Dessert</h3>
-                        <p className="text-sm text-muted-foreground mt-1">{desserts.length} produits</p>
+                    ) : (
+                      <div className="text-center space-y-4">
+                        <div className="w-20 h-20 mx-auto rounded-full bg-pink-500/20 flex items-center justify-center group-hover:bg-pink-500/30 transition">
+                          <IceCream className="h-10 w-10 text-pink-500" />
+                        </div>
+                        <div>
+                          <h3 className="text-2xl font-black">Dessert</h3>
+                          <p className="text-sm text-muted-foreground mt-1">{desserts.length} produits</p>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </button>
 
                   {/* Contenu desserts */}
@@ -623,7 +735,7 @@ export default function PizzaioloLive() {
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1">
-                              <h3 className="font-black text-lg group-hover:text-primary transition">{normalizeProductName(item.name)}</h3>
+                              <h3 className="font-black text-lg group-hover:text-primary transition">{item.name}</h3>
                               {item.description && (
                                 <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.description}</p>
                               )}
@@ -733,7 +845,7 @@ export default function PizzaioloLive() {
                 cart.map((item) => (
                   <div key={item.id} className="glass-premium glass-glossy border-white/10 p-3 rounded-xl">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-bold text-sm">{normalizeProductName(item.name)}</span>
+                      <span className="font-bold text-sm">{item.name}</span>
                       <button
                         onClick={() => deleteFromCart(item.id)}
                         className="text-red-500 hover:text-red-600 transition"
@@ -755,7 +867,7 @@ export default function PizzaioloLive() {
                           onClick={() =>
                             handleAddToCart({
                               id: item.id,
-                              name: normalizeProductName(item.name),
+                              name: item.name,
                               priceCents: item.priceCents,
                             })
                           }

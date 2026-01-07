@@ -1,13 +1,7 @@
 /**
- * Normalise les libellés produits provenant du menu/RTDB.
+ * ⚠️ Déprécié.
  *
- * Objectif: corriger des fautes fréquentes dans les données sans casser l'historique.
- * Exemple: "Cristalline" -> "Cristaline".
+ * Le projet ne doit pas "corriger" les libellés au moment de l'affichage.
+ * Les corrections doivent se faire à la source (données Firebase / back-office).
  */
-export const normalizeProductName = (name) => {
-  if (typeof name !== 'string') return '';
-
-  return name
-    .trim()
-    .replace(/\bCristalline\b/gi, 'Cristaline');
-};
+export const normalizeProductName = (name) => (typeof name === 'string' ? name : '');

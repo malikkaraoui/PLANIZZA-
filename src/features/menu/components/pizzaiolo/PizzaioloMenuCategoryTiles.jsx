@@ -26,7 +26,7 @@ export function PizzaioloMenuCategoryTiles({ selectedCategory, onSelect }) {
       >
         <div className="text-5xl mb-3">🥟</div>
         <h3 className="text-xl font-bold">CALZONE</h3>
-        <p className="text-sm text-white/80 mt-1">Ajouter un calzone</p>
+        <p className="text-sm text-white/80 mt-1">Ajouter une calzone</p>
       </button>
 
       <button
