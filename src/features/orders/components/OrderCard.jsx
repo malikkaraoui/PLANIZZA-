@@ -1,4 +1,4 @@
-import { Clock, User, CheckCircle, ChefHat, Store, Bike, CreditCard } from 'lucide-react';
+import { Clock, User, CheckCircle, ChefHat, Store, Bike, CreditCard, GripVertical } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
@@ -52,6 +52,20 @@ export function OrderCard({
     }
   };
 
+  const items = Array.isArray(order.items) ? order.items : [];
+  const totalQty = items.reduce((sum, it) => sum + Number(it.qty || 0), 0);
+  const linesCount = items.length;
+  const calzoneQty = items.reduce(
+    (sum, it) => sum + (/calzone/i.test(String(it.name || '')) ? Number(it.qty || 0) : 0),
+    0
+  );
+  const pizzaLikeQty = Math.max(0, totalQty - calzoneQty);
+  const previewNames = items
+    .slice(0, 2)
+    .map((it) => it?.name)
+    .filter(Boolean)
+    .join(' • ');
+
   return (
     <Card
       key={order.id}
@@ -59,182 +73,170 @@ export function OrderCard({
         order.source === 'manual' 
           ? 'border-purple-500/50 bg-purple-500/5' 
           : 'border-white/20'
-      } p-6 rounded-[24px] ${
+      } relative p-3 sm:p-4 rounded-[20px] ${
         remaining?.isLate ? 'border-red-500/50' : ''
       } ${getBorderClasses()}`}
       onClick={onClick}
       role="button"
       tabIndex={0}
     >
-      <div className="grid md:grid-cols-[1fr_auto_auto] gap-6 items-start">
-        {/* Colonne 1: Informations commande */}
-        <div className="space-y-4">
-          {/* Badges */}
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Badge Statut (seulement si pas "Prise en charge" car redondant dans section) */}
+      {/* Poignée de drag (réordonnancement) */}
+      <button
+        type="button"
+        data-dnd-handle
+        onClick={(e) => e.stopPropagation()}
+        className="absolute right-2 top-2 inline-flex items-center justify-center h-8 w-8 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 active:bg-white/15 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing"
+        aria-label="Réordonner la commande"
+        title="Glisser pour réordonner"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+
+      <div className="flex items-start gap-3">
+        {/* Contenu (preview) */}
+        <div className="min-w-0 flex-1">
+          {/* Ligne badges */}
+          <div className="flex items-center gap-1.5 flex-wrap pr-10">
             {order.status !== 'accepted' && (
-              <Badge className={`${statusConfig.color} text-white rounded-full text-xs`}>
+              <Badge className={`${statusConfig.color} text-white rounded-full text-[11px] px-2 py-0.5`}>
                 {statusConfig.label}
               </Badge>
             )}
-            
-            {/* Badge MANUELLE (seulement si commande payée, sinon évident) */}
-            {order.source === 'manual' && order.payment?.paymentStatus === 'paid' && (
-              <Badge className="bg-purple-600 text-white rounded-full text-xs font-bold">
-                ✋ MANUELLE
+
+            {order.payment?.provider === 'stripe' && (
+              <Badge className="bg-emerald-600/90 text-white rounded-full text-[11px] px-2 py-0.5 font-bold flex items-center gap-1">
+                <CreditCard className="h-3 w-3" />
+                En ligne
               </Badge>
             )}
-            
-            {/* Badge Livraison/Retrait (uniquement si pas encore prise en charge) */}
+
+            {order.source === 'manual' && (
+              <Badge className="bg-purple-600/90 text-white rounded-full text-[11px] px-2 py-0.5 font-bold">
+                Manuel
+              </Badge>
+            )}
+
             {order.status === 'received' && (
               order.deliveryMethod === 'delivery' ? (
-                <Badge className="bg-blue-600 text-white rounded-full text-xs font-bold flex items-center gap-1">
+                <Badge className="bg-blue-600 text-white rounded-full text-[11px] px-2 py-0.5 font-bold flex items-center gap-1">
                   <Bike className="h-3 w-3" />
-                  LIVRAISON
+                  Livraison
                 </Badge>
               ) : (
-                <Badge className="bg-emerald-600 text-white rounded-full text-xs font-bold flex items-center gap-1">
+                <Badge className="bg-emerald-600 text-white rounded-full text-[11px] px-2 py-0.5 font-bold flex items-center gap-1">
                   <Store className="h-3 w-3" />
-                  RETRAIT
+                  Retrait
                 </Badge>
               )
             )}
           </div>
-          
-          {/* Nom du client */}
-          <div className="mb-3 px-4 py-2 bg-primary/20 rounded-xl inline-flex items-center gap-2">
-            <User className="h-5 w-5 text-primary" />
-            <span className="font-black text-primary text-lg">
+
+          {/* Client */}
+          <div className="mt-2 flex items-center gap-2 min-w-0">
+            <User className="h-4 w-4 text-primary shrink-0" />
+            <span className="font-black text-primary text-base truncate">
               {order.customerName || 'Client'}
             </span>
           </div>
 
-          {/* Heure de livraison prévue - FILE CONDUCTEUR */}
+          {/* Heure prévue */}
           {estimatedDeliveryTime && (
-            <div className="mb-3 px-4 py-2 bg-linear-to-r from-orange-500/20 to-amber-500/20 rounded-xl inline-flex items-center gap-2 ml-2 border border-orange-500/30">
-              <Clock className="h-5 w-5 text-orange-500" />
-              <span className="font-black text-orange-500 text-lg">
-                {estimatedDeliveryTime}
-              </span>
-              <span className="text-xs font-bold text-orange-500/70">
-                {order.pickupTime ? 'Retrait prévu' : 'Prêt estimé'}
+            <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-xl border border-orange-500/25 bg-orange-500/10 text-orange-600">
+              <Clock className="h-4 w-4" />
+              <span className="font-black text-sm">{estimatedDeliveryTime}</span>
+              <span className="text-[11px] font-bold opacity-80">
+                {order.pickupTime ? 'Retrait' : 'Estimé'}
               </span>
             </div>
           )}
 
-          {/* Liste des pizzas */}
-          <div className="space-y-3">
-            {order.items?.map((item, idx) => (
-              <div key={idx} className="space-y-1">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-black text-foreground">
-                    {item.qty}x {item.name}
-                  </span>
-                </div>
-                
-                {/* Ingrédients modifiés */}
-                {(item.removedIngredients?.length > 0 || item.addedIngredients?.length > 0) && (
-                  <div className="text-sm pl-6 space-y-1">
-                    {item.removedIngredients?.length > 0 && (
-                      <div className="text-red-500 font-bold">
-                        ➖ Sans: {item.removedIngredients.join(', ')}
-                      </div>
-                    )}
-                    {item.addedIngredients?.length > 0 && (
-                      <div className="text-green-500 font-bold">
-                        ➕ Avec: {item.addedIngredients.join(', ')}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
+          {/* Preview contenu */}
+          <div className="mt-2 text-xs text-muted-foreground font-semibold">
+            {calzoneQty > 0
+              ? `${pizzaLikeQty} pizza(s) • ${calzoneQty} calzone(s)`
+              : `${totalQty} pizza(s)`}
+            {linesCount > 0 ? ` • ${linesCount} ligne(s)` : ''}
           </div>
+          {previewNames ? (
+            <div className="mt-1 text-xs text-muted-foreground/80 truncate">
+              {previewNames}{items.length > 2 ? '…' : ''}
+            </div>
+          ) : null}
         </div>
 
-        {/* Colonne 2: Actions */}
-        <div className="flex flex-col gap-2" style={{ minWidth: '180px' }}>
-          {/* Bouton PAYÉ (commandes manuelles non payées) */}
-          {order.source === 'manual' && order.payment?.paymentStatus !== 'paid' && (
-            <Button
-              onClick={(e) => {
-                e.stopPropagation();
-                console.log('[OrderCard] Clic PAYÉ', order.id);
-                onMarkPaid?.(order.id);
-              }}
-              disabled={updating}
-              className="w-full rounded-xl h-14 font-black text-sm bg-red-600 hover:bg-red-700 text-white flex items-center justify-center gap-2 animate-pulse shadow-lg shadow-red-500/50 border-2 border-red-400"
-            >
-              <CreditCard className="h-5 w-5" />
-              💰 PAYÉ
-            </Button>
-          )}
-          
-          {/* Indicateur PAYÉ (commandes manuelles payées) */}
-          {order.source === 'manual' && order.payment?.paymentStatus === 'paid' && (
-            <div className="w-full px-4 py-2 rounded-xl bg-green-600/20 border-2 border-green-600 flex items-center justify-center gap-2">
-              <span className="text-green-600 font-black text-sm">💵 PAYÉ</span>
-            </div>
-          )}
-          
-          {/* Boutons d'action selon statut */}
-          {order.status === 'received' ? (
-            <Button
-              onClick={(e) => {
-                e.stopPropagation();
-                console.log('[OrderCard] Clic Prendre en charge', order.id);
-                onAccept?.(order.id);
-              }}
-              disabled={updating}
-              className="w-full rounded-xl h-12 font-bold bg-blue-500 hover:bg-blue-600 text-white"
-            >
-              <ChefHat className="h-4 w-4 mr-2" />
-              Prendre en charge
-            </Button>
-          ) : (
-            // Bouton Délivré : uniquement si commande payée (ou non manuelle)
-            !(order.source === 'manual' && order.payment?.paymentStatus !== 'paid') && (
+        {/* Colonne droite: chrono + actions */}
+        <div className="shrink-0 w-28 flex flex-col items-end gap-2">
+          {/* Timer */}
+          <div className="text-right">
+            {order.status === 'received' ? (
+              <div>
+                <div className={`text-2xl font-black ${
+                  parseInt(elapsed) >= 60 
+                    ? 'text-red-500'
+                    : 'text-orange-500'
+                }`}>
+                  {elapsed}
+                </div>
+                <div className="text-[10px] font-bold text-muted-foreground uppercase">Chrono</div>
+              </div>
+            ) : remaining ? (
+              <div>
+                <div className={`text-2xl font-black ${remaining.isLate ? 'text-red-500' : 'text-emerald-500'}`}>
+                  {remaining.text}
+                </div>
+                <div className="text-[10px] font-bold text-muted-foreground uppercase">
+                  {remaining.isLate ? 'Retard' : 'Restant'}
+                </div>
+              </div>
+            ) : (
+              <div className="text-xl font-black text-muted-foreground">{elapsed}</div>
+            )}
+          </div>
+
+          {/* Actions (compact) */}
+          <div className="w-full flex flex-col gap-2">
+            {order.source === 'manual' && order.payment?.paymentStatus !== 'paid' && (
               <Button
                 onClick={(e) => {
                   e.stopPropagation();
-                  console.log('[OrderCard] Clic Délivré', order.id);
-                  onDeliver?.(order.id);
+                  onMarkPaid?.(order.id);
                 }}
                 disabled={updating}
-                className="w-full rounded-xl h-12 font-bold bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center gap-2"
+                className="w-full rounded-lg h-9 font-black text-xs bg-red-600 hover:bg-red-700 text-white flex items-center justify-center gap-2"
               >
-                <CheckCircle className="h-4 w-4" />
-                {order.deliveryMethod === 'delivery' ? 'Livré' : 'Délivré'}
+                <CreditCard className="h-4 w-4" />
+                PAYÉ
               </Button>
-            )
-          )}
-        </div>
+            )}
 
-        {/* Colonne 3: Timer */}
-        <div className="text-center" style={{ minWidth: '120px' }}>
-          {order.status === 'received' ? (
-            <div className="space-y-1">
-              <div className={`text-4xl font-black ${
-                parseInt(elapsed) >= 60 
-                  ? 'text-red-500 animate-pulse'
-                  : 'text-orange-500'
-              }`}>
-                {elapsed}
-              </div>
-              <span className="text-xs font-bold text-muted-foreground uppercase block">Chrono</span>
-            </div>
-          ) : remaining ? (
-            <div className="space-y-1">
-              <div className={`text-4xl font-black ${remaining.isLate ? 'text-red-500 animate-pulse' : 'text-emerald-500'}`}>
-                {remaining.text}
-              </div>
-              <span className="text-xs font-bold text-muted-foreground uppercase block">
-                {remaining.isLate ? 'Retard' : 'Restant'}
-              </span>
-            </div>
-          ) : (
-            <div className="text-2xl font-black text-muted-foreground">{elapsed}</div>
-          )}
+            {order.status === 'received' ? (
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAccept?.(order.id);
+                }}
+                disabled={updating}
+                className="w-full rounded-lg h-9 font-bold text-xs bg-blue-500 hover:bg-blue-600 text-white"
+              >
+                <ChefHat className="h-4 w-4 mr-1" />
+                Prendre
+              </Button>
+            ) : (
+              !(order.source === 'manual' && order.payment?.paymentStatus !== 'paid') && (
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeliver?.(order.id);
+                  }}
+                  disabled={updating}
+                  className="w-full rounded-lg h-9 font-bold text-xs bg-emerald-500 hover:bg-emerald-600 text-white"
+                >
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  {order.deliveryMethod === 'delivery' ? 'Livré' : 'Délivré'}
+                </Button>
+              )
+            )}
+          </div>
         </div>
       </div>
     </Card>

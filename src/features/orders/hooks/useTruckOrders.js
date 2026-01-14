@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ref, query, orderByChild, equalTo, onValue } from 'firebase/database';
 import { db, isFirebaseConfigured } from '../../../lib/firebase';
 import { rtdbPaths } from '../../../lib/rtdbPaths';
+import { coalesceMs } from '../../../lib/timestamps';
 
 /**
  * Hook pour récupérer les commandes d'un camion spécifique
@@ -49,7 +50,11 @@ export function useTruckOrders(truckId) {
               // Sinon, on exclut
               return false;
             })
-            .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); // Plus récentes en premier
+            .sort((a, b) => {
+              const aMs = coalesceMs(a.createdAt, a.createdAtClient, 0) || 0;
+              const bMs = coalesceMs(b.createdAt, b.createdAtClient, 0) || 0;
+              return bMs - aMs;
+            }); // Plus récentes en premier
 
           setOrders(ordersArray);
         } else {

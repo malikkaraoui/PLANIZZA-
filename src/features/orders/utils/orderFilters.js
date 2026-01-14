@@ -3,6 +3,9 @@
  * Partagée entre Orders.jsx et Stats.jsx
  */
 
+import { coalesceMs, toMs } from '../../../lib/timestamps';
+import { getServerNowMs } from '../../../lib/serverTime';
+
 // Durée max avant de considérer une commande comme perdue (120 min après prise en charge)
 export const MAX_ORDER_DURATION = 120 * 60 * 1000;
 
@@ -10,9 +13,10 @@ export const MAX_ORDER_DURATION = 120 * 60 * 1000;
  * Vérifie si une commande est expirée (perdue)
  */
 export const isExpired = (order) => {
-  if (!order.timeline?.acceptedAt) return false;
+  const acceptedAtMs = toMs(order.timeline?.acceptedAt);
+  if (!acceptedAtMs) return false;
   if (['delivered', 'cancelled'].includes(order.status)) return false;
-  return Date.now() - order.timeline.acceptedAt > MAX_ORDER_DURATION;
+  return getServerNowMs() - acceptedAtMs > MAX_ORDER_DURATION;
 };
 
 /**
@@ -36,7 +40,9 @@ export const getFilteredOrders = (ordersList, filters) => {
     
     // Filtre période (si présent)
     if (filters.period) {
-      const orderDate = new Date(order.createdAt);
+      const createdAtMs = coalesceMs(order.createdAt, order.createdAtClient);
+      if (!createdAtMs) return false;
+      const orderDate = new Date(createdAtMs);
       
       switch (filters.period) {
         case 'today': {

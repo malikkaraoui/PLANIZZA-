@@ -12,6 +12,10 @@ export const rtdbPaths = {
   user: (uid) => `users/${uid}`,
   pizzaiolo: (uid) => `pizzaiolos/${uid}`,
 
+  // Rangement personnalisé des commandes côté pizzaiolo (par camion + groupe UI)
+  // Exemple: pizzaiolos/{uid}/orderRanking/{truckId}/{groupKey}
+  pizzaioloOrderRanking: (uid, truckId, groupKey) => `pizzaiolos/${uid}/orderRanking/${truckId}/${groupKey}`,
+
   publicTrucksRoot: () => 'public/trucks',
   truck: (truckId) => `public/trucks/${truckId}`,
   truckMenuItems: (truckId) => `public/trucks/${truckId}/menu/items`,

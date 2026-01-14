@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Minus, Trash2, User, ShoppingCart, Check, Pizza, Wine, IceCream, Clock } from 'lucide-react';
 import { ref, push, set, update } from 'firebase/database';
 import { db } from '../../lib/firebase';
+import { rtdbServerTimestamp } from '../../lib/timestamps';
 import { rtdbPaths } from '../../lib/rtdbPaths';
 import { useAuth } from '../../app/providers/AuthProvider';
 import { ROUTES } from '../../app/routes';
@@ -230,7 +231,8 @@ export default function PizzaioloLive() {
         })),
         totalCents,
         status: 'received',
-        createdAt: Date.now(),
+        createdAt: rtdbServerTimestamp(),
+        createdAtClient: Date.now(),
         timeline: {},
         payment: {
           provider: 'manual',

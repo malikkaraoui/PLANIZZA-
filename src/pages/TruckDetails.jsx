@@ -5,16 +5,12 @@ import TruckHeader from '../features/trucks/TruckHeader';
 import { useTruck } from '../features/trucks/hooks/useTruck';
 import { useMenu } from '../features/menu/hooks/useMenu';
 import MenuItemCard from '../features/menu/MenuItemCard';
-import MenuItemTile from '../features/menu/MenuItemTile';
-import MenuPizzaTile from '../features/menu/MenuPizzaTile';
 import CartSidebar from '../features/cart/CartSidebar';
-import StickyAside from '../components/layout/StickyAside';
 import { useCart } from '../features/cart/hooks/useCart.jsx';
 import { ROUTES } from '../app/routes';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
 import { isCurrentlyOpen } from '../lib/openingHours';
-import { useSingleOpenItem } from '../features/menu/tiles/useSingleOpenItem';
 
 export default function TruckDetails() {
   const { truckId: slugOrId } = useParams();
@@ -22,10 +18,9 @@ export default function TruckDetails() {
   const navigate = useNavigate();
   const { truck, loading: loadingTruck, error: truckError } = useTruck(slugOrId);
   const { items: menuItems, loading: loadingMenu } = useMenu(truck?.id);
-  const { addItem } = useCart();
+  const { addItem, items } = useCart();
   const [zoomedImage, setZoomedImage] = useState(null);
   const [showMap, setShowMap] = useState(false);
-  const pizzaDisclosure = useSingleOpenItem(null);
 
   const embeddedMenuItems = useMemo(() => {
     const raw = truck?.menu?.items;
@@ -36,43 +31,6 @@ export default function TruckDetails() {
   const effectiveMenuItems = (menuItems?.length ?? 0) > 0 ? menuItems : embeddedMenuItems;
   const hasEmbeddedMenu = embeddedMenuItems.length > 0;
 
-  const menuByGenre = useMemo(() => {
-    const normalize = (v) => (typeof v === 'string' ? v.trim().toLowerCase() : '');
-
-    const getGenre = (item) => {
-      const t = normalize(item?.type);
-
-      switch (t) {
-        case 'dessert':
-          return 'dessert';
-        case 'pizza':
-        case 'calzone':
-          return 'pizza';
-        case 'boisson':
-        case 'soda':
-        case 'eau':
-        case 'biere':
-        case 'vin':
-          return 'boisson';
-        default:
-          return 'autre';
-      }
-    };
-
-    const buckets = {
-      boisson: [],
-      dessert: [],
-      pizza: [],
-      autre: [],
-    };
-
-    for (const it of effectiveMenuItems || []) {
-      buckets[getGenre(it)].push(it);
-    }
-
-    return buckets;
-  }, [effectiveMenuItems]);
-
   // IMPORTANT: si le camion contient déjà un menu embarqué, on ne bloque pas l'écran sur un listener RTDB menu.
   const isLoading = loadingTruck || (!hasEmbeddedMenu && loadingMenu);
   const isPaused = truck?.isPaused === true;
@@ -81,20 +39,11 @@ export default function TruckDetails() {
 
   const hasMenu = useMemo(() => (effectiveMenuItems?.length ?? 0) > 0, [effectiveMenuItems]);
 
-  const safeFrom = useMemo(() => {
-    const raw = location.state?.from;
-    if (typeof raw !== 'string') return null;
-    // On n'accepte que des chemins internes simples.
-    if (!raw.startsWith('/')) return null;
-    if (raw.startsWith('//')) return null;
-    return raw;
-  }, [location.state?.from]);
-
   const handleBack = () => {
-    // UX: retour cohérent vers la page d'origine quand elle est connue,
-    // sinon fallback sur /explore mémorisé.
-    if (safeFrom) {
-      navigate(safeFrom);
+    // Comportement attendu: revenir à la page précédente (ex: /explore avec sa recherche)
+    // Si on arrive directement sur /truck/:id (pas d'historique SPA), on fallback sur la dernière URL /explore mémorisée.
+    if (location.key && location.key !== 'default') {
+      navigate(-1);
       return;
     }
 
@@ -113,12 +62,7 @@ export default function TruckDetails() {
 
   const handleCheckout = async () => {
     // Navigation MVP: passage par /cart puis /checkout
-    navigate(ROUTES.cart, {
-      state: {
-        truckId: truck.id,
-        from: `${location.pathname}${location.search}`,
-      },
-    });
+    navigate(ROUTES.cart, { state: { truckId: truck.id } });
   };
 
   return (
@@ -300,9 +244,9 @@ export default function TruckDetails() {
           </div>
 
           {/* Sidebar / Sidebar "Control Center" */}
-          <StickyAside className="animate-in slide-in-from-right-8 duration-700 lg:col-start-2 lg:row-start-1 lg:row-span-2">
-            <CartSidebar onCheckout={handleCheckout} disabled={!canOrder} showPaymentInfo={false} compact />
-          </StickyAside>
+          <aside className="animate-in slide-in-from-right-8 duration-700 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-24 self-start">
+            <CartSidebar onCheckout={handleCheckout} disabled={!canOrder} />
+          </aside>
 
           {/* Menu Section */}
           <section className="lg:col-start-1 lg:row-start-2 space-y-8 pb-32">
@@ -339,65 +283,14 @@ export default function TruckDetails() {
                     )}
                   </div>
                 )}
-                {/* Produits regroupés par genre */}
-                {[
-                  { key: 'pizza', title: '🍕 Pizzas & Calzones' },
-                  { key: 'boisson', title: '🥤 Boissons' },
-                  { key: 'autre', title: '✨ Autres' },
-                  { key: 'dessert', title: '🍰 Desserts' },
-                ].map((section) => {
-                  const list = menuByGenre?.[section.key] || [];
-                  if (list.length === 0) return null;
-
-                  return (
-                    <div key={section.key} className="space-y-6">
-                      <div className="flex items-center gap-4 px-2">
-                        <div className="h-8 w-1.5 bg-primary/20 rounded-full" />
-                        <h3 className="text-xl font-black tracking-tight uppercase">
-                          {section.title}
-                        </h3>
-                        <span className="text-xs font-bold text-muted-foreground/60">({list.length})</span>
-                      </div>
-
-                      {section.key === 'boisson' || section.key === 'dessert' ? (
-                        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                          {list.map((it) => (
-                            <MenuItemTile
-                              key={it.id}
-                              item={it}
-                              onAdd={(item) => addItem(item, { truckId: truck.id })}
-                              isDisabled={!canOrder}
-                            />
-                          ))}
-                        </div>
-                      ) : section.key === 'pizza' ? (
-                        <div className="grid gap-4 md:grid-cols-2 items-start">
-                          {list.map((it) => (
-                            <MenuPizzaTile
-                              key={it.id}
-                              item={it}
-                              open={pizzaDisclosure.isOpen(it.id)}
-                              onToggle={() => pizzaDisclosure.toggle(it.id)}
-                              onAdd={(item) => addItem(item, { truckId: truck.id })}
-                              isDisabled={!canOrder}
-                            />
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="grid gap-8">
-                          {list.map((it) => (
-                            <MenuItemCard
-                              key={it.id}
-                              item={it}
-                              onAdd={(item) => addItem(item, { truckId: truck.id })}
-                              isDisabled={!canOrder}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                {effectiveMenuItems.map((it) => (
+                  <MenuItemCard
+                    key={it.id}
+                    item={it}
+                    onAdd={(item) => addItem(item, { truckId: truck.id })}
+                    isDisabled={!canOrder}
+                  />
+                ))}
               </div>
             )}
           </section>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { push, ref, set } from 'firebase/database';
 import { db, isFirebaseConfigured } from '../../../lib/firebase';
 import { createCheckoutSession } from '../../../lib/stripe';
+import { rtdbServerTimestamp } from '../../../lib/timestamps';
 
 const TVA_RATE = 0.10; // 10% TVA restauration
 const DELIVERY_COST_CENTS = 350; // 3,50€ frais de livraison
@@ -60,8 +61,11 @@ export function useCreateOrder() {
         totalHT: totalHT,
         tvaAmount: tvaAmount,
         deliveryCost: deliveryCost,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        // ✅ Source de vérité: timestamps serveur RTDB
+        createdAt: rtdbServerTimestamp(),
+        updatedAt: rtdbServerTimestamp(),
+        // Fallback UI/debug (ne pas utiliser côté métier)
+        createdAtClient: Date.now(),
       };
 
       await set(orderRef, payload);

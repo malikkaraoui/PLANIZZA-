@@ -2,6 +2,8 @@
  * Utilitaires pour les calculs de temps de livraison et tri des commandes
  */
 
+import { coalesceMs, toMs } from '../../../lib/timestamps';
+
 /**
  * Calcule l'heure de livraison prévue pour une commande
  * 
@@ -59,7 +61,8 @@ export function getEstimatedDeliveryTime(order, pizzaPerHour = 30) {
   const estimatedMs = totalPizzas * minutesPerPizza * 60 * 1000;
   
   // Point de départ : acceptedAt si prise en charge, sinon createdAt
-  const startTime = order.timeline?.acceptedAt || order.createdAt || Date.now();
+  const startTime =
+    coalesceMs(order.timeline?.acceptedAt, order.createdAt, order.createdAtClient) || Date.now();
   const estimatedDeliveryTime = startTime + estimatedMs;
   
   console.log('[getEstimatedDeliveryTime] Calculé:', {

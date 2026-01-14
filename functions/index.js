@@ -4,6 +4,7 @@ const {onRequest} = require("firebase-functions/v2/https");
 const {defineSecret} = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const stripe = require("stripe");
+const { rtdbServerTimestamp } = require("./utils/timestamps");
 
 // Initialiser Firebase Admin
 admin.initializeApp();
@@ -174,7 +175,7 @@ exports.createCheckoutSession = onRequest(
             paymentStatus: "pending",
           },
           stripeCheckoutSessionId: session.id,
-          updatedAt: Date.now(),
+          updatedAt: rtdbServerTimestamp(),
         });
 
         return res.json({sessionId: session.id, url: session.url});
@@ -272,10 +273,9 @@ exports.stripeWebhook = onRequest(
                 }
               }
 
-              const now = Date.now();
               await orderRef.update({
                 status: "received",
-                paidAt: now,
+                paidAt: rtdbServerTimestamp(),
                 stripeCheckoutSessionId: session.id,
                 stripePaymentIntentId: session.payment_intent || null,
                 stripePaymentStatus: session.payment_status || null,
@@ -284,10 +284,10 @@ exports.stripeWebhook = onRequest(
                   sessionId: session.id,
                   paymentStatus: "paid",
                 },
-                updatedAt: admin.database.ServerValue.TIMESTAMP,
+                updatedAt: rtdbServerTimestamp(),
                 timeline: {
                   ...(current.timeline || {}),
-                  receivedAt: now,
+                  receivedAt: rtdbServerTimestamp(),
                 },
               // nextStepAt retiré: workflow entièrement manuel (clic pizzaiolo)
               });

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ref, update } from 'firebase/database';
 import { db, isFirebaseConfigured } from '../../../lib/firebase';
+import { rtdbServerTimestamp } from '../../../lib/timestamps';
 
 /**
  * Hook pour mettre à jour le statut d'une commande
@@ -25,26 +26,25 @@ export function useUpdateOrderStatus() {
 
     try {
       const orderRef = ref(db, `orders/${orderId}`);
-      const now = Date.now();
       
       const updates = {
         status: newStatus,
-        updatedAt: now,
+        updatedAt: rtdbServerTimestamp(),
       };
 
       // Ajouter le timestamp correspondant dans la timeline
       if (newStatus === 'received') {
-        updates['timeline/receivedAt'] = now;
+        updates['timeline/receivedAt'] = rtdbServerTimestamp();
       } else if (newStatus === 'accepted') {
-        updates['timeline/acceptedAt'] = now;
+        updates['timeline/acceptedAt'] = rtdbServerTimestamp();
       } else if (newStatus === 'prep') {
-        updates['timeline/prepAt'] = now;
+        updates['timeline/prepAt'] = rtdbServerTimestamp();
       } else if (newStatus === 'cook') {
-        updates['timeline/cookAt'] = now;
+        updates['timeline/cookAt'] = rtdbServerTimestamp();
       } else if (newStatus === 'ready') {
-        updates['timeline/readyAt'] = now;
+        updates['timeline/readyAt'] = rtdbServerTimestamp();
       } else if (newStatus === 'delivered') {
-        updates['timeline/deliveredAt'] = now;
+        updates['timeline/deliveredAt'] = rtdbServerTimestamp();
       }
 
       console.log('[useUpdateOrderStatus] Tentative update:', { orderRef: `orders/${orderId}`, updates });

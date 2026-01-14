@@ -15,12 +15,15 @@ import { usePizzaioloTruckId } from '../../features/pizzaiolo/hooks/usePizzaiolo
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { getFilteredOrders, isExpired, MAX_ORDER_DURATION } from '../../features/orders/utils/orderFilters';
 import { useScrollDirection } from '../../hooks/useScrollDirection';
+import { useServerNow } from '../../hooks/useServerNow';
 import { OrderCard } from '../../features/orders/components/OrderCard';
 import { OrderSection } from '../../features/orders/components/OrderSection';
+import { ReorderableOrderList } from '../../features/orders/components/ReorderableOrderList';
+import { usePizzaioloOrderRanking } from '../../features/orders/hooks/usePizzaioloOrderRanking';
+import { coalesceMs, rtdbServerTimestamp, toMs } from '../../lib/timestamps';
 import { 
   getEstimatedDeliveryTime, 
   formatDeliveryTime, 
-  sortOrdersByDeliveryTime,
   groupOrdersByStatus 
 } from '../../features/orders/utils/deliveryTimeCalculator';
 
@@ -48,7 +51,7 @@ export default function PizzaioloOrders() {
 
   const [loadingTruckDetails, setLoadingTruckDetails] = useState(false);
   const loadingTruck = loadingTruckId || loadingTruckDetails;
-  const [currentTime, setCurrentTime] = useState(Date.now());
+  const { nowMs: currentTime } = useServerNow({ tickMs: 1000 });
   const [pizzaPerHour, setPizzaPerHour] = useState(30); // Cadence du pizzaiolo
   const [_openingHours, setOpeningHours] = useState(null); // Horaires d'ouverture
   const { orders, loading: ordersLoading } = useTruckOrders(truckId);
@@ -129,23 +132,14 @@ export default function PizzaioloOrders() {
     console.error('[PizzaioloOrders] Erreur chargement truckId:', truckIdError);
   }, [truckIdError]);
 
-  // Mettre à jour le timer toutes les secondes
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(Date.now());
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
-
   // Calculer le temps écoulé (pour les commandes non prises en charge)
-  const getElapsedTime = (createdAt) => {
-    if (!createdAt) return '—';
+  const getElapsedTime = (createdAtMs) => {
+    if (!createdAtMs) return '—';
     
     // Debug: afficher les timestamps
-    console.log('[CHRONO] createdAt:', createdAt, 'currentTime:', currentTime, 'diff:', (currentTime - createdAt) / 1000, 's');
+    console.log('[CHRONO] createdAt:', createdAtMs, 'currentTime:', currentTime, 'diff:', (currentTime - createdAtMs) / 1000, 's');
     
-    const diff = Math.floor((currentTime - createdAt) / 1000);
+    const diff = Math.floor((currentTime - createdAtMs) / 1000);
     
     // Si le temps est négatif (peut arriver avec désync horloge), afficher en positif
     const absDiff = Math.abs(diff);
@@ -156,14 +150,15 @@ export default function PizzaioloOrders() {
 
   // Calculer le temps restant basé sur la cadence du pizzaiolo (pour commandes prises en charge)
   const getRemainingTime = (order, pizzaPerHour) => {
-    if (!order.timeline?.acceptedAt || !pizzaPerHour) return null;
+    const acceptedAtMs = toMs(order.timeline?.acceptedAt);
+    if (!acceptedAtMs || !pizzaPerHour) return null;
     
     const totalPizzas = order.items?.reduce((sum, item) => sum + (item.qty || 0), 0) || 1;
     // Calculer le temps estimé basé sur la cadence (pizzas par heure)
     const minutesPerPizza = 60 / pizzaPerHour;
     const estimatedMs = totalPizzas * minutesPerPizza * 60 * 1000;
     
-    const elapsed = currentTime - order.timeline.acceptedAt;
+    const elapsed = currentTime - acceptedAtMs;
     const remaining = estimatedMs - elapsed;
     
     // Si en retard, afficher le temps de retard écoulé
@@ -222,7 +217,7 @@ export default function PizzaioloOrders() {
       await set(orderRef, {
         provider: 'manual',
         paymentStatus: 'paid',
-        paidAt: Date.now()
+        paidAt: rtdbServerTimestamp(),
       });
       console.log('[Orders] Commande marquée comme payée:', orderId);
     } catch (error) {
@@ -252,13 +247,46 @@ export default function PizzaioloOrders() {
     acceptedUnpaid: orderGroups.acceptedUnpaid.length
   });
 
-  // Trier chaque groupe par ordre chronologique de livraison
-  const sortedNotAcceptedPaid = sortOrdersByDeliveryTime(orderGroups.notAcceptedPaid, pizzaPerHour);
-  const sortedNotAcceptedUnpaid = sortOrdersByDeliveryTime(orderGroups.notAcceptedUnpaid, pizzaPerHour);
-  const sortedAcceptedPaid = sortOrdersByDeliveryTime(orderGroups.acceptedPaid, pizzaPerHour);
-  const sortedAcceptedUnpaid = sortOrdersByDeliveryTime(orderGroups.acceptedUnpaid, pizzaPerHour);
+  const getCreatedAtMs = (order) => coalesceMs(order?.createdAt, order?.createdAtClient, 0) || 0;
 
-  console.log('[PizzaioloOrders] Commandes triées par heure de livraison');
+  // Ordre de base = chronologie d'arrivée (createdAt croissant)
+  const baseNotAcceptedPaid = [...orderGroups.notAcceptedPaid].sort((a, b) => getCreatedAtMs(a) - getCreatedAtMs(b));
+  const baseNotAcceptedUnpaid = [...orderGroups.notAcceptedUnpaid].sort((a, b) => getCreatedAtMs(a) - getCreatedAtMs(b));
+  const baseAcceptedPaid = [...orderGroups.acceptedPaid].sort((a, b) => getCreatedAtMs(a) - getCreatedAtMs(b));
+  const baseAcceptedUnpaid = [...orderGroups.acceptedUnpaid].sort((a, b) => getCreatedAtMs(a) - getCreatedAtMs(b));
+
+  // Rangement pizzaiolo (override) : localStorage + Firebase
+  const notAcceptedPaidRanking = usePizzaioloOrderRanking({
+    uid: user?.uid,
+    truckId,
+    groupKey: 'notAcceptedPaid',
+    baseIds: baseNotAcceptedPaid.map((o) => o.id),
+  });
+  const notAcceptedUnpaidRanking = usePizzaioloOrderRanking({
+    uid: user?.uid,
+    truckId,
+    groupKey: 'notAcceptedUnpaid',
+    baseIds: baseNotAcceptedUnpaid.map((o) => o.id),
+  });
+  const acceptedPaidRanking = usePizzaioloOrderRanking({
+    uid: user?.uid,
+    truckId,
+    groupKey: 'acceptedPaid',
+    baseIds: baseAcceptedPaid.map((o) => o.id),
+  });
+  const acceptedUnpaidRanking = usePizzaioloOrderRanking({
+    uid: user?.uid,
+    truckId,
+    groupKey: 'acceptedUnpaid',
+    baseIds: baseAcceptedUnpaid.map((o) => o.id),
+  });
+
+  const baseNotAcceptedPaidById = new Map(baseNotAcceptedPaid.map((o) => [o.id, o]));
+  const baseNotAcceptedUnpaidById = new Map(baseNotAcceptedUnpaid.map((o) => [o.id, o]));
+  const baseAcceptedPaidById = new Map(baseAcceptedPaid.map((o) => [o.id, o]));
+  const baseAcceptedUnpaidById = new Map(baseAcceptedUnpaid.map((o) => [o.id, o]));
+
+  console.log('[PizzaioloOrders] Ordre base=chronologie + override pizzaiolo');
 
   // Calculer les stats
   const lostCount = filteredCompletedOrders.filter(o => isExpired(o)).length;
@@ -521,129 +549,161 @@ export default function PizzaioloOrders() {
             {/* Section 1: Commandes non prises en charge - PAYÉES */}
             <OrderSection 
               title="Non prises en charge · Payées" 
-              count={sortedNotAcceptedPaid.length}
+              count={baseNotAcceptedPaid.length}
               color="green-500"
             >
-              {sortedNotAcceptedPaid.map((order) => {
-                const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.received;
-                const elapsed = getElapsedTime(order.createdAt);
-                const remaining = getRemainingTime(order, pizzaPerHour);
-                const estimatedTime = getEstimatedDeliveryTime(order, pizzaPerHour);
-                const estimatedTimeFormatted = formatDeliveryTime(estimatedTime);
+              <ReorderableOrderList
+                orderedIds={notAcceptedPaidRanking.orderedIds}
+                groupKey="notAcceptedPaid"
+                onOrderedIdsChange={notAcceptedPaidRanking.setManualOrder}
+                renderItem={(id) => {
+                  const order = baseNotAcceptedPaidById.get(id);
+                  if (!order) return null;
 
-                return (
-                  <OrderCard
-                    key={order.id}
-                    order={order}
-                    statusConfig={statusConfig}
-                    elapsed={elapsed}
-                    remaining={remaining}
-                    estimatedDeliveryTime={estimatedTimeFormatted}
-                    onAccept={handleAccept}
-                    onDeliver={handleDeliver}
-                    onMarkPaid={handleMarkPaid}
-                    onClick={() => setSelectedOrder(order)}
-                    updating={updating}
-                    borderVariant="paid"
-                  />
-                );
-              })}
+                  const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.received;
+                  const elapsed = getElapsedTime(getCreatedAtMs(order));
+                  const remaining = getRemainingTime(order, pizzaPerHour);
+                  const estimatedTime = getEstimatedDeliveryTime(order, pizzaPerHour);
+                  const estimatedTimeFormatted = formatDeliveryTime(estimatedTime);
+
+                  return (
+                    <OrderCard
+                      key={order.id}
+                      order={order}
+                      statusConfig={statusConfig}
+                      elapsed={elapsed}
+                      remaining={remaining}
+                      estimatedDeliveryTime={estimatedTimeFormatted}
+                      onAccept={handleAccept}
+                      onDeliver={handleDeliver}
+                      onMarkPaid={handleMarkPaid}
+                      onClick={() => setSelectedOrder(order)}
+                      updating={updating}
+                      borderVariant="paid"
+                    />
+                  );
+                }}
+              />
             </OrderSection>
 
             {/* Section 2: Commandes non prises en charge - NON PAYÉES */}
             <OrderSection 
               title="Non prises en charge · Non payées" 
-              count={sortedNotAcceptedUnpaid.length}
+              count={baseNotAcceptedUnpaid.length}
               color="orange-500"
             >
-              {sortedNotAcceptedUnpaid.map((order) => {
-                const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.received;
-                const elapsed = getElapsedTime(order.createdAt);
-                const remaining = getRemainingTime(order, pizzaPerHour);
-                const estimatedTime = getEstimatedDeliveryTime(order, pizzaPerHour);
-                const estimatedTimeFormatted = formatDeliveryTime(estimatedTime);
+              <ReorderableOrderList
+                orderedIds={notAcceptedUnpaidRanking.orderedIds}
+                groupKey="notAcceptedUnpaid"
+                onOrderedIdsChange={notAcceptedUnpaidRanking.setManualOrder}
+                renderItem={(id) => {
+                  const order = baseNotAcceptedUnpaidById.get(id);
+                  if (!order) return null;
 
-                return (
-                  <OrderCard
-                    key={order.id}
-                    order={order}
-                    statusConfig={statusConfig}
-                    elapsed={elapsed}
-                    remaining={remaining}
-                    estimatedDeliveryTime={estimatedTimeFormatted}
-                    onAccept={handleAccept}
-                    onDeliver={handleDeliver}
-                    onMarkPaid={handleMarkPaid}
-                    onClick={() => setSelectedOrder(order)}
-                    updating={updating}
-                    borderVariant="unpaid"
-                  />
-                );
-              })}
+                  const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.received;
+                  const elapsed = getElapsedTime(getCreatedAtMs(order));
+                  const remaining = getRemainingTime(order, pizzaPerHour);
+                  const estimatedTime = getEstimatedDeliveryTime(order, pizzaPerHour);
+                  const estimatedTimeFormatted = formatDeliveryTime(estimatedTime);
+
+                  return (
+                    <OrderCard
+                      key={order.id}
+                      order={order}
+                      statusConfig={statusConfig}
+                      elapsed={elapsed}
+                      remaining={remaining}
+                      estimatedDeliveryTime={estimatedTimeFormatted}
+                      onAccept={handleAccept}
+                      onDeliver={handleDeliver}
+                      onMarkPaid={handleMarkPaid}
+                      onClick={() => setSelectedOrder(order)}
+                      updating={updating}
+                      borderVariant="unpaid"
+                    />
+                  );
+                }}
+              />
             </OrderSection>
 
             {/* Section 3: Commandes prises en charge - PAYÉES */}
             <OrderSection 
               title="En préparation · Payées" 
-              count={sortedAcceptedPaid.length}
+              count={baseAcceptedPaid.length}
               color="green-500"
             >
-              {sortedAcceptedPaid.map((order) => {
-                const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.received;
-                const elapsed = getElapsedTime(order.createdAt);
-                const remaining = getRemainingTime(order, pizzaPerHour);
-                const estimatedTime = getEstimatedDeliveryTime(order, pizzaPerHour);
-                const estimatedTimeFormatted = formatDeliveryTime(estimatedTime);
+              <ReorderableOrderList
+                orderedIds={acceptedPaidRanking.orderedIds}
+                groupKey="acceptedPaid"
+                onOrderedIdsChange={acceptedPaidRanking.setManualOrder}
+                renderItem={(id) => {
+                  const order = baseAcceptedPaidById.get(id);
+                  if (!order) return null;
 
-                return (
-                  <OrderCard
-                    key={order.id}
-                    order={order}
-                    statusConfig={statusConfig}
-                    elapsed={elapsed}
-                    remaining={remaining}
-                    estimatedDeliveryTime={estimatedTimeFormatted}
-                    onAccept={handleAccept}
-                    onDeliver={handleDeliver}
-                    onMarkPaid={handleMarkPaid}
-                    onClick={() => setSelectedOrder(order)}
-                    updating={updating}
-                    borderVariant="paid"
-                  />
-                );
-              })}
+                  const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.received;
+                  const elapsed = getElapsedTime(getCreatedAtMs(order));
+                  const remaining = getRemainingTime(order, pizzaPerHour);
+                  const estimatedTime = getEstimatedDeliveryTime(order, pizzaPerHour);
+                  const estimatedTimeFormatted = formatDeliveryTime(estimatedTime);
+
+                  return (
+                    <OrderCard
+                      key={order.id}
+                      order={order}
+                      statusConfig={statusConfig}
+                      elapsed={elapsed}
+                      remaining={remaining}
+                      estimatedDeliveryTime={estimatedTimeFormatted}
+                      onAccept={handleAccept}
+                      onDeliver={handleDeliver}
+                      onMarkPaid={handleMarkPaid}
+                      onClick={() => setSelectedOrder(order)}
+                      updating={updating}
+                      borderVariant="paid"
+                    />
+                  );
+                }}
+              />
             </OrderSection>
 
             {/* Section 4: Commandes prises en charge - NON PAYÉES */}
             <OrderSection 
               title="En préparation · Non payées" 
-              count={sortedAcceptedUnpaid.length}
+              count={baseAcceptedUnpaid.length}
               color="orange-500"
             >
-              {sortedAcceptedUnpaid.map((order) => {
-                const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.received;
-                const elapsed = getElapsedTime(order.createdAt);
-                const remaining = getRemainingTime(order, pizzaPerHour);
-                const estimatedTime = getEstimatedDeliveryTime(order, pizzaPerHour);
-                const estimatedTimeFormatted = formatDeliveryTime(estimatedTime);
+              <ReorderableOrderList
+                orderedIds={acceptedUnpaidRanking.orderedIds}
+                groupKey="acceptedUnpaid"
+                onOrderedIdsChange={acceptedUnpaidRanking.setManualOrder}
+                renderItem={(id) => {
+                  const order = baseAcceptedUnpaidById.get(id);
+                  if (!order) return null;
 
-                return (
-                  <OrderCard
-                    key={order.id}
-                    order={order}
-                    statusConfig={statusConfig}
-                    elapsed={elapsed}
-                    remaining={remaining}
-                    estimatedDeliveryTime={estimatedTimeFormatted}
-                    onAccept={handleAccept}
-                    onDeliver={handleDeliver}
-                    onMarkPaid={handleMarkPaid}
-                    onClick={() => setSelectedOrder(order)}
-                    updating={updating}
-                    borderVariant="unpaid"
-                  />
-                );
-              })}
+                  const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.received;
+                  const elapsed = getElapsedTime(getCreatedAtMs(order));
+                  const remaining = getRemainingTime(order, pizzaPerHour);
+                  const estimatedTime = getEstimatedDeliveryTime(order, pizzaPerHour);
+                  const estimatedTimeFormatted = formatDeliveryTime(estimatedTime);
+
+                  return (
+                    <OrderCard
+                      key={order.id}
+                      order={order}
+                      statusConfig={statusConfig}
+                      elapsed={elapsed}
+                      remaining={remaining}
+                      estimatedDeliveryTime={estimatedTimeFormatted}
+                      onAccept={handleAccept}
+                      onDeliver={handleDeliver}
+                      onMarkPaid={handleMarkPaid}
+                      onClick={() => setSelectedOrder(order)}
+                      updating={updating}
+                      borderVariant="unpaid"
+                    />
+                  );
+                }}
+              />
             </OrderSection>
           </div>
         )}
@@ -662,6 +722,7 @@ export default function PizzaioloOrders() {
               const statusConfig = expired ? STATUS_CONFIG.lost : (STATUS_CONFIG[order.status] || STATUS_CONFIG.delivered);
               const deliveryIcon = order.deliveryMethod === 'delivery' ? <Bike className="h-3 w-3" /> : <Store className="h-3 w-3" />;
               const deliveryLabel = order.deliveryMethod === 'delivery' ? 'Livraison' : 'Camion';
+              const createdAtMs = getCreatedAtMs(order);
               
               return (
                 <Card 
@@ -693,12 +754,12 @@ export default function PizzaioloOrders() {
                       )}
                       <span className="font-bold text-sm">#{order.id.slice(-6).toUpperCase()}</span>
                       <span className="text-sm text-muted-foreground">
-                        {new Date(order.createdAt).toLocaleDateString('fr-FR', { 
+                        {createdAtMs ? new Date(createdAtMs).toLocaleDateString('fr-FR', { 
                           day: 'numeric', 
                           month: 'short',
                           hour: '2-digit',
                           minute: '2-digit'
-                        })}
+                        }) : '—'}
                       </span>
                     </div>
                     <div className="text-right">
