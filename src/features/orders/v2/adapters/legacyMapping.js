@@ -15,12 +15,13 @@
  * @returns {import('../domain/orderTypes').KitchenStatus}
  */
 export function mapLegacyStatusToKitchenStatus(status) {
-  // NB: en v1, "accepted" est déjà traité comme "en préparation" dans l'UI.
+  // Mapping v1 → v2 aligné avec le serveur (functions/index.js)
   switch (status) {
     case 'created':
     case 'received':
       return 'NEW';
     case 'accepted':
+      return 'QUEUED';
     case 'prep':
     case 'cook':
       return 'PREPPING';
