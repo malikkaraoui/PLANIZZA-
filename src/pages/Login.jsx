@@ -85,7 +85,11 @@ export default function Login() {
   // Détection de l'auto-remplissage par gestionnaire de mots de passe
   // pour soumettre automatiquement le formulaire (sans friction)
   useEffect(() => {
-    if (!emailRef.current || !passwordRef.current) return;
+    const emailEl = emailRef.current;
+    const passwordEl = passwordRef.current;
+    const formEl = formRef.current;
+
+    if (!emailEl || !passwordEl) return;
 
     let autosubmitTimer = null;
 
@@ -95,12 +99,12 @@ export default function Login() {
       // Attendre un court instant pour que les deux champs soient remplis
       clearTimeout(autosubmitTimer);
       autosubmitTimer = setTimeout(() => {
-        const emailFilled = emailRef.current?.value?.trim().length > 0;
-        const passwordFilled = passwordRef.current?.value?.trim().length > 0;
+        const emailFilled = emailEl.value?.trim().length > 0;
+        const passwordFilled = passwordEl.value?.trim().length > 0;
 
         // Si les deux sont remplis ET qu'on n'est pas déjà en train de charger, soumettre
-        if (emailFilled && passwordFilled && !loading && formRef.current) {
-          formRef.current.requestSubmit();
+        if (emailFilled && passwordFilled && !loading && formEl) {
+          formEl.requestSubmit();
         }
       }, 300);
     };
@@ -117,17 +121,17 @@ export default function Login() {
       checkAutofillAndSubmit();
     };
 
-    emailRef.current.addEventListener('animationstart', handleAnimation);
-    passwordRef.current.addEventListener('animationstart', handleAnimation);
-    emailRef.current.addEventListener('input', handleInput);
-    passwordRef.current.addEventListener('input', handleInput);
+    emailEl.addEventListener('animationstart', handleAnimation);
+    passwordEl.addEventListener('animationstart', handleAnimation);
+    emailEl.addEventListener('input', handleInput);
+    passwordEl.addEventListener('input', handleInput);
 
     return () => {
       clearTimeout(autosubmitTimer);
-      emailRef.current?.removeEventListener('animationstart', handleAnimation);
-      passwordRef.current?.removeEventListener('animationstart', handleAnimation);
-      emailRef.current?.removeEventListener('input', handleInput);
-      passwordRef.current?.removeEventListener('input', handleInput);
+      emailEl.removeEventListener('animationstart', handleAnimation);
+      passwordEl.removeEventListener('animationstart', handleAnimation);
+      emailEl.removeEventListener('input', handleInput);
+      passwordEl.removeEventListener('input', handleInput);
     };
   }, [loading]);
 

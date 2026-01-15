@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Minus, Trash2, User, ShoppingCart, Check, Pizza, Wine, IceCream, Clock } from 'lucide-react';
-import { ref, push, set, update } from 'firebase/database';
+import { ref, update } from 'firebase/database';
 import { db } from '../../lib/firebase';
-import { rtdbServerTimestamp } from '../../lib/timestamps';
 import { rtdbPaths } from '../../lib/rtdbPaths';
 import { useAuth } from '../../app/providers/AuthProvider';
 import { ROUTES } from '../../app/routes';
+import { pizzaioloCreateManualOrder } from '../../lib/ordersApi';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -216,35 +216,19 @@ export default function PizzaioloLive() {
     setIsSubmitting(true);
 
     try {
-      // 1. Créer la commande dans orders (cycle normal)
-      const ordersRef = ref(db, 'orders');
-      const newOrderRef = push(ordersRef);
-      
-      const orderData = {
+      // 1) Créer la commande via Cloud Function (bypass rules) + vue v2 matérialisée
+      await pizzaioloCreateManualOrder({
         truckId,
-        uid: user.uid,
-        items: cart.map(item => ({
+        customerName: customerName.trim(),
+        pickupTime: pickupTime || null,
+        items: cart.map((item) => ({
           id: item.id,
           name: item.name,
           priceCents: item.priceCents,
-          qty: item.qty
+          qty: item.qty,
         })),
         totalCents,
-        status: 'received',
-        createdAt: rtdbServerTimestamp(),
-        createdAtClient: Date.now(),
-        timeline: {},
-        payment: {
-          provider: 'manual',
-          paymentStatus: 'pending', // Commande manuelle créée comme non-payée
-        },
-        deliveryMethod: 'pickup',
-        customerName: customerName.trim(),
-        pickupTime: pickupTime || null,
-        source: 'manual'
-      };
-
-      await set(newOrderRef, orderData);
+      });
 
       // 2. Supprimer de liveOrders (brouillon)
       // Important: supprimer tous les brouillons (passés + en cours) du pizzaiolo.

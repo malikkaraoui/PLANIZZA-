@@ -20,7 +20,9 @@ import { OrderCard } from '../../features/orders/components/OrderCard';
 import { OrderSection } from '../../features/orders/components/OrderSection';
 import { ReorderableOrderList } from '../../features/orders/components/ReorderableOrderList';
 import { usePizzaioloOrderRanking } from '../../features/orders/hooks/usePizzaioloOrderRanking';
-import { coalesceMs, rtdbServerTimestamp, toMs } from '../../lib/timestamps';
+import { coalesceMs, toMs } from '../../lib/timestamps';
+import { pizzaioloMarkOrderPaid } from '../../lib/ordersApi';
+import { useAutoDismissMessage } from '../../hooks/useAutoDismissMessage';
 import { 
   getEstimatedDeliveryTime, 
   formatDeliveryTime, 
@@ -55,7 +57,11 @@ export default function PizzaioloOrders() {
   const [pizzaPerHour, setPizzaPerHour] = useState(30); // Cadence du pizzaiolo
   const [_openingHours, setOpeningHours] = useState(null); // Horaires d'ouverture
   const { orders, loading: ordersLoading } = useTruckOrders(truckId);
-  const { updateStatus, loading: updating } = useUpdateOrderStatus();
+  const { updateStatus, loading: updating, error: updateError } = useUpdateOrderStatus();
+
+  const [message, setMessage] = useState('');
+  // Les messages de succès/info disparaissent (les ❌ restent).
+  useAutoDismissMessage(message, setMessage, { delayMs: 5000, dismissErrors: false });
 
   // États des filtres
   const [filters, setFilters] = useState({
@@ -187,41 +193,59 @@ export default function PizzaioloOrders() {
     console.log('[Orders] Clic sur Prendre en charge, orderId:', orderId);
     const result = await updateStatus(orderId, 'accepted');
     console.log('[Orders] Résultat:', result);
+    if (result?.ok) {
+      setMessage('✅ Commande prise en charge.');
+    } else {
+      setMessage(`❌ Impossible de prendre en charge. ${result?.error || updateError || ''}`.trim());
+    }
   };
 
   // Marquer comme livrée
   const handleDeliver = async (orderId) => {
     console.log('[Orders] Clic sur Délivré, orderId:', orderId);
     
-    // Vérifier si c'est une commande manuelle non payée
-    const order = orders.find(o => o.id === orderId);
-    if (order?.source === 'manual' && order?.payment?.paymentStatus !== 'paid') {
-      const confirmed = window.confirm(
-        `⚠️ ATTENTION : Cette commande n'a pas été marquée comme PAYÉE !\n\n` +
-        `Client : ${order.customerName || 'Client'}\n` +
-        `Montant : ${(order.totalCents / 100).toFixed(2)} €\n\n` +
-        `Confirmez-vous que le client a bien payé et que vous voulez marquer cette commande comme délivrée ?`
-      );
-      
-      if (!confirmed) {
-        return; // Annuler la livraison
+    const order = orders.find((o) => o.id === orderId);
+    const paymentStatus = order?.payment?.paymentStatus;
+    const paymentProvider = order?.payment?.provider;
+
+    // IMPORTANT: le serveur refuse delivered si paymentStatus !== 'paid' (409)
+    // On rend ça explicite dans l'UI (sinon "ça ne marche pas" sans explication).
+    if (paymentStatus !== 'paid') {
+      if (paymentProvider === 'manual') {
+        const confirmed = window.confirm(
+          `⚠️ Cette commande n'est pas marquée PAYÉE.\n\n` +
+          `Voulez-vous la marquer payée puis la délivrer ?`
+        );
+        if (!confirmed) return;
+
+        try {
+          await pizzaioloMarkOrderPaid({ orderId, method: 'CASH' });
+          setMessage('✅ Paiement enregistré.');
+        } catch (err) {
+          console.error('[Orders] Erreur lors du marquage payé (auto):', err);
+          setMessage(`❌ Paiement: ${err?.message || 'Erreur inconnue'}`);
+          return;
+        }
+      } else {
+        setMessage('❌ Paiement en attente: impossible de délivrer tant que Stripe n’a pas confirmé.');
+        return;
       }
     }
-    
+
     const result = await updateStatus(orderId, 'delivered');
     console.log('[Orders] Résultat:', result);
+    if (result?.ok) {
+      setMessage('✅ Commande délivrée.');
+    } else {
+      // Exemple fréquent: 409 — Paiement requis avant livraison/remise
+      setMessage(`❌ Livraison refusée. ${result?.error || updateError || ''}`.trim());
+    }
   };
 
   // Marquer comme payée (pour commandes manuelles)
   const handleMarkPaid = async (orderId) => {
-    if (!db) return;
     try {
-      const orderRef = ref(db, `orders/${orderId}/payment`);
-      await set(orderRef, {
-        provider: 'manual',
-        paymentStatus: 'paid',
-        paidAt: rtdbServerTimestamp(),
-      });
+      await pizzaioloMarkOrderPaid({ orderId, method: 'CASH' });
       console.log('[Orders] Commande marquée comme payée:', orderId);
     } catch (error) {
       console.error('[Orders] Erreur lors du marquage payé:', error);
@@ -340,6 +364,18 @@ export default function PizzaioloOrders() {
         </button>
         <h1 className="text-xl sm:text-2xl font-black tracking-tight">Commandes</h1>
       </div>
+
+      {(message || updateError) && (
+        <div
+          className={`p-4 rounded-lg border ${
+            (message || updateError).includes('✅')
+              ? 'bg-emerald-500/10 text-emerald-200 border-emerald-500/20'
+              : 'bg-red-500/10 text-red-200 border-red-500/20'
+          }`}
+        >
+          {message || `❌ ${updateError}`}
+        </div>
+      )}
 
       {/* Filtres des commandes */}
       <Card className={`glass-premium glass-glossy border-white/20 rounded-[24px] transition-all duration-300 ${

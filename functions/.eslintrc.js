@@ -21,6 +21,14 @@ module.exports = {
     ],
     "prefer-arrow-callback": "error",
     "quotes": ["error", "double", {"allowTemplateLiterals": true}],
+    // Le dépôt utilise déjà un style non strictement "google" sur index.js.
+    // On assouplit quelques règles de formatage pour garder un lint signal/bruit raisonnable.
+    "indent": "off",
+    "object-curly-spacing": "off",
+    "operator-linebreak": "off",
+    "comma-dangle": "off",
+    "quote-props": "off",
+    "valid-jsdoc": "off",
     "max-len": [
       "error",
       {

@@ -22,8 +22,8 @@ import { coalesceMs, toMs } from '../../../lib/timestamps';
  */
 export function OrderCard({
   order,
-  statusConfig,
-  elapsed,
+  statusConfig: _statusConfig,
+  elapsed: _elapsed,
   remaining,
   estimatedDeliveryTime,
   onAccept,
@@ -85,9 +85,9 @@ export function OrderCard({
         order.source === 'manual' 
           ? 'border-purple-500/50 bg-purple-500/5' 
           : 'border-white/20'
-      } relative p-3 pb-12 sm:p-4 sm:pb-14 rounded-4xl transition-all ${leftBorderClass} ${topBorderClass} ${
+      } relative p-3 pb-12 pr-20 sm:p-4 sm:pb-14 sm:pr-24 lg:p-2.5 lg:pb-11 lg:pr-20 rounded-4xl transition-all ${leftBorderClass} ${topBorderClass} ${
         remaining?.isLate ? 'border-red-500/50' : ''
-      } pr-20 sm:pr-24`}
+      }`}
       onClick={handleToggle}
       role="button"
       tabIndex={0}
@@ -103,11 +103,11 @@ export function OrderCard({
         type="button"
         data-dnd-handle
         onClick={(e) => e.stopPropagation()}
-        className="absolute right-2 top-2 inline-flex items-center justify-center h-8 w-8 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 active:bg-white/15 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing"
+        className="absolute right-2 top-2 lg:right-1 lg:top-1 inline-flex items-center justify-center h-8 w-8 lg:h-7 lg:w-7 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 active:bg-white/15 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing"
         aria-label="Réordonner la commande"
         title="Glisser pour réordonner"
       >
-        <GripVertical className="h-4 w-4" />
+        <GripVertical className="h-4 w-4 lg:h-3.5 lg:w-3.5" />
       </button>
 
       {/* Bouton expand/collapse */}
@@ -117,24 +117,24 @@ export function OrderCard({
           e.stopPropagation();
           handleToggle();
         }}
-        className="absolute right-11 top-2 inline-flex items-center justify-center h-8 w-8 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 active:bg-white/15 text-muted-foreground hover:text-foreground"
+        className="absolute right-11 top-2 lg:right-9 lg:top-1 inline-flex items-center justify-center h-8 w-8 lg:h-7 lg:w-7 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 active:bg-white/15 text-muted-foreground hover:text-foreground"
         aria-label={expanded ? 'Réduire les détails' : 'Afficher les détails'}
         title={expanded ? 'Réduire' : 'Détails'}
       >
-        {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        {expanded ? <ChevronUp className="h-4 w-4 lg:h-3.5 lg:w-3.5" /> : <ChevronDown className="h-4 w-4 lg:h-3.5 lg:w-3.5" />}
       </button>
 
       <div className="grid grid-cols-1 gap-3 items-start">
         {/* Colonne gauche: client + meta */}
         <div className="min-w-0 pt-1">
           <div className="flex items-center gap-2 min-w-0">
-            <User className="h-4 w-4 text-primary shrink-0" />
-            <span className="font-black text-primary text-base truncate">
+            <User className="h-4 w-4 lg:h-3.5 lg:w-3.5 text-primary shrink-0" />
+            <span className="font-black text-primary text-base lg:text-sm truncate">
               {order.customerName || 'Client'}
             </span>
           </div>
 
-          <div className="mt-2 flex items-center gap-3 text-sm font-black text-muted-foreground">
+          <div className="mt-2 flex items-center gap-3 text-sm lg:text-xs font-black text-muted-foreground">
             <span className="inline-flex items-center gap-2">
               {pizzaLikeQty > 0 ? (
                 <span>
@@ -152,7 +152,7 @@ export function OrderCard({
 
           {/* Heure estimée (à gauche, sous le nombre de pizzas) */}
           <div className="mt-1 leading-none">
-            <div className={`text-lg font-black ${remaining?.isLate ? 'text-red-500' : 'text-orange-600'}`}
+            <div className={`text-lg lg:text-base font-black ${remaining?.isLate ? 'text-red-500' : 'text-orange-600'}`}
             >
               {estimatedDeliveryTime || '—'}
             </div>
@@ -167,7 +167,7 @@ export function OrderCard({
       </div>
 
       {/* Actions (toujours en bas à droite) */}
-      <div className="absolute bottom-2 right-2 flex items-center gap-1">
+      <div className="absolute bottom-2 right-2 lg:bottom-1 lg:right-1 flex items-center gap-1">
         {order.source === 'manual' && order.payment?.paymentStatus !== 'paid' ? (
           <Button
             onClick={(e) => {
@@ -175,7 +175,7 @@ export function OrderCard({
               onMarkPaid?.(order.id);
             }}
             disabled={updating}
-            className="group h-8 w-8 hover:w-24 focus-visible:w-24 overflow-hidden rounded-lg bg-red-600 hover:bg-red-700 text-white transition-[width] duration-200 ease-out px-0 hover:px-3 focus-visible:px-3 flex items-center justify-center hover:justify-start focus-visible:justify-start gap-0 hover:gap-2 focus-visible:gap-2"
+            className="group h-8 w-8 lg:h-7 lg:w-7 hover:w-24 focus-visible:w-24 lg:hover:w-20 lg:focus-visible:w-20 overflow-hidden rounded-lg bg-red-600 hover:bg-red-700 text-white transition-[width] duration-200 ease-out px-0 hover:px-3 focus-visible:px-3 flex items-center justify-center hover:justify-start focus-visible:justify-start gap-0 hover:gap-2 focus-visible:gap-2"
             aria-label="Marquer comme payé"
             title="Payé"
           >
@@ -193,7 +193,7 @@ export function OrderCard({
               onAccept?.(order.id);
             }}
             disabled={updating}
-            className="group h-8 w-8 hover:w-24 focus-visible:w-24 overflow-hidden rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-[width] duration-200 ease-out px-0 hover:px-3 focus-visible:px-3 flex items-center justify-center hover:justify-start focus-visible:justify-start gap-0 hover:gap-2 focus-visible:gap-2"
+            className="group h-8 w-8 lg:h-7 lg:w-7 hover:w-24 focus-visible:w-24 lg:hover:w-20 lg:focus-visible:w-20 overflow-hidden rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-[width] duration-200 ease-out px-0 hover:px-3 focus-visible:px-3 flex items-center justify-center hover:justify-start focus-visible:justify-start gap-0 hover:gap-2 focus-visible:gap-2"
             aria-label="Prendre en charge"
             title="Prendre"
           >
@@ -210,7 +210,7 @@ export function OrderCard({
                 onDeliver?.(order.id);
               }}
               disabled={updating}
-              className="group h-8 w-8 hover:w-28 focus-visible:w-28 overflow-hidden rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white transition-[width] duration-200 ease-out px-0 hover:px-3 focus-visible:px-3 flex items-center justify-center hover:justify-start focus-visible:justify-start gap-0 hover:gap-2 focus-visible:gap-2"
+              className="group h-8 w-8 lg:h-7 lg:w-7 hover:w-28 focus-visible:w-28 lg:hover:w-24 lg:focus-visible:w-24 overflow-hidden rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white transition-[width] duration-200 ease-out px-0 hover:px-3 focus-visible:px-3 flex items-center justify-center hover:justify-start focus-visible:justify-start gap-0 hover:gap-2 focus-visible:gap-2"
               aria-label={order.deliveryMethod === 'delivery' ? 'Marquer comme livré' : 'Marquer comme délivré'}
               title={order.deliveryMethod === 'delivery' ? 'Livré' : 'Délivré'}
             >
@@ -225,7 +225,7 @@ export function OrderCard({
 
       {/* Pastille paiement (preview) */}
       <div
-        className={`absolute left-2 top-2 h-2.5 w-2.5 rounded-full ${paymentDotClass}`}
+        className={`absolute left-2 top-2 lg:left-1 lg:top-1 h-2.5 w-2.5 rounded-full ${paymentDotClass}`}
         aria-label={isPaid ? 'Payée' : 'Non payée'}
         title={isPaid ? 'Payée' : 'Non payée'}
       />

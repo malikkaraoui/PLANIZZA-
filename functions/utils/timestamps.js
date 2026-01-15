@@ -1,4 +1,4 @@
-const admin = require('firebase-admin');
+const admin = require("firebase-admin");
 
 /**
  * Timestamp serveur RTDB (ms) côté Cloud Functions.
@@ -8,4 +8,4 @@ function rtdbServerTimestamp() {
   return admin.database.ServerValue.TIMESTAMP;
 }
 
-module.exports = { rtdbServerTimestamp };
+module.exports = {rtdbServerTimestamp};

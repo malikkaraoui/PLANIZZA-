@@ -112,19 +112,42 @@ function serializeItems(items) {
   const out = {};
   (Array.isArray(items) ? items : []).forEach((it) => {
     if (!it || !it.id) return;
-    out[String(it.id)] = {
+
+    // IMPORTANT (Firebase RTDB): on ne doit JAMAIS écrire de valeurs `undefined`.
+    // On omet donc les champs optionnels plutôt que de les définir à `undefined`.
+    const next = {
       id: String(it.id),
       name: it.name == null ? '' : String(it.name),
-      type: it.type == null ? undefined : String(it.type),
-      baseItemId: it.baseItemId == null ? undefined : String(it.baseItemId),
-      description: it.description == null ? undefined : String(it.description),
-      photo: it.photo == null ? undefined : String(it.photo),
-      size: it.size == null ? undefined : String(it.size),
-      diameter: typeof it.diameter === 'number' ? it.diameter : undefined,
       priceCents: Number(it.priceCents || 0),
       qty: normalizeQty(it.qty),
       available: it.available !== false,
     };
+
+    if (it.type != null) {
+      const v = String(it.type).trim();
+      if (v) next.type = v;
+    }
+    if (it.baseItemId != null) {
+      const v = String(it.baseItemId).trim();
+      if (v) next.baseItemId = v;
+    }
+    if (it.description != null) {
+      const v = String(it.description).trim();
+      if (v) next.description = v;
+    }
+    if (it.photo != null) {
+      const v = String(it.photo).trim();
+      if (v) next.photo = v;
+    }
+    if (it.size != null) {
+      const v = String(it.size).trim();
+      if (v) next.size = v;
+    }
+    if (typeof it.diameter === 'number' && Number.isFinite(it.diameter)) {
+      next.diameter = it.diameter;
+    }
+
+    out[String(it.id)] = next;
   });
   return out;
 }

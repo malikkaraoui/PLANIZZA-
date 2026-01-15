@@ -14,4 +14,38 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+
+          // Gros vendors ciblés
+          if (id.includes('/firebase/')) return 'vendor-firebase';
+          if (id.includes('/leaflet/') || id.includes('/react-leaflet/')) return 'vendor-leaflet';
+          if (id.includes('/@stripe/') || id.includes('/stripe/')) return 'vendor-stripe';
+          if (id.includes('/chart.js/') || id.includes('/react-chartjs-2/') || id.includes('/recharts/')) {
+            return 'vendor-charts';
+          }
+
+          // UI / composants / icônes / dnd
+          if (id.includes('/@radix-ui/')) return 'vendor-radix';
+          if (id.includes('/lucide-react/')) return 'vendor-icons';
+          if (id.includes('/@atlaskit/pragmatic-drag-and-drop')) return 'vendor-dnd';
+          if (id.includes('/react-qr-code/')) return 'vendor-qr';
+
+          // Utils
+          if (id.includes('/lodash')) return 'vendor-lodash';
+
+          // React/router (souvent déjà séparés, mais on fixe un chunk stable)
+          if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/react-router-dom/')) {
+            return 'vendor-react';
+          }
+
+          // Le reste des deps
+          return 'vendor';
+        },
+      },
+    },
+  },
 })

@@ -15,6 +15,7 @@ export default function CheckoutSuccess() {
   const [webhookReceived, setWebhookReceived] = useState(false);
   const [minPendingReached, setMinPendingReached] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [redirectInSec, setRedirectInSec] = useState(5);
 
   // Vue finale calculée : on n'affiche le succès que si le webhook est reçu ET qu'on a attendu au moins 3s
   const isPaid = webhookReceived && minPendingReached;
@@ -23,6 +24,29 @@ export default function CheckoutSuccess() {
     // UX: on vide le panier local après un paiement réussi.
     clear();
   }, [clear]);
+
+  // UX prod: cette page ne doit jamais rester plus de 5s.
+  // On redirige vers le suivi (qui peut afficher l'état "pending" tant que le webhook Stripe n'est pas passé).
+  useEffect(() => {
+    const deadlineMs = Date.now() + 5000;
+
+    const tick = () => {
+      const left = Math.max(0, deadlineMs - Date.now());
+      const sec = Math.ceil(left / 1000);
+      setRedirectInSec(sec);
+      if (left <= 0) {
+        if (orderId) {
+          navigate(ROUTES.order(orderId), { replace: true });
+        } else {
+          navigate(ROUTES.explore, { replace: true });
+        }
+      }
+    };
+
+    tick();
+    const interval = setInterval(tick, 250);
+    return () => clearInterval(interval);
+  }, [orderId, navigate]);
 
   useEffect(() => {
     if (!orderId) return;
@@ -103,6 +127,10 @@ export default function CheckoutSuccess() {
           : "Merci ! Votre paiement a été envoyé. Nous attendons la confirmation finale de Stripe (cela prend quelques secondes)."}
       </p>
 
+      <p className="mt-2 text-sm text-gray-500">
+        Redirection automatique dans <span className="font-semibold">{redirectInSec}s</span>…
+      </p>
+
       {/* On n'affiche le bloc de création de compte que si on est CERTAIN d'être guest et que le paiement n'est pas encore redirigé */}
       {isGuest && !isPaid && (
         <div className="mt-6 rounded-xl border-2 border-emerald-200 bg-emerald-50 p-6 max-w-md mx-auto animate-in fade-in duration-500">
@@ -147,7 +175,7 @@ export default function CheckoutSuccess() {
                 />
               )}
               <span className="relative z-10">
-                {isPaid ? `Redirection (${Math.ceil(5 - (progress * 5) / 100)}s)` : 'Suivre ma commande'}
+                {isPaid ? 'Suivre ma commande' : 'Suivre ma commande'}
               </span>
             </Link>
           )}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { get, ref, onValue, set } from 'firebase/database';
+import { get, ref, onValue, set, query, orderByChild, equalTo } from 'firebase/database';
 import { db } from '../../../lib/firebase';
 import { rtdbPaths } from '../../../lib/rtdbPaths';
 
@@ -50,29 +50,67 @@ export function useLoyaltyPoints(userUid) {
       const storedPoints = userData.loyaltyPoints || 0;
       const storedSpent = userData.totalSpentCents || 0;
 
-      // Si les points ne sont pas initialisés, calculer depuis les commandes
-      if (storedPoints === 0 && storedSpent === 0) {
-        // Calcul initial one-shot depuis toutes les commandes (évite un abonnement permanent)
-        const ordersSnap = await get(ref(db, rtdbPaths.ordersRoot()));
+      async function computePaidTotalCentsForUser() {
+        // ⚠️ Important: les rules RTDB n'autorisent plus la lecture globale de `orders`.
+        // On fait donc une lecture ciblée via query (userUid/uid) et on agrège côté client.
 
-        if (!ordersSnap.exists()) {
-          if (!cancelled) {
-            setPoints(0);
-            setTotalSpent(0);
-            setLoading(false);
+        const totals = [];
+
+        // Schéma le plus courant côté app: `userUid`
+        try {
+          const snapByUserUid = await get(
+            query(ref(db, rtdbPaths.ordersRoot()), orderByChild('userUid'), equalTo(userUid))
+          );
+          if (snapByUserUid.exists()) {
+            totals.push(snapByUserUid.val());
           }
-          return;
+        } catch (err) {
+          // Peut échouer si l'index n'existe pas ou si les rules refusent (ex: uid != auth.uid).
+          console.warn('[PLANIZZA] computePaidTotalCentsForUser(userUid) query failed:', err);
         }
 
-        const allOrders = ordersSnap.val();
-        let total = 0;
-
-        // Filtrer les commandes payées de l'utilisateur
-        Object.values(allOrders).forEach((order) => {
-          if (order.userUid === userUid && order.payment?.paymentStatus === 'paid') {
-            total += order.totalCents || 0;
+        // Fallback legacy: certains écrits utilisent `uid`
+        try {
+          const snapByUid = await get(
+            query(ref(db, rtdbPaths.ordersRoot()), orderByChild('uid'), equalTo(userUid))
+          );
+          if (snapByUid.exists()) {
+            totals.push(snapByUid.val());
           }
-        });
+        } catch (err) {
+          console.warn('[PLANIZZA] computePaidTotalCentsForUser(uid) query failed:', err);
+        }
+
+        let total = 0;
+        const seenOrderIds = new Set();
+
+        for (const maybeOrders of totals) {
+          if (!maybeOrders) continue;
+
+          for (const [orderId, order] of Object.entries(maybeOrders)) {
+            if (seenOrderIds.has(orderId)) continue;
+            seenOrderIds.add(orderId);
+
+            const paymentStatus = order?.v2?.paymentStatus || order?.payment?.paymentStatus;
+            if (paymentStatus !== 'paid') continue;
+
+            const cents =
+              typeof order?.v2?.totalCents === 'number'
+                ? order.v2.totalCents
+                : typeof order?.totalCents === 'number'
+                  ? order.totalCents
+                  : 0;
+
+            total += cents;
+          }
+        }
+
+        return total;
+      }
+
+      // Si les points ne sont pas initialisés, calculer depuis les commandes
+      if (storedPoints === 0 && storedSpent === 0) {
+        const total = await computePaidTotalCentsForUser();
 
         // Convertir en euros et arrondir à l'euro supérieur
         const totalEuros = Math.ceil(total / 100);

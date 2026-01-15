@@ -287,27 +287,9 @@ export default function Account() {
         }
       }
 
-      // 2. Récupérer et supprimer toutes les commandes de l'utilisateur
-      try {
-        const ordersSnapshot = await get(ref(db, 'orders'));
-        if (ordersSnapshot.exists()) {
-          const allOrders = ordersSnapshot.val();
-          const userOrdersToDelete = [];
-          
-          Object.entries(allOrders).forEach(([orderId, order]) => {
-            if (order.userUid === uid) {
-              userOrdersToDelete.push(orderId);
-            }
-          });
-
-          // Supprimer chaque commande
-          for (const orderId of userOrdersToDelete) {
-            await remove(ref(db, `orders/${orderId}`));
-          }
-        }
-      } catch (err) {
-        console.error('Erreur suppression commandes:', err);
-      }
+      // 2. Commandes: on ne supprime pas côté client.
+      // En prod, les commandes doivent rester traçables (audit/comptabilité).
+      // Si besoin d'une suppression/anonymisation, prévoir une Cloud Function admin.
 
       // 3. Supprimer les données utilisateur dans RTDB
       await remove(ref(db, `users/${uid}`));

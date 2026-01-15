@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ref, get, set, push, update, remove, query, orderByChild, equalTo } from 'firebase/database';
+import { ref, get, set, push, update, remove } from 'firebase/database';
 import { ref as storageRef, deleteObject } from 'firebase/storage';
 import { Pause, Play, Pizza, Edit2, ArrowLeft, Trash2, Radio, ListOrdered, Utensils, TrendingUp, X } from 'lucide-react';
 import QRCode from 'react-qr-code';
@@ -155,19 +155,8 @@ export default function PizzaioloProfile() {
         }
       }
 
-      // 1. Supprimer TOUTES les commandes rattachées au camion
-      const ordersRef = ref(db, 'orders');
-      const ordersQuery = query(ordersRef, orderByChild('truckId'), equalTo(truckId));
-      const ordersSnap = await get(ordersQuery);
-      
-      if (ordersSnap.exists()) {
-        const deletePromises = [];
-        ordersSnap.forEach((orderSnap) => {
-          deletePromises.push(remove(ref(db, `orders/${orderSnap.key}`)));
-        });
-        await Promise.all(deletePromises);
-        console.log('[PLANIZZA] Commandes supprimées:', deletePromises.length);
-      }
+      // 1. Commandes: on ne supprime pas côté client.
+      // Les commandes doivent rester traçables. Si besoin, prévoir une Function admin.
 
       // 2. Supprimer le camion de public/trucks (qui contient aussi le menu)
       await remove(ref(db, `public/trucks/${truckId}`));

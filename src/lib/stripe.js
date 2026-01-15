@@ -3,7 +3,7 @@ import { auth, functions, isFirebaseConfigured } from './firebase';
 
 const FUNCTIONS_BASE =
   import.meta.env.VITE_FUNCTIONS_ORIGIN ||
-  `https://us-central1-${import.meta.env.VITE_FIREBASE_PROJECT_ID}.cloudfunctions.net`;
+  `https://${import.meta.env.VITE_FUNCTIONS_REGION || 'us-central1'}-${import.meta.env.VITE_FIREBASE_PROJECT_ID}.cloudfunctions.net`;
 
 // Initialiser Stripe avec la clé publique depuis l'environnement
 // (ne pas planter si la clé n'est pas encore renseignée en DEV)
@@ -31,16 +31,19 @@ const stripePromise = publishableKey ? loadStripe(publishableKey) : Promise.reso
  *   }
  * };
  */
-export async function createCheckoutSession({ orderId }) {
+export async function createCheckoutSession({ orderId, truckId, items, deliveryMethod, customerName }) {
   try {
     if (!isFirebaseConfigured || !functions) {
       throw new Error(
-        'Firebase Functions n\'est pas configuré. Configurez .env.local (Firebase) et démarrez les émulateurs ou déployez les functions.'
+        "Firebase Functions n'est pas configuré. Configurez .env.local (Firebase) et déployez les functions."
       );
     }
 
-    if (!orderId) {
-      throw new Error("Paramètre requis: orderId");
+    const hasOrderId = typeof orderId === 'string' && orderId.length > 0;
+    const hasDraft = typeof truckId === 'string' && Array.isArray(items) && items.length > 0;
+
+    if (!hasOrderId && !hasDraft) {
+      throw new Error('Paramètres requis: orderId OU (truckId + items)');
     }
 
     // Charger Stripe
@@ -58,17 +61,39 @@ export async function createCheckoutSession({ orderId }) {
       throw new Error('Vous devez être connecté pour payer.');
     }
 
+    const payload = {
+      ...(hasOrderId ? { orderId } : null),
+      ...(hasDraft
+        ? {
+            truckId,
+            items,
+            deliveryMethod,
+            customerName,
+          }
+        : null),
+    };
+
     const res = await fetch(`${FUNCTIONS_BASE}/createCheckoutSession`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ orderId }),
+      body: JSON.stringify(payload),
     });
 
     if (!res.ok) {
-      const msg = await res.text();
+      const raw = await res.text();
+      let msg = raw;
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object' && typeof parsed.error === 'string') {
+          msg = parsed.error;
+        }
+      } catch {
+        // ignore
+      }
+
       throw new Error(`createCheckoutSession HTTP ${res.status} ${msg}`);
     }
 

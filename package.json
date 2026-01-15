@@ -8,6 +8,8 @@
     "dev:network": "vite --host",
     "build": "vite build",
     "lint": "eslint .",
+    "test": "vitest",
+    "test:run": "vitest run",
     "preview": "vite preview",
     "emulators": "firebase emulators:start",
     "deploy": "firebase deploy",
@@ -58,6 +60,7 @@
     "globals": "^16.5.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.18",
+    "vitest": "^2.1.9",
     "vite": "^7.2.4"
   }
 }

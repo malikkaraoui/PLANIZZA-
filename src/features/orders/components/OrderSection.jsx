@@ -32,7 +32,7 @@ export function OrderSection({ title, count, color = 'orange-500', children }) {
       </div>
       
       {/* Contenu de la section */}
-      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+      <div className="grid gap-3 lg:gap-2 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {children}
       </div>
     </div>

@@ -41,17 +41,26 @@
       }
     },
     "orders": {
-      ".read": "auth != null",
+      ".read": "auth != null && ((query.orderByChild == 'truckId' && query.equalTo != null && (query.equalTo == root.child('pizzaiolos').child(auth.uid).child('truckId').val() || root.child('trucks').child(query.equalTo).child('ownerUid').val() == auth.uid)) || (query.orderByChild == 'userUid' && query.equalTo == auth.uid) || (query.orderByChild == 'uid' && query.equalTo == auth.uid))",
       "$orderId": {
-        ".read": "auth != null",
-        ".write": "auth != null"
+        ".read": "auth != null && (data.child('uid').val() === auth.uid || data.child('userUid').val() === auth.uid || root.child('pizzaiolos').child(auth.uid).child('truckId').val() === data.child('truckId').val() || root.child('trucks').child(data.child('truckId').val()).child('ownerUid').val() === auth.uid)",
+        ".write": false
       },
-      ".indexOn": ["uid", "truckId", "status", "nextStepAt"]
+      ".indexOn": ["uid", "userUid", "truckId", "status", "v2/kitchenStatus", "v2/promisedAtMs"]
+    },
+    "orderEvents": {
+      ".read": false,
+      "$orderId": {
+        ".read": "auth != null && (root.child('orders').child($orderId).child('uid').val() === auth.uid || root.child('orders').child($orderId).child('userUid').val() === auth.uid || root.child('pizzaiolos').child(auth.uid).child('truckId').val() === root.child('orders').child($orderId).child('truckId').val() || root.child('trucks').child(root.child('orders').child($orderId).child('truckId').val()).child('ownerUid').val() === auth.uid)",
+        ".write": false,
+        ".indexOn": ["atMs"]
+      }
     },
     "liveOrders": {
       "$truckId": {
         ".read": "auth != null && root.child('pizzaiolos').child(auth.uid).child('truckId').val() === $truckId",
-        ".write": "auth != null && root.child('pizzaiolos').child(auth.uid).child('truckId').val() === $truckId"
+        ".write": "auth != null && root.child('pizzaiolos').child(auth.uid).child('truckId').val() === $truckId",
+        ".indexOn": ["pizzaioloUid"]
       }
     },
     "carts": {

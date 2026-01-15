@@ -59,14 +59,14 @@ export default function Cart() {
   };
 
   const safeFrom = useMemo(() => {
-    const raw = location?.state?.from;
+    const raw = location.state?.from;
     if (typeof raw !== 'string') return null;
     if (!raw.startsWith('/')) return null;
     if (raw.startsWith('//')) return null;
     // Ne jamais reboucler vers /panier
     if (raw.startsWith(ROUTES.cart)) return null;
     return raw;
-  }, [location?.state?.from]);
+  }, [location.state?.from]);
 
   const getBackToTruckUrl = (truckId) => {
     // Si la page source semble être un écran 'camion', on la préfère.

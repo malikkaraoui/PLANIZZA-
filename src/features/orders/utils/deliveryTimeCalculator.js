@@ -2,7 +2,7 @@
  * Utilitaires pour les calculs de temps de livraison et tri des commandes
  */
 
-import { coalesceMs, toMs } from '../../../lib/timestamps';
+import { coalesceMs } from '../../../lib/timestamps';
 
 /**
  * Calcule l'heure de livraison prévue pour une commande

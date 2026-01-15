@@ -18,7 +18,7 @@ export default function TruckDetails() {
   const navigate = useNavigate();
   const { truck, loading: loadingTruck, error: truckError } = useTruck(slugOrId);
   const { items: menuItems, loading: loadingMenu } = useMenu(truck?.id);
-  const { addItem, items } = useCart();
+  const { addItem, items: _items } = useCart();
   const [zoomedImage, setZoomedImage] = useState(null);
   const [showMap, setShowMap] = useState(false);
 
