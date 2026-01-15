@@ -850,9 +850,35 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
         return res.status(400).json({ error: "nextKitchenStatus invalide" });
       }
 
-      const orderRef = admin.database().ref(`orders/${orderId}`);
+      const orderPath = `orders/${orderId}`;
+      const orderRef = admin.database().ref(orderPath);
+
+      console.log("🔍 [V2 LOOKUP]", {
+        errorId,
+        orderId,
+        path: orderPath,
+        uid,
+        nextKitchenStatus,
+      });
+
       const snap = await orderRef.get();
-      if (!snap.exists()) return res.status(404).json({ error: "Commande introuvable" });
+
+      console.log("🔍 [V2 LOOKUP RESULT]", {
+        errorId,
+        orderId,
+        exists: snap.exists(),
+        hasVal: snap.val() !== null,
+        keys: snap.exists() ? Object.keys(snap.val() || {}).slice(0, 10) : null,
+      });
+
+      if (!snap.exists()) {
+        return res.status(404).json({
+          error: "Commande introuvable",
+          requestedOrderId: orderId,
+          pathTried: orderPath,
+        });
+      }
+
       const pre = snap.val();
 
       console.log("[PLANIZZA][pizzaioloTransitionOrderV2] request", {
@@ -873,6 +899,18 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
       const preKitchenStatus = pre?.v2?.kitchenStatus ||
         v2MapKitchenStatusFromV1Status(pre?.status);
       const prePaymentStatus = pre?.v2?.paymentStatus || v2MapPaymentStatus(pre);
+
+      // 🔍 LOG BACKEND: état reçu
+      console.log("🟧 [BACK] Action reçue:", {
+        errorId,
+        orderId,
+        actionReceived: nextKitchenStatus,
+        currentKitchenStatus: preKitchenStatus,
+        currentPaymentStatus: prePaymentStatus,
+        legacyStatus: pre?.status,
+        hasV2Embedded: Boolean(pre?.v2),
+        v2EmbeddedKitchenStatus: pre?.v2?.kitchenStatus || null,
+      });
 
       const computeBaseV2 = (orderLike) => {
         const existingV2 = orderLike?.v2 && typeof orderLike.v2 === "object" ? orderLike.v2 : null;
@@ -992,15 +1030,17 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
           });
         }
 
-        return { result, wasIdempotent };
+        return { result, wasIdempotent, abortReason };
       };
 
       let result;
       let wasIdempotent = false;
+      let txAbortReason = null;
       try {
         const txResult = await runTx({ enforceExpectedUpdatedAt: true });
         result = txResult.result;
         wasIdempotent = txResult.wasIdempotent;
+        txAbortReason = txResult.abortReason;
       } catch (txErr) {
         console.error("[PLANIZZA][pizzaioloTransitionOrderV2] transaction failed", {
           errorId,
@@ -1101,10 +1141,23 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
           });
         }
 
+        console.log("[PLANIZZA][pizzaioloTransitionOrderV2] FINAL 409", {
+          errorId,
+          orderId,
+          txAbortReason,
+          canNowOk: canNow?.ok,
+          canNowReason: canNow?.reason,
+          curKitchen,
+          nextKitchenStatus,
+          expectedUpdatedAtMs,
+          curUpdatedAtMs,
+        });
+
         return res.status(409).json({
           error: "transition_refused",
           reason: canNow?.reason || "transition_refused",
           currentKitchenStatus: curKitchen,
+          debugAbortReason: txAbortReason,
         });
       }
 

@@ -339,13 +339,13 @@ export default function OrdersPageTimeDriven() {
       if (action.kind === 'transition') {
         const expectedUpdatedAtMs = typeof row.v2.updatedAtMs === 'number' ? row.v2.updatedAtMs : undefined;
         
-        // DEBUG: log l'état avant transition
-        console.log('[OrdersTimeDriven] Transition:', {
-          orderId: row.legacy.id,
-          legacyStatus: row.legacy.status,
-          v2KitchenStatus: row.v2.kitchenStatus,
-          nextKitchenStatus: action.nextKitchenStatus,
-          v2PaymentStatus: row.v2.paymentStatus,
+        // 🔍 DEBUG: orderId envoyé
+        console.log('🟦 [FRONT] PAYLOAD COMPLET:', {
+          'row.legacy.id': row.legacy.id,
+          'row.legacy': row.legacy ? Object.keys(row.legacy) : null,
+          'row.v2.id': row.v2.id,
+          action: action.nextKitchenStatus,
+          actionKey: action.key,
           hasV2Embedded: Boolean(row.legacy.v2),
           expectedUpdatedAtMs,
         });
