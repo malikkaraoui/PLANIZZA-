@@ -320,7 +320,8 @@ export default function PizzaioloOrders() {
       setMessage('✅ Commande prise en charge.');
     } else {
       clearOptimisticStatus(orderId);
-      setMessage(`❌ Impossible de prendre en charge. ${result?.error || updateError || ''}`.trim());
+      const statusSuffix = result?.status ? ` (HTTP ${result.status})` : '';
+      setMessage(`❌ Impossible de prendre en charge${statusSuffix}. ${result?.error || updateError || ''}`.trim());
     }
   };
 
@@ -364,7 +365,8 @@ export default function PizzaioloOrders() {
     } else {
       clearOptimisticStatus(orderId);
       // Exemple fréquent: 409 — Paiement requis avant livraison/remise
-      setMessage(`❌ Livraison refusée. ${result?.error || updateError || ''}`.trim());
+      const statusSuffix = result?.status ? ` (HTTP ${result.status})` : '';
+      setMessage(`❌ Livraison refusée${statusSuffix}. ${result?.error || updateError || ''}`.trim());
     }
   };
 
@@ -493,13 +495,26 @@ export default function PizzaioloOrders() {
 
       {(message || updateError) && (
         <div
-          className={`p-4 rounded-lg border ${
+          className={`sticky top-3 z-50 rounded-2xl border p-4 backdrop-blur-xl shadow-xl ${
             (message || updateError).includes('✅')
-              ? 'bg-emerald-500/10 text-emerald-200 border-emerald-500/20'
-              : 'bg-red-500/10 text-red-200 border-red-500/20'
+              ? 'bg-emerald-950/60 text-emerald-100 border-emerald-500/25'
+              : 'bg-red-950/60 text-red-100 border-red-500/25'
           }`}
         >
-          {message || `❌ ${updateError}`}
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 text-sm font-bold leading-relaxed">
+              {message || `❌ ${updateError}`}
+            </div>
+            <button
+              type="button"
+              onClick={() => setMessage('')}
+              className="shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 active:bg-white/15 transition-colors"
+              aria-label="Fermer"
+              title="Fermer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       )}
 
