@@ -339,30 +339,26 @@ export default function OrdersPageTimeDriven() {
       if (action.kind === 'transition') {
         const expectedUpdatedAtMs = typeof row.v2.updatedAtMs === 'number' ? row.v2.updatedAtMs : undefined;
         
-        // 🔍 DEBUG: orderId envoyé
-        console.log('🟦 [FRONT] PAYLOAD COMPLET:', {
-          'row.legacy.id': row.legacy.id,
-          'row.legacy': row.legacy ? Object.keys(row.legacy) : null,
-          'row.v2.id': row.v2.id,
-          action: action.nextKitchenStatus,
-          actionKey: action.key,
-          hasV2Embedded: Boolean(row.legacy.v2),
+        // 🔍 LOG: payload V2 action-based
+        console.log('[FRONT V2 TRANSITION]', {
+          orderId: row.legacy.id,
+          action: action.key.toUpperCase(),
           expectedUpdatedAtMs,
         });
-        
+
         await pizzaioloTransitionOrderV2({
           orderId: row.legacy.id,
-          nextKitchenStatus: action.nextKitchenStatus,
+          action: action.key.toUpperCase(), // ✅ VERBE uniquement (ACCEPT, START, READY, HANDOFF, DONE, CANCEL)
           expectedUpdatedAtMs,
         });
 
         // Message ultra simple (v0)
-        if (action.nextKitchenStatus === 'QUEUED') setMessage('✅ Commande acceptée.');
-        else if (action.nextKitchenStatus === 'PREPPING') setMessage('✅ Préparation démarrée.');
-        else if (action.nextKitchenStatus === 'READY') setMessage('✅ Commande prête.');
-        else if (action.nextKitchenStatus === 'HANDOFF') setMessage('✅ Commande remise.');
-        else if (action.nextKitchenStatus === 'DONE') setMessage('✅ Commande terminée.');
-        else if (action.nextKitchenStatus === 'CANCELED') setMessage('✅ Commande annulée.');
+        if (action.key === 'accept') setMessage('✅ Commande acceptée.');
+        else if (action.key === 'start') setMessage('✅ Préparation démarrée.');
+        else if (action.key === 'ready') setMessage('✅ Commande prête.');
+        else if (action.key === 'handoff') setMessage('✅ Commande remise.');
+        else if (action.key === 'done') setMessage('✅ Commande terminée.');
+        else if (action.key === 'cancel') setMessage('✅ Commande annulée.');
       }
     } catch (err) {
       const status = err?.status;

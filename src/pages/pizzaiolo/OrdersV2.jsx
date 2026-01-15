@@ -96,15 +96,15 @@ function sortCanon(a, b) {
 function primaryActionFor(orderV2) {
   switch (orderV2.kitchenStatus) {
     case 'NEW':
-      return { label: 'Accepter', nextKitchenStatus: 'QUEUED', icon: Check };
+      return { label: 'Accepter', action: 'ACCEPT', icon: Check };
     case 'QUEUED':
-      return { label: 'Démarrer', nextKitchenStatus: 'PREPPING', icon: Flame };
+      return { label: 'Démarrer', action: 'START', icon: Flame };
     case 'PREPPING':
-      return { label: 'Prête', nextKitchenStatus: 'READY', icon: Check };
+      return { label: 'Prête', action: 'READY', icon: Check };
     case 'READY':
-      return { label: 'Remise', nextKitchenStatus: 'HANDOFF', icon: Handshake };
+      return { label: 'Remise', action: 'HANDOFF', icon: Handshake };
     case 'HANDOFF':
-      return { label: 'Terminer', nextKitchenStatus: 'DONE', icon: Check };
+      return { label: 'Terminer', action: 'DONE', icon: Check };
     default:
       return null;
   }
@@ -151,7 +151,7 @@ function OrderMiniCard({ orderLegacy, orderV2, nowMs, onAdvance, onCancel, onMar
             <Button
               size="sm"
               disabled={busy}
-              onClick={() => onAdvance(orderLegacy.id, primary.nextKitchenStatus, expectedUpdatedAtMs)}
+              onClick={() => onAdvance(orderLegacy.id, primary.action, expectedUpdatedAtMs)}
               className="h-8 rounded-xl"
               title={primary.label}
             >
@@ -268,10 +268,10 @@ export default function PizzaioloOrdersV2() {
 
   const busy = Boolean(loadingTruckId || ordersLoading || mutating);
 
-  const onAdvance = async (orderId, nextKitchenStatus, expectedUpdatedAtMs) => {
+  const onAdvance = async (orderId, action, expectedUpdatedAtMs) => {
     try {
       setMutating(true);
-      await pizzaioloTransitionOrderV2({ orderId, nextKitchenStatus, expectedUpdatedAtMs });
+      await pizzaioloTransitionOrderV2({ orderId, action, expectedUpdatedAtMs });
     } finally {
       setMutating(false);
     }
@@ -282,7 +282,7 @@ export default function PizzaioloOrdersV2() {
       setMutating(true);
       await pizzaioloTransitionOrderV2({
         orderId,
-        nextKitchenStatus: 'CANCELED',
+        action: 'CANCEL',
         expectedUpdatedAtMs,
       });
     } finally {

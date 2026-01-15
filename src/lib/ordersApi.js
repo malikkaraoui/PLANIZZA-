@@ -1,3 +1,4 @@
+import { httpsCallable } from 'firebase/functions';
 import { auth, functions, isFirebaseConfigured } from './firebase';
 
 const FUNCTIONS_BASE =
@@ -71,16 +72,57 @@ export async function pizzaioloMarkOrderPaid({ orderId, method = 'OTHER' }) {
 
 export async function pizzaioloTransitionOrderV2({
   orderId,
-  nextKitchenStatus,
+  action,
   expectedUpdatedAtMs,
   managerOverride = false,
 }) {
-  return postJson('pizzaioloTransitionOrderV2', {
-    orderId,
-    nextKitchenStatus,
-    expectedUpdatedAtMs,
-    managerOverride,
-  });
+  if (!isFirebaseConfigured || !functions) {
+    throw new Error(
+      "Firebase Functions n'est pas configuré. Configurez .env.local (Firebase) et démarrez les émulateurs ou déployez les functions."
+    );
+  }
+
+  try {
+    const callTransition = httpsCallable(functions, 'pizzaioloTransitionOrderV2');
+    const res = await callTransition({
+      orderId,
+      action,
+      expectedUpdatedAtMs,
+      managerOverride,
+    });
+    return res.data;
+  } catch (err) {
+    const code = err?.code;
+    const details = err?.details || null;
+    const message = err?.message || 'Callable error';
+
+    const e = new Error(`pizzaioloTransitionOrderV2 ${message}`);
+    e.details = details;
+    e.code = code;
+
+    switch (code) {
+      case 'invalid-argument':
+        e.status = 400;
+        break;
+      case 'unauthenticated':
+        e.status = 401;
+        break;
+      case 'permission-denied':
+        e.status = 403;
+        break;
+      case 'not-found':
+        e.status = 404;
+        break;
+      case 'failed-precondition':
+        e.status = 409;
+        break;
+      default:
+        e.status = 500;
+        break;
+    }
+
+    throw e;
+  }
 }
 
 export async function pizzaioloCreateManualOrder({ truckId, customerName, pickupTime, items, totalCents }) {

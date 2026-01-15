@@ -1,6 +1,6 @@
 /* eslint-disable require-jsdoc */
 const functions = require("firebase-functions");
-const {onRequest} = require("firebase-functions/v2/https");
+const {onRequest, onCall, HttpsError} = require("firebase-functions/v2/https");
 const {defineSecret} = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const stripe = require("stripe");
@@ -820,34 +820,51 @@ exports.pizzaioloMarkOrderPaid = onRequest(
   }
 );
 
-// Endpoint pizzaiolo (HTTP) : transition v2 atomique (transaction) + optimistic locking.
-exports.pizzaioloTransitionOrderV2 = onRequest(
-  { region: "us-central1", invoker: "public" },
-  async (req, res) => {
-    setCors(req, res);
-    if (req.method === "OPTIONS") return res.status(204).send("");
-    if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
-
+// Endpoint pizzaiolo (Callable) : transition v2 atomique (transaction) + optimistic locking.
+exports.pizzaioloTransitionOrderV2 = onCall(
+  { region: "us-central1" },
+  async (request) => {
     const errorId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
     try {
-      const uid = await requireAuthUid(req);
+      const uid = request?.auth?.uid;
+      if (!uid) {
+        throw new HttpsError("unauthenticated", "unauthenticated");
+      }
 
-      const orderId = req.body?.orderId;
-      const nextKitchenStatus = req.body?.nextKitchenStatus;
-      const expectedUpdatedAtMs = req.body?.expectedUpdatedAtMs;
-      const managerOverride = Boolean(req.body?.managerOverride);
+      const payload = request?.data || {};
+      const orderId = payload?.orderId;
+      const action = payload?.action;
+      const expectedUpdatedAtMs = payload?.expectedUpdatedAtMs;
+      const managerOverride = Boolean(payload?.managerOverride);
 
       if (!orderId || typeof orderId !== "string") {
-        return res.status(400).json({ error: "orderId requis" });
+        throw new HttpsError("invalid-argument", "orderId requis", { error: "orderId requis" });
       }
-      if (!nextKitchenStatus || typeof nextKitchenStatus !== "string") {
-        return res.status(400).json({ error: "nextKitchenStatus requis" });
+      if (!action || typeof action !== "string") {
+        console.log("[V2 INPUT INVALID]", {
+          errorId,
+          payloadKeys: Object.keys(payload || {}),
+        });
+        throw new HttpsError("invalid-argument", "action requis", { error: "action requis" });
       }
 
-      const allowedNext = new Set(["QUEUED", "PREPPING", "READY", "HANDOFF", "DONE", "CANCELED"]);
-      if (!allowedNext.has(nextKitchenStatus)) {
-        return res.status(400).json({ error: "nextKitchenStatus invalide" });
+      // Matrice action → targetStatus
+      const ACTION_TO_STATUS = {
+        ACCEPT: "QUEUED",
+        START: "PREPPING",
+        READY: "READY",
+        HANDOFF: "HANDOFF",
+        DONE: "DONE",
+        CANCEL: "CANCELED",
+      };
+
+      const targetStatus = ACTION_TO_STATUS[action];
+      if (!targetStatus) {
+        throw new HttpsError("invalid-argument", "action invalide", {
+          error: "action invalide",
+          allowedActions: Object.keys(ACTION_TO_STATUS),
+        });
       }
 
       const orderPath = `orders/${orderId}`;
@@ -858,7 +875,8 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
         orderId,
         path: orderPath,
         uid,
-        nextKitchenStatus,
+        action,
+        targetStatus,
       });
 
       const snap = await orderRef.get();
@@ -872,7 +890,7 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
       });
 
       if (!snap.exists()) {
-        return res.status(404).json({
+        throw new HttpsError("not-found", "Commande introuvable", {
           error: "Commande introuvable",
           requestedOrderId: orderId,
           pathTried: orderPath,
@@ -885,10 +903,11 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
         errorId,
         uid,
         orderId,
-        nextKitchenStatus,
+        action,
+        targetStatus,
         expectedUpdatedAtMsType: typeof expectedUpdatedAtMs,
         managerOverride,
-        origin: req.headers.origin || null,
+        origin: request?.rawRequest?.headers?.origin || null,
       });
 
       await assertPizzaioloOwnsTruck({ uid, truckId: pre?.truckId });
@@ -904,7 +923,8 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
       console.log("🟧 [BACK] Action reçue:", {
         errorId,
         orderId,
-        actionReceived: nextKitchenStatus,
+        action,
+        targetStatus,
         currentKitchenStatus: preKitchenStatus,
         currentPaymentStatus: prePaymentStatus,
         legacyStatus: pre?.status,
@@ -925,7 +945,7 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
           legacyStatus: orderLike?.status,
           computedKitchenStatus: computed?.kitchenStatus,
           computedPaymentStatus: computed?.paymentStatus,
-          nextKitchenStatus,
+          targetStatus,
         });
 
         return computed;
@@ -942,16 +962,17 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
 
         const result = await orderRef.transaction(
           (current) => {
-            if (!current) {
+            const baseOrder = current || pre;
+            if (!baseOrder) {
               abortReason = "order_not_found";
               return;
             }
 
-            const baseV2 = computeBaseV2(current);
+            const baseV2 = computeBaseV2(baseOrder);
 
             // Idempotence: si la commande est déjà dans l'état demandé,
             // on retourne undefined pour aborter proprement
-            if (baseV2?.kitchenStatus === nextKitchenStatus) {
+            if (baseV2?.kitchenStatus === targetStatus) {
               wasIdempotent = true;
               abortReason = "already_in_target_state";
               return; // abort proprement (pas d'écriture nécessaire)
@@ -965,14 +986,14 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
               }
             }
 
-            const check = v2CanTransition(baseV2, nextKitchenStatus, { managerOverride });
+            const check = v2CanTransition(baseV2, targetStatus, { managerOverride });
             if (!check.ok) {
               abortReason = check.reason || "transition_check_failed";
               console.log("[PLANIZZA][pizzaioloTransitionOrderV2] transition refused in tx", {
                 errorId,
                 orderId,
                 from: baseV2?.kitchenStatus,
-                to: nextKitchenStatus,
+                to: targetStatus,
                 reason: abortReason,
                 paymentStatus: baseV2?.paymentStatus,
                 enforceExpectedUpdatedAt,
@@ -982,14 +1003,14 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
 
             const nextV2 = omitUndefinedDeep({
               ...baseV2,
-              kitchenStatus: nextKitchenStatus,
+              kitchenStatus: targetStatus,
               updatedAt: nowIso,
               updatedAtMs: nowMs,
               timestamps: v2ApplyEventTimestamps({
-                nextKitchenStatus,
+                nextKitchenStatus: targetStatus,
                 nowIso,
                 currentTimestamps: {
-                  ...v2DeriveTimestampsFromLegacyTimeline(current),
+                  ...v2DeriveTimestampsFromLegacyTimeline(baseOrder),
                   ...(baseV2.timestamps || {}),
                 },
               }),
@@ -999,10 +1020,10 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
               nextV2.flags = { ...(nextV2.flags || {}), managerOverride: true };
             }
 
-            const v1Status = v2MapKitchenStatusToV1Status(nextKitchenStatus);
+            const v1Status = v2MapKitchenStatusToV1Status(targetStatus);
             const timelineKey = v2TimelineKeyForV1Status(v1Status);
 
-            const next = { ...current };
+            const next = { ...baseOrder };
             next.v2 = nextV2;
             next.status = v1Status;
             next.updatedAt = rtdbServerTimestamp();
@@ -1048,15 +1069,6 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
           name: txErr?.name,
           stack: txErr?.stack,
         });
-      // Si c'était idempotent (déjà dans le bon état), on retourne succès immédiatement
-      if (!result.committed && wasIdempotent) {
-        console.log("[PLANIZZA][pizzaioloTransitionOrderV2] idempotent (no-op)", {
-          errorId,
-          orderId,
-          kitchenStatus: nextKitchenStatus,
-        });
-        return res.json({ ok: true, noop: true, kitchenStatus: nextKitchenStatus });
-      }
 
         throw txErr;
       }
@@ -1066,9 +1078,9 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
         console.log("[PLANIZZA][pizzaioloTransitionOrderV2] idempotent (no-op)", {
           errorId,
           orderId,
-          kitchenStatus: nextKitchenStatus,
+          kitchenStatus: targetStatus,
         });
-        return res.json({ ok: true, noop: true, kitchenStatus: nextKitchenStatus });
+        return { ok: true, noop: true, kitchenStatus: targetStatus };
       }
 
       if (!result.committed) {
@@ -1082,7 +1094,7 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
         const curUpdatedAtMs = latestV2?.updatedAtMs;
 
         const canNow = latestV2
-          ? v2CanTransition(latestV2, nextKitchenStatus, { managerOverride })
+          ? v2CanTransition(latestV2, targetStatus, { managerOverride })
           : { ok: false, reason: "Commande introuvable" };
 
         // Si l'optimistic lock a échoué mais que la transition est toujours valide,
@@ -1101,26 +1113,26 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
                 kitchenStatus: curKitchen || preKitchenStatus,
                 paymentStatus: prePaymentStatus,
               },
-              to: { kitchenStatus: nextKitchenStatus, paymentStatus: prePaymentStatus },
+              to: { kitchenStatus: targetStatus, paymentStatus: prePaymentStatus },
             });
-            return res.json({
+            return {
               ok: true,
               updatedAtMs: nowMs,
               updatedAt: nowIso,
               retried: true,
-            });
+            };
           } else if (retryWasIdempotent) {
             // Le retry a constaté que c'était déjà fait (idempotent)
             console.log("[PLANIZZA][pizzaioloTransitionOrderV2] retry was idempotent", {
               errorId,
               orderId,
             });
-            return res.json({
+            return {
               ok: true,
               noop: true,
-              kitchenStatus: nextKitchenStatus,
+              kitchenStatus: targetStatus,
               retried: true,
-            });
+            };
           } else {
             console.log("[PLANIZZA][pizzaioloTransitionOrderV2] retry also failed", {
               errorId,
@@ -1134,7 +1146,7 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
           typeof curUpdatedAtMs === "number" &&
           curUpdatedAtMs !== expectedUpdatedAtMs
         ) {
-          return res.status(409).json({
+          throw new HttpsError("failed-precondition", "conflict", {
             error: "conflict",
             currentKitchenStatus: curKitchen,
             currentUpdatedAtMs: curUpdatedAtMs,
@@ -1148,12 +1160,12 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
           canNowOk: canNow?.ok,
           canNowReason: canNow?.reason,
           curKitchen,
-          nextKitchenStatus,
+          targetStatus,
           expectedUpdatedAtMs,
           curUpdatedAtMs,
         });
 
-        return res.status(409).json({
+        throw new HttpsError("failed-precondition", "transition_refused", {
           error: "transition_refused",
           reason: canNow?.reason || "transition_refused",
           currentKitchenStatus: curKitchen,
@@ -1166,11 +1178,15 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
         actor: "PIZZAIOLO",
         source: "pizzaioloTransitionOrderV2",
         from: { kitchenStatus: preKitchenStatus, paymentStatus: prePaymentStatus },
-        to: { kitchenStatus: nextKitchenStatus, paymentStatus: prePaymentStatus },
+        to: { kitchenStatus: targetStatus, paymentStatus: prePaymentStatus },
       });
 
-      return res.json({ ok: true, updatedAtMs: nowMs, updatedAt: nowIso });
+      return { ok: true, updatedAtMs: nowMs, updatedAt: nowIso };
     } catch (err) {
+      if (err instanceof HttpsError) {
+        throw err;
+      }
+
       const status = err?.status || 500;
       console.error("[PLANIZZA][pizzaioloTransitionOrderV2] error", {
         errorId,
@@ -1179,10 +1195,20 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
         stack: err?.stack,
         status,
       });
-      return res.status(status).json({
-        error: status === 500 ? "internal" : String(err?.message || err),
-        errorId: status === 500 ? errorId : undefined,
-      });
+
+      if (status === 401) {
+        throw new HttpsError("unauthenticated", "unauthenticated");
+      }
+      if (status === 403) {
+        throw new HttpsError("permission-denied", "forbidden");
+      }
+      if (status === 404) {
+        throw new HttpsError("not-found", err?.message || "not_found");
+      }
+      if (status === 409) {
+        throw new HttpsError("failed-precondition", err?.message || "conflict");
+      }
+      throw new HttpsError("internal", "internal", { errorId });
     }
   }
 );
