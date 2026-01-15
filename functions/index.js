@@ -900,6 +900,7 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
 
         // Variables pour capturer les détails d'échec hors transaction
         let abortReason = null;
+        let wasIdempotent = false;
 
         const result = await orderRef.transaction(
           (current) => {
@@ -910,9 +911,12 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
 
             const baseV2 = computeBaseV2(current);
 
-            // Idempotence: si la commande est déjà dans l'état demandé, on ne change rien.
+            // Idempotence: si la commande est déjà dans l'état demandé,
+            // on retourne undefined pour aborter proprement
             if (baseV2?.kitchenStatus === nextKitchenStatus) {
-              return current;
+              wasIdempotent = true;
+              abortReason = "already_in_target_state";
+              return; // abort proprement (pas d'écriture nécessaire)
             }
 
             if (enforceExpectedUpdatedAt && typeof expectedUpdatedAtMs === "number") {
@@ -983,16 +987,20 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
             errorId,
             orderId,
             abortReason,
+            wasIdempotent,
             enforceExpectedUpdatedAt,
           });
         }
 
-        return result;
+        return { result, wasIdempotent };
       };
 
       let result;
+      let wasIdempotent = false;
       try {
-        result = await runTx({ enforceExpectedUpdatedAt: true });
+        const txResult = await runTx({ enforceExpectedUpdatedAt: true });
+        result = txResult.result;
+        wasIdempotent = txResult.wasIdempotent;
       } catch (txErr) {
         console.error("[PLANIZZA][pizzaioloTransitionOrderV2] transaction failed", {
           errorId,
@@ -1000,7 +1008,27 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
           name: txErr?.name,
           stack: txErr?.stack,
         });
+      // Si c'était idempotent (déjà dans le bon état), on retourne succès immédiatement
+      if (!result.committed && wasIdempotent) {
+        console.log("[PLANIZZA][pizzaioloTransitionOrderV2] idempotent (no-op)", {
+          errorId,
+          orderId,
+          kitchenStatus: nextKitchenStatus,
+        });
+        return res.json({ ok: true, noop: true, kitchenStatus: nextKitchenStatus });
+      }
+
         throw txErr;
+      }
+
+      // Si c'était idempotent (déjà dans le bon état), on retourne succès immédiatement
+      if (!result.committed && wasIdempotent) {
+        console.log("[PLANIZZA][pizzaioloTransitionOrderV2] idempotent (no-op)", {
+          errorId,
+          orderId,
+          kitchenStatus: nextKitchenStatus,
+        });
+        return res.json({ ok: true, noop: true, kitchenStatus: nextKitchenStatus });
       }
 
       if (!result.committed) {
@@ -1013,16 +1041,6 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
         const curKitchen = latestV2?.kitchenStatus;
         const curUpdatedAtMs = latestV2?.updatedAtMs;
 
-        if (curKitchen === nextKitchenStatus) {
-          // Déjà fait (idempotent)
-          return res.json({
-            ok: true,
-            noop: true,
-            kitchenStatus: curKitchen,
-            updatedAtMs: curUpdatedAtMs,
-          });
-        }
-
         const canNow = latestV2
           ? v2CanTransition(latestV2, nextKitchenStatus, { managerOverride })
           : { ok: false, reason: "Commande introuvable" };
@@ -1030,7 +1048,10 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
         // Si l'optimistic lock a échoué mais que la transition est toujours valide,
         // on tente 1 retry sans expectedUpdatedAtMs (évite des 409 liés à des updates annexes).
         if (typeof expectedUpdatedAtMs === "number" && canNow.ok) {
-          const retry = await runTx({ enforceExpectedUpdatedAt: false });
+          const retryResult = await runTx({ enforceExpectedUpdatedAt: false });
+          const retry = retryResult.result;
+          const retryWasIdempotent = retryResult.wasIdempotent;
+
           if (retry.committed) {
             await writeOrderEvent(orderId, {
               type: "STATUS_CHANGED",
@@ -1046,6 +1067,18 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
               ok: true,
               updatedAtMs: nowMs,
               updatedAt: nowIso,
+              retried: true,
+            });
+          } else if (retryWasIdempotent) {
+            // Le retry a constaté que c'était déjà fait (idempotent)
+            console.log("[PLANIZZA][pizzaioloTransitionOrderV2] retry was idempotent", {
+              errorId,
+              orderId,
+            });
+            return res.json({
+              ok: true,
+              noop: true,
+              kitchenStatus: nextKitchenStatus,
               retried: true,
             });
           } else {
