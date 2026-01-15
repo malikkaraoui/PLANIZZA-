@@ -328,21 +328,17 @@ export default function PizzaioloOrders() {
 
   return (
     <div className="space-y-8">
-      {/* Bouton retour */}
-      <button
-        onClick={() => navigate(ROUTES.pizzaioloProfile)}
-        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Retour
-      </button>
-
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-black tracking-tight">Commandes</h1>
-        <p className="text-muted-foreground font-medium mt-2">
-          {filteredActiveOrders.length} commande{filteredActiveOrders.length > 1 ? 's' : ''} en cours
-        </p>
+      {/* En-tête compact: Retour + titre sur une seule ligne */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => navigate(ROUTES.pizzaioloProfile)}
+          className="inline-flex items-center justify-center h-9 w-9 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 active:bg-white/15 text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Retour"
+          title="Retour"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </button>
+        <h1 className="text-xl sm:text-2xl font-black tracking-tight">Commandes</h1>
       </div>
 
       {/* Filtres des commandes */}

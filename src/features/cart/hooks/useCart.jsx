@@ -166,6 +166,10 @@ export function CartProvider({ children }) {
   const truckIdRef = useRef(truckId);
   const lastSavedSignatureRef = useRef(null);
 
+  // Quand on vient de se connecter, le panier distant peut ne pas exister encore (race entre lecture initiale et backfill).
+  // Si on reçoit un snapshot "vide" au premier tick, on ne doit PAS écraser le panier local (invite) qui vient d'être hydraté.
+  const hadMeaningfulRemoteCartRef = useRef(false);
+
   const enrichRef = useRef({ inFlight: false, lastKey: null });
 
   useEffect(() => {
@@ -219,7 +223,18 @@ export function CartProvider({ children }) {
         const snap = await get(cartRef);
         if (cancelled) return;
 
-        if (!snap.exists() && itemsRef.current.length > 0) {
+        const localHasItems = itemsRef.current.length > 0;
+        if (!localHasItems) return;
+
+        const remoteExists = snap.exists();
+        const remoteVal = remoteExists ? (snap.val() || {}) : null;
+        const remoteTruckId = remoteVal ? (remoteVal.truckId ?? null) : null;
+        const remoteItems = remoteVal ? deserializeItems(remoteVal.items) : [];
+        const remoteIsMeaningful = Boolean(remoteTruckId) || remoteItems.length > 0;
+
+        // Garantie UX: si le panier distant est absent OU vide, on pousse le panier local.
+        // On évite d'écraser un panier distant déjà rempli (autre device) -> remoteIsMeaningful=true.
+        if (!remoteExists || !remoteIsMeaningful) {
           const now = Date.now();
           await set(cartRef, {
             truckId: truckIdRef.current ?? null,
@@ -227,6 +242,13 @@ export function CartProvider({ children }) {
             updatedAt: serverTimestamp(),
             expiresAt: now + CART_TTL_MS,
           });
+
+          if (import.meta.env.DEV) {
+            console.debug('[PLANIZZA] Cart backfilled to RTDB after login', {
+              path: `carts/${uid}/active`,
+              itemsCount: itemsRef.current.length,
+            });
+          }
         }
       } catch (err) {
         console.warn('[PLANIZZA] Impossible de synchroniser le panier au login:', err);
@@ -243,16 +265,25 @@ export function CartProvider({ children }) {
     if (!uid || !isFirebaseConfigured || !db) return;
 
     const cartRef = ref(db, `carts/${uid}/active`);
+    hadMeaningfulRemoteCartRef.current = false;
     const unsub = onValue(cartRef, (snap) => {
       applyingRemoteRef.current = true;
       suppressRtdbPersistRef.current = true;
       try {
         if (!snap.exists()) {
+          // Si on n'a jamais vu de panier distant ET qu'on a déjà un panier local (invite),
+          // on conserve le local le temps que le backfill (set) arrive.
+          if (!hadMeaningfulRemoteCartRef.current) {
+            const hasLocal = (itemsRef.current?.length || 0) > 0 || Boolean(truckIdRef.current);
+            if (hasLocal) {
+              return;
+            }
+          }
+
           setItems([]);
           setTruckId(null);
 
-          // Important: si le panier distant disparaît (logout depuis autre device, purge, etc.)
-          // on reflète immédiatement cet état en localStorage.
+          // Si un panier distant a été supprimé (ou qu'on n'a aucun panier local), on reflète en localStorage.
           try {
             saveCartToStorage({ truckId: null, items: [] });
           } catch {
@@ -282,6 +313,21 @@ export function CartProvider({ children }) {
 
         const nextTruckId = v.truckId ?? null;
         const nextItems = deserializeItems(v.items);
+
+        const remoteIsMeaningful = Boolean(nextTruckId) || nextItems.length > 0;
+
+        // Sur le premier tick post-login, un panier distant peut être vide (ancien état/écriture en retard).
+        // On n'écrase pas un panier local existant tant qu'on n'a pas vu un panier distant "réel".
+        if (!remoteIsMeaningful && !hadMeaningfulRemoteCartRef.current) {
+          const hasLocal = (itemsRef.current?.length || 0) > 0 || Boolean(truckIdRef.current);
+          if (hasLocal) {
+            return;
+          }
+        }
+
+        if (remoteIsMeaningful) {
+          hadMeaningfulRemoteCartRef.current = true;
+        }
 
         setTruckId(nextTruckId);
         setItems(nextItems);

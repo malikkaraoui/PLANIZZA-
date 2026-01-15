@@ -158,7 +158,11 @@ export default function Cart() {
   const handleCheckout = async () => {
     // Vérifier l'authentification
     if (!isAuthenticated || !user) {
-      navigate(ROUTES.login);
+      navigate(ROUTES.login, {
+        state: {
+          from: `${location.pathname}${location.search}`,
+        },
+      });
       return;
     }
 

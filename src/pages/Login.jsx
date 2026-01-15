@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
@@ -10,6 +10,7 @@ import { LogIn, Chrome } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,6 +18,24 @@ export default function Login() {
   const emailRef = useRef(null);
   const passwordRef = useRef(null);
   const formRef = useRef(null);
+
+  const getReturnTo = () => {
+    const raw = location?.state?.from;
+    if (typeof raw === 'string') {
+      if (!raw.startsWith('/') || raw.startsWith('//')) return null;
+      return raw;
+    }
+    // Compat: ProtectedRoute passe parfois un objet location.
+    if (raw && typeof raw === 'object' && typeof raw.pathname === 'string') {
+      const path = raw.pathname;
+      const search = typeof raw.search === 'string' ? raw.search : '';
+      if (!path.startsWith('/') || path.startsWith('//')) return null;
+      return `${path}${search}`;
+    }
+    return null;
+  };
+
+  const returnTo = getReturnTo();
 
   const onGoogleLogin = async () => {
     if (!isFirebaseConfigured || !auth) {
@@ -34,7 +53,7 @@ export default function Login() {
       provider.setCustomParameters({ prompt: 'select_account' });
       const cred = await signInWithPopup(auth, provider);
       await upsertUserProfile(cred.user);
-      navigate('/explore');
+      navigate(returnTo || '/explore', { replace: true });
     } catch (err) {
       setError(err?.message || 'Connexion Google impossible');
     } finally {
@@ -55,7 +74,7 @@ export default function Login() {
     try {
       const cred = await signInWithEmailAndPassword(auth, email, password);
       await upsertUserProfile(cred.user);
-      navigate('/explore');
+      navigate(returnTo || '/explore', { replace: true });
     } catch (err) {
       setError(err?.message || 'Connexion impossible');
     } finally {
@@ -119,7 +138,11 @@ export default function Login() {
           <CardTitle className="text-2xl">Connexion</CardTitle>
           <CardDescription>
             Pas de compte ?{' '}
-            <Link to="/register" className="font-medium text-primary underline-offset-4 hover:underline">
+            <Link
+              to="/register"
+              state={returnTo ? { from: returnTo } : undefined}
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
               Créer un compte
             </Link>
           </CardDescription>

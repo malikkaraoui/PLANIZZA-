@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
@@ -10,10 +10,28 @@ import { UserPlus, Chrome } from 'lucide-react';
 
 export default function Register() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const getReturnTo = () => {
+    const raw = location?.state?.from;
+    if (typeof raw === 'string') {
+      if (!raw.startsWith('/') || raw.startsWith('//')) return null;
+      return raw;
+    }
+    if (raw && typeof raw === 'object' && typeof raw.pathname === 'string') {
+      const path = raw.pathname;
+      const search = typeof raw.search === 'string' ? raw.search : '';
+      if (!path.startsWith('/') || path.startsWith('//')) return null;
+      return `${path}${search}`;
+    }
+    return null;
+  };
+
+  const returnTo = getReturnTo();
 
   const onGoogleRegister = async () => {
     if (!isFirebaseConfigured || !auth) {
@@ -34,9 +52,12 @@ export default function Register() {
       
       // Si l'utilisateur n'a pas de displayName ou phoneNumber, rediriger vers complete-profile
       if (!cred.user.displayName || !cred.user.phoneNumber) {
-        navigate('/complete-profile');
+        navigate('/complete-profile', {
+          state: returnTo ? { from: returnTo } : undefined,
+          replace: true,
+        });
       } else {
-        navigate('/explore');
+        navigate(returnTo || '/explore', { replace: true });
       }
     } catch (err) {
       setError(err?.message || 'Connexion Google impossible');
@@ -59,7 +80,7 @@ export default function Register() {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
       await upsertUserProfile(cred.user);
       // Rediriger vers mon compte pour compléter le profil
-      navigate('/mon-compte');
+      navigate(returnTo || '/mon-compte', { replace: true });
     } catch (err) {
       setError(err?.message || 'Inscription impossible');
     } finally {
@@ -74,7 +95,11 @@ export default function Register() {
           <CardTitle className="text-2xl">Créer un compte</CardTitle>
           <CardDescription>
             Déjà un compte ?{' '}
-            <Link to="/login" className="font-medium text-primary underline-offset-4 hover:underline">
+            <Link
+              to="/login"
+              state={returnTo ? { from: returnTo } : undefined}
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
               Se connecter
             </Link>
           </CardDescription>

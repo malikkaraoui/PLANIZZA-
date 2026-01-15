@@ -85,9 +85,9 @@ export function OrderCard({
         order.source === 'manual' 
           ? 'border-purple-500/50 bg-purple-500/5' 
           : 'border-white/20'
-      } relative p-3 sm:p-4 rounded-4xl transition-all ${leftBorderClass} ${topBorderClass} ${
+      } relative p-3 pb-12 sm:p-4 sm:pb-14 rounded-4xl transition-all ${leftBorderClass} ${topBorderClass} ${
         remaining?.isLate ? 'border-red-500/50' : ''
-      }`}
+      } pr-20 sm:pr-24`}
       onClick={handleToggle}
       role="button"
       tabIndex={0}
@@ -124,7 +124,7 @@ export function OrderCard({
         {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
       </button>
 
-      <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
+      <div className="grid grid-cols-1 gap-3 items-start">
         {/* Colonne gauche: client + meta */}
         <div className="min-w-0 pt-1">
           <div className="flex items-center gap-2 min-w-0">
@@ -135,13 +135,6 @@ export function OrderCard({
           </div>
 
           <div className="mt-2 flex items-center gap-3 text-sm font-black text-muted-foreground">
-            {estimatedDeliveryTime ? (
-              <span className="inline-flex items-center gap-1.5">
-                <Clock className="h-4 w-4 text-orange-600" />
-                <span className="text-orange-600">{estimatedDeliveryTime}</span>
-              </span>
-            ) : null}
-
             <span className="inline-flex items-center gap-2">
               {pizzaLikeQty > 0 ? (
                 <span>
@@ -156,74 +149,78 @@ export function OrderCard({
               {pizzaLikeQty === 0 && calzoneQty === 0 ? <span>—</span> : null}
             </span>
           </div>
-        </div>
 
-        {/* Colonne droite: timer + actions */}
-        <div className="shrink-0 flex flex-col items-end gap-2">
-          <div className="text-right leading-none">
-            {order.status === 'received' ? (
-              <div className={`text-2xl font-black ${parseInt(elapsed) >= 60 ? 'text-red-500' : 'text-orange-500'}`}>
-                {elapsed}
+          {/* Heure estimée (à gauche, sous le nombre de pizzas) */}
+          <div className="mt-1 leading-none">
+            <div className={`text-lg font-black ${remaining?.isLate ? 'text-red-500' : 'text-orange-600'}`}
+            >
+              {estimatedDeliveryTime || '—'}
+            </div>
+            {!order.pickupTime ? (
+              <div className="mt-0.5 text-[10px] font-bold text-muted-foreground uppercase inline-flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5" />
+                <span>Livraison</span>
               </div>
-            ) : remaining ? (
-              <div className={`text-2xl font-black ${remaining.isLate ? 'text-red-500' : 'text-emerald-500'}`}>
-                {remaining.text}
-              </div>
-            ) : (
-              <div className="text-xl font-black text-muted-foreground">{elapsed}</div>
-            )}
-          </div>
-
-          <div className="flex items-center gap-1">
-            {order.source === 'manual' && order.payment?.paymentStatus !== 'paid' ? (
-              <Button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onMarkPaid?.(order.id);
-                }}
-                disabled={updating}
-                className="h-8 w-8 p-0 rounded-lg bg-red-600 hover:bg-red-700 text-white"
-                aria-label="Marquer comme payé"
-                title="Payé"
-              >
-                <CreditCard className="h-4 w-4" />
-              </Button>
             ) : null}
-
-            {order.status === 'received' ? (
-              <Button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onAccept?.(order.id);
-                }}
-                disabled={updating}
-                className="h-8 w-8 p-0 rounded-lg bg-blue-500 hover:bg-blue-600 text-white"
-                aria-label="Prendre en charge"
-                title="Prendre"
-              >
-                <ChefHat className="h-4 w-4" />
-              </Button>
-            ) : (
-              !(order.source === 'manual' && order.payment?.paymentStatus !== 'paid') ? (
-                <Button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeliver?.(order.id);
-                  }}
-                  disabled={updating}
-                  className="group h-8 w-8 hover:w-28 focus-visible:w-28 overflow-hidden rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white transition-[width] duration-200 ease-out px-0 hover:px-3 focus-visible:px-3 flex items-center justify-center gap-2"
-                  aria-label={order.deliveryMethod === 'delivery' ? 'Marquer comme livré' : 'Marquer comme délivré'}
-                  title={order.deliveryMethod === 'delivery' ? 'Livré' : 'Délivré'}
-                >
-                  <CheckCircle className="h-4 w-4 shrink-0" />
-                  <span className="text-[11px] font-black whitespace-nowrap opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-150">
-                    Délivrer
-                  </span>
-                </Button>
-              ) : null
-            )}
           </div>
         </div>
+      </div>
+
+      {/* Actions (toujours en bas à droite) */}
+      <div className="absolute bottom-2 right-2 flex items-center gap-1">
+        {order.source === 'manual' && order.payment?.paymentStatus !== 'paid' ? (
+          <Button
+            onClick={(e) => {
+              e.stopPropagation();
+              onMarkPaid?.(order.id);
+            }}
+            disabled={updating}
+            className="group h-8 w-8 hover:w-24 focus-visible:w-24 overflow-hidden rounded-lg bg-red-600 hover:bg-red-700 text-white transition-[width] duration-200 ease-out px-0 hover:px-3 focus-visible:px-3 flex items-center justify-center hover:justify-start focus-visible:justify-start gap-0 hover:gap-2 focus-visible:gap-2"
+            aria-label="Marquer comme payé"
+            title="Payé"
+          >
+            <CreditCard className="h-4 w-4 shrink-0" />
+            <span className="hidden group-hover:inline group-focus-visible:inline text-[11px] font-black whitespace-nowrap">
+              Payé
+            </span>
+          </Button>
+        ) : null}
+
+        {order.status === 'received' ? (
+          <Button
+            onClick={(e) => {
+              e.stopPropagation();
+              onAccept?.(order.id);
+            }}
+            disabled={updating}
+            className="group h-8 w-8 hover:w-24 focus-visible:w-24 overflow-hidden rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-[width] duration-200 ease-out px-0 hover:px-3 focus-visible:px-3 flex items-center justify-center hover:justify-start focus-visible:justify-start gap-0 hover:gap-2 focus-visible:gap-2"
+            aria-label="Prendre en charge"
+            title="Prendre"
+          >
+            <ChefHat className="h-4 w-4 shrink-0" />
+            <span className="hidden group-hover:inline group-focus-visible:inline text-[11px] font-black whitespace-nowrap">
+              Prendre
+            </span>
+          </Button>
+        ) : (
+          !(order.source === 'manual' && order.payment?.paymentStatus !== 'paid') ? (
+            <Button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeliver?.(order.id);
+              }}
+              disabled={updating}
+              className="group h-8 w-8 hover:w-28 focus-visible:w-28 overflow-hidden rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white transition-[width] duration-200 ease-out px-0 hover:px-3 focus-visible:px-3 flex items-center justify-center hover:justify-start focus-visible:justify-start gap-0 hover:gap-2 focus-visible:gap-2"
+              aria-label={order.deliveryMethod === 'delivery' ? 'Marquer comme livré' : 'Marquer comme délivré'}
+              title={order.deliveryMethod === 'delivery' ? 'Livré' : 'Délivré'}
+            >
+              <CheckCircle className="h-4 w-4 shrink-0" />
+              <span className="hidden group-hover:inline group-focus-visible:inline text-[11px] font-black whitespace-nowrap">
+                Délivrer
+              </span>
+            </Button>
+          ) : null
+        )}
       </div>
 
       {/* Pastille paiement (preview) */}
