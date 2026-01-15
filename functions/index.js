@@ -866,6 +866,9 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
 
       let result;
       try {
+        // NOTE: Admin SDK transaction signature is (updateFn, onComplete?, applyLocally?)
+        // Passing an options object as 2nd arg crashes with:
+        // "Reference.transaction failed: onComplete argument must be a valid function."
         result = await orderRef.transaction((current) => {
         if (!current) return;
 
@@ -918,7 +921,7 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
         }
 
         return omitUndefinedDeep(next);
-        }, { applyLocally: false });
+        }, undefined, false);
       } catch (txErr) {
         console.error("[PLANIZZA][pizzaioloTransitionOrderV2] transaction failed", {
           errorId,
@@ -1318,6 +1321,7 @@ exports.autoExpireOrdersV2 = functions.pubsub
       if (!v2ShouldAutoExpire(baseV2, nowMs)) continue;
 
       const orderRef = admin.database().ref(`orders/${orderId}`);
+      // Admin SDK transaction signature: (updateFn, onComplete?, applyLocally?)
       const result = await orderRef.transaction((current) => {
         if (!current) return;
 
@@ -1348,7 +1352,7 @@ exports.autoExpireOrdersV2 = functions.pubsub
         if (!next.timeline) next.timeline = {};
         next.timeline.expiredAt = rtdbServerTimestamp();
         return omitUndefinedDeep(next);
-      }, { applyLocally: false });
+      }, undefined, false);
 
       if (result?.committed) {
         expiredCount += 1;
