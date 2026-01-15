@@ -887,9 +887,16 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
         // NOTE: Admin SDK transaction signature is (updateFn, onComplete?, applyLocally?)
         // Passing an options object as 2nd arg crashes with:
         // "Reference.transaction failed: onComplete argument must be a valid function."
-        return orderRef.transaction(
+
+        // Variables pour capturer les détails d'échec hors transaction
+        let abortReason = null;
+
+        const result = await orderRef.transaction(
           (current) => {
-            if (!current) return;
+            if (!current) {
+              abortReason = "order_not_found";
+              return;
+            }
 
             const baseV2 = computeBaseV2(current);
 
@@ -901,19 +908,22 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
             if (enforceExpectedUpdatedAt && typeof expectedUpdatedAtMs === "number") {
               const cur = baseV2.updatedAtMs;
               if (typeof cur === "number" && cur !== expectedUpdatedAtMs) {
+                abortReason = `optimistic_lock_mismatch (expected: ${expectedUpdatedAtMs}, current: ${cur})`;
                 return; // abort => conflict
               }
             }
 
             const check = v2CanTransition(baseV2, nextKitchenStatus, { managerOverride });
             if (!check.ok) {
-              console.log("[PLANIZZA][pizzaioloTransitionOrderV2] transition refused", {
+              abortReason = check.reason || "transition_check_failed";
+              console.log("[PLANIZZA][pizzaioloTransitionOrderV2] transition refused in tx", {
                 errorId,
                 orderId,
                 from: baseV2?.kitchenStatus,
                 to: nextKitchenStatus,
-                reason: check.reason,
+                reason: abortReason,
                 paymentStatus: baseV2?.paymentStatus,
+                enforceExpectedUpdatedAt,
               });
               return; // abort
             }
@@ -956,6 +966,18 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
           undefined,
           false
         );
+
+        // Log l'abort reason après la transaction
+        if (!result.committed && abortReason) {
+          console.log("[PLANIZZA][pizzaioloTransitionOrderV2] tx not committed", {
+            errorId,
+            orderId,
+            abortReason,
+            enforceExpectedUpdatedAt,
+          });
+        }
+
+        return result;
       };
 
       let result;
@@ -1015,6 +1037,11 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
               updatedAtMs: nowMs,
               updatedAt: nowIso,
               retried: true,
+            });
+          } else {
+            console.log("[PLANIZZA][pizzaioloTransitionOrderV2] retry also failed", {
+              errorId,
+              orderId,
             });
           }
         }

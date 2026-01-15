@@ -374,7 +374,10 @@ export default function OrdersPageTimeDriven() {
         return;
       }
       if (status === 409 && apiErr === 'transition_refused') {
-        setMessage(`❌ Action refusée${apiReason ? ` : ${apiReason}` : ''}.`);
+        const detailMsg = apiReason ? `${apiReason}` : 'transition_refused';
+        const currentStatus = err?.details?.currentKitchenStatus;
+        const extra = currentStatus ? ` (actuel: ${currentStatus})` : '';
+        setMessage(`❌ Action refusée : ${detailMsg}${extra}`);
         return;
       }
 
