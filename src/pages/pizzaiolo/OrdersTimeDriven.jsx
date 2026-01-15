@@ -14,6 +14,40 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 
+const KITCHEN_STATUS_LABELS = Object.freeze({
+  NEW: 'NOUVELLE',
+  QUEUED: 'EN FILE',
+  PREPPING: 'PRÉPARATION',
+  READY: 'PRÊTE',
+  HANDOFF: 'REMISE',
+  DONE: 'TERMINÉE',
+  CANCELED: 'ANNULÉE',
+  EXPIRED: 'EXPIRÉE',
+});
+
+const PAYMENT_STATUS_LABELS = Object.freeze({
+  PAID: 'PAYÉ',
+  UNPAID: 'IMPAYÉ',
+  ISSUE: 'PROBLÈME',
+});
+
+const FULFILLMENT_LABELS = Object.freeze({
+  PICKUP: 'RETRAIT',
+  DELIVERY: 'LIVRAISON',
+});
+
+function kitchenStatusLabel(v) {
+  return KITCHEN_STATUS_LABELS[v] || String(v || '—');
+}
+
+function paymentStatusLabel(v) {
+  return PAYMENT_STATUS_LABELS[v] || String(v || '—');
+}
+
+function fulfillmentLabel(v) {
+  return FULFILLMENT_LABELS[v] || String(v || '—');
+}
+
 function formatHmFromMs(ms) {
   if (!Number.isFinite(ms)) return '—';
   return new Date(ms).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
@@ -107,32 +141,32 @@ function actionsFor(orderV2, legacy) {
 
   switch (orderV2.kitchenStatus) {
     case 'NEW':
-      actions.push({ key: 'accept', label: 'ACCEPT', kind: 'transition', nextKitchenStatus: 'QUEUED' });
-      actions.push({ key: 'cancel', label: 'CANCEL', kind: 'transition', nextKitchenStatus: 'CANCELED' });
+      actions.push({ key: 'accept', label: 'ACCEPTER', kind: 'transition', nextKitchenStatus: 'QUEUED' });
+      actions.push({ key: 'cancel', label: 'ANNULER', kind: 'transition', nextKitchenStatus: 'CANCELED' });
       break;
     case 'QUEUED':
-      actions.push({ key: 'start', label: 'START', kind: 'transition', nextKitchenStatus: 'PREPPING' });
-      actions.push({ key: 'cancel', label: 'CANCEL', kind: 'transition', nextKitchenStatus: 'CANCELED' });
+      actions.push({ key: 'start', label: 'DÉMARRER', kind: 'transition', nextKitchenStatus: 'PREPPING' });
+      actions.push({ key: 'cancel', label: 'ANNULER', kind: 'transition', nextKitchenStatus: 'CANCELED' });
       break;
     case 'PREPPING':
-      actions.push({ key: 'ready', label: 'READY', kind: 'transition', nextKitchenStatus: 'READY' });
-      actions.push({ key: 'cancel', label: 'CANCEL', kind: 'transition', nextKitchenStatus: 'CANCELED' });
+      actions.push({ key: 'ready', label: 'PRÊTE', kind: 'transition', nextKitchenStatus: 'READY' });
+      actions.push({ key: 'cancel', label: 'ANNULER', kind: 'transition', nextKitchenStatus: 'CANCELED' });
       break;
     case 'READY': {
       const disabled = !isPaid;
       actions.push({
         key: 'handoff',
-        label: disabled ? 'HANDOFF (PAY FIRST)' : 'HANDOFF',
+        label: disabled ? 'REMETTRE (PAYER AVANT)' : 'REMETTRE',
         kind: 'transition',
         nextKitchenStatus: 'HANDOFF',
         disabled,
-        title: disabled ? 'Paiement requis avant remise.' : undefined,
+        title: disabled ? 'Paiement requis avant la remise.' : undefined,
       });
-      actions.push({ key: 'cancel', label: 'CANCEL', kind: 'transition', nextKitchenStatus: 'CANCELED' });
+      actions.push({ key: 'cancel', label: 'ANNULER', kind: 'transition', nextKitchenStatus: 'CANCELED' });
       break;
     }
     case 'HANDOFF':
-      actions.push({ key: 'done', label: 'DONE', kind: 'transition', nextKitchenStatus: 'DONE' });
+      actions.push({ key: 'done', label: 'TERMINER', kind: 'transition', nextKitchenStatus: 'DONE' });
       break;
     default:
       break;
@@ -142,7 +176,7 @@ function actionsFor(orderV2, legacy) {
   if (!isPaid && isManual && !actions.some((a) => a.kind === 'markPaid')) {
     // Garder max 3 actions (garder les 2 premières + PAY)
     if (actions.length >= 3) actions.length = 2;
-    actions.push({ key: 'pay', label: 'PAY', kind: 'markPaid' });
+    actions.push({ key: 'pay', label: 'ENCAISSER', kind: 'markPaid' });
   }
 
   return actions;
@@ -182,8 +216,14 @@ function OrderRow({ row, nowMs, busy, onAction }) {
       ? v2.items.reduce((sum, it) => sum + Number(it?.qty || 0), 0)
       : 0;
 
-  const payment = v2.paymentStatus;
-  const payClass = payment === 'PAID' ? 'bg-emerald-600/90 text-white' : payment === 'ISSUE' ? 'bg-red-600/90 text-white' : 'bg-orange-600/90 text-white';
+  const paymentRaw = v2.paymentStatus;
+  const paymentText = paymentStatusLabel(paymentRaw);
+  const payClass =
+    paymentRaw === 'PAID'
+      ? 'bg-emerald-600/90 text-white'
+      : paymentRaw === 'ISSUE'
+        ? 'bg-red-600/90 text-white'
+        : 'bg-orange-600/90 text-white';
 
   const actionList = actionsFor(v2, legacy);
 
@@ -192,11 +232,11 @@ function OrderRow({ row, nowMs, busy, onAction }) {
       <div className="grid grid-cols-[64px_88px_86px_76px_92px_1fr_86px_auto] items-center gap-2 text-[12px]">
         <div className="font-mono text-white/90">{promisedHm}</div>
         <div className="font-mono text-white/80">{timer}</div>
-        <div className="font-mono text-white/90">{v2.kitchenStatus}</div>
+        <div className="font-mono text-white/90">{kitchenStatusLabel(v2.kitchenStatus)}</div>
         <div>
-          <span className={`inline-flex rounded-full px-2 py-0.5 font-mono text-[11px] ${payClass}`}>{payment}</span>
+          <span className={`inline-flex rounded-full px-2 py-0.5 font-mono text-[11px] ${payClass}`}>{paymentText}</span>
         </div>
-        <div className="font-mono text-white/80">{v2.fulfillment}</div>
+        <div className="font-mono text-white/80">{fulfillmentLabel(v2.fulfillment)}</div>
         <div className="truncate font-mono text-white/90">{customer}</div>
         <div className="font-mono text-white/70">items:{itemsCount}</div>
         <div className="flex flex-wrap justify-end gap-1">
@@ -243,8 +283,11 @@ export default function OrdersPageTimeDriven() {
         legacy?.customerName,
         v2?.customer?.name,
         v2?.kitchenStatus,
+        kitchenStatusLabel(v2?.kitchenStatus),
         v2?.paymentStatus,
+        paymentStatusLabel(v2?.paymentStatus),
         v2?.fulfillment,
+        fulfillmentLabel(v2?.fulfillment),
       ]
         .filter(Boolean)
         .join(' ')
@@ -341,7 +384,7 @@ export default function OrdersPageTimeDriven() {
         <div className="min-w-0">
           <div className="text-lg font-bold text-white">File d’attente (Temps)</div>
           <div className="mt-1 text-xs text-white/60">
-            now: {formatHmFromMs(nowMs)} <span className="text-white/40">(tri global: promisedAt ASC)</span>
+            maintenant: {formatHmFromMs(nowMs)} <span className="text-white/40">(tri global : promesse ↑)</span>
           </div>
         </div>
 
@@ -349,7 +392,7 @@ export default function OrdersPageTimeDriven() {
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search…"
+            placeholder="Rechercher…"
             className="h-9 rounded-xl"
           />
         </div>
@@ -363,8 +406,8 @@ export default function OrdersPageTimeDriven() {
 
       <div className="grid gap-3">
         <TimeSection
-          title={`🔴 RETARD (LATE)`}
-          rows={buckets.late.map((row) => ({
+          title={`🟢 À VENIR`}
+          rows={buckets.upcoming.map((row) => ({
             render: () => (
               <OrderRow
                 key={row.legacy.id}
@@ -375,11 +418,11 @@ export default function OrdersPageTimeDriven() {
               />
             ),
           }))}
-          emptyText="Aucune commande en retard."
+          emptyText="Aucune commande à venir."
         />
 
         <TimeSection
-          title={`🟠 À FAIRE MAINTENANT (DUE_SOON)`}
+          title={`🟠 À FAIRE MAINTENANT`}
           rows={buckets.dueSoon.map((row) => ({
             render: () => (
               <OrderRow
@@ -395,8 +438,8 @@ export default function OrdersPageTimeDriven() {
         />
 
         <TimeSection
-          title={`🟢 À VENIR (UPCOMING)`}
-          rows={buckets.upcoming.map((row) => ({
+          title={`🔴 RETARD`}
+          rows={buckets.late.map((row) => ({
             render: () => (
               <OrderRow
                 key={row.legacy.id}
@@ -407,11 +450,11 @@ export default function OrdersPageTimeDriven() {
               />
             ),
           }))}
-          emptyText="Aucune commande à venir."
+          emptyText="Aucune commande en retard."
         />
       </div>
 
-      <details className="mt-6 rounded-3xl border border-white/10 bg-black/20 p-3" defaultChecked={false}>
+      <details className="mt-6 rounded-3xl border border-white/10 bg-black/20 p-3">
         <summary className="cursor-pointer select-none px-2 py-1 text-sm font-semibold text-white/90">
           Historique (DONE / CANCELED / EXPIRED) <span className="text-white/60">[{history.length}]</span>
         </summary>
