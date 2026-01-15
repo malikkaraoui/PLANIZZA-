@@ -36,21 +36,10 @@ export function useTruckOrders(truckId) {
               id,
               ...order,
             }))
-            // ✅ FILTRER : Ne garder que les commandes VRAIMENT PAYÉES OU EN COURS
-            .filter((order) => {
-              // Exclure les commandes en création (status 'created' sans paiement)
-              if (order.status === 'created') return false;
-              
-              // Pour les commandes manuelles, on garde tout sauf 'created'
-              if (order.payment?.provider === 'manual') return true;
-              
-              // Pour les commandes en ligne, on garde si payée (legacy ou v2)
-              const isPaid = order.payment?.paymentStatus === 'paid' || order.v2?.paymentStatus === 'PAID';
-              if (order.payment?.provider === 'stripe' && isPaid) return true;
-              
-              // Sinon, on exclut
-              return false;
-            })
+            // Filtrage minimal: on exclut uniquement les brouillons (création non finalisée).
+            // IMPORTANT (UI /pro/commandes temps-driven): on doit pouvoir afficher aussi les UNPAID
+            // (badge + garde-fou), donc on ne filtre pas par paymentStatus ici.
+            .filter((order) => order?.status !== 'created')
             .sort((a, b) => {
               const aMs = coalesceMs(a.createdAt, a.createdAtClient, 0) || 0;
               const bMs = coalesceMs(b.createdAt, b.createdAtClient, 0) || 0;

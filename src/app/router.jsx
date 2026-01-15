@@ -17,7 +17,7 @@ const Register = lazy(() => import('../pages/Register'));
 const PizzaioloDashboard = lazy(() => import('../pages/pizzaiolo/Dashboard'));
 const PizzaioloProfile = lazy(() => import('../pages/pizzaiolo/Profile'));
 const PizzaioloMenu = lazy(() => import('../pages/pizzaiolo/Menu'));
-const PizzaioloOrders = lazy(() => import('../pages/pizzaiolo/Orders'));
+const PizzaioloOrders = lazy(() => import('../pages/pizzaiolo/OrdersTimeDriven'));
 const PizzaioloOrdersV2 = lazy(() => import('../pages/pizzaiolo/OrdersV2'));
 const PizzaioloStats = lazy(() => import('../pages/pizzaiolo/Stats'));
 const PizzaioloLive = lazy(() => import('../pages/pizzaiolo/Live'));
