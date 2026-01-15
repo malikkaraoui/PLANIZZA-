@@ -866,7 +866,21 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
 
       const computeBaseV2 = (orderLike) => {
         const existingV2 = orderLike?.v2 && typeof orderLike.v2 === "object" ? orderLike.v2 : null;
-        return existingV2 || v2BuildBase({ ...orderLike, id: orderId }, { nowIso, nowMs });
+        const computed = existingV2 ||
+          v2BuildBase({ ...orderLike, id: orderId }, { nowIso, nowMs });
+
+        // DEBUG: log l'état v2 calculé pour diagnostiquer les transitions refusées
+        console.log("[PLANIZZA][pizzaioloTransitionOrderV2] computeBaseV2", {
+          errorId,
+          orderId,
+          hasEmbeddedV2: Boolean(existingV2),
+          legacyStatus: orderLike?.status,
+          computedKitchenStatus: computed?.kitchenStatus,
+          computedPaymentStatus: computed?.paymentStatus,
+          nextKitchenStatus,
+        });
+
+        return computed;
       };
 
       const runTx = async ({ enforceExpectedUpdatedAt = true } = {}) => {
@@ -893,6 +907,14 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
 
             const check = v2CanTransition(baseV2, nextKitchenStatus, { managerOverride });
             if (!check.ok) {
+              console.log("[PLANIZZA][pizzaioloTransitionOrderV2] transition refused", {
+                errorId,
+                orderId,
+                from: baseV2?.kitchenStatus,
+                to: nextKitchenStatus,
+                reason: check.reason,
+                paymentStatus: baseV2?.paymentStatus,
+              });
               return; // abort
             }
 

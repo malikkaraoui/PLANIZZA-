@@ -338,6 +338,18 @@ export default function OrdersPageTimeDriven() {
 
       if (action.kind === 'transition') {
         const expectedUpdatedAtMs = typeof row.v2.updatedAtMs === 'number' ? row.v2.updatedAtMs : undefined;
+        
+        // DEBUG: log l'état avant transition
+        console.log('[OrdersTimeDriven] Transition:', {
+          orderId: row.legacy.id,
+          legacyStatus: row.legacy.status,
+          v2KitchenStatus: row.v2.kitchenStatus,
+          nextKitchenStatus: action.nextKitchenStatus,
+          v2PaymentStatus: row.v2.paymentStatus,
+          hasV2Embedded: Boolean(row.legacy.v2),
+          expectedUpdatedAtMs,
+        });
+        
         await pizzaioloTransitionOrderV2({
           orderId: row.legacy.id,
           nextKitchenStatus: action.nextKitchenStatus,
