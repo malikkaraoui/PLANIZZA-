@@ -1,40 +1,10 @@
-import { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
+import { useState, useEffect, Suspense, lazy } from 'react';
 import { Button } from './Button';
 import { Input } from './Input';
 
-// Fix Leaflet default icon issue with Vite
-import L from 'leaflet';
-import icon from 'leaflet/dist/images/marker-icon.png';
-import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+import ErrorBoundary from '../ErrorBoundary';
 
-let DefaultIcon = L.icon({
-  iconUrl: icon,
-  shadowUrl: iconShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41]
-});
-
-L.Marker.prototype.options.icon = DefaultIcon;
-
-// Composant pour gérer les clics sur la carte
-function LocationMarker({ position, setPosition }) {
-  useMapEvents({
-    click(e) {
-      const { lat, lng } = e.latlng;
-      setPosition({ lat, lng });
-      // Reverse geocoding pour obtenir l'adresse
-      reverseGeocode(lat, lng).then(addr => {
-        if (addr) {
-          setPosition(prev => ({ ...prev, address: addr }));
-        }
-      });
-    },
-  });
-
-  return position ? <Marker position={[position.lat, position.lng]} /> : null;
-}
+const LocationPickerMap = lazy(() => import('./LocationPickerMap'));
 
 // Reverse geocoding avec Nominatim (OpenStreetMap)
 async function reverseGeocode(lat, lng) {
@@ -214,18 +184,17 @@ export default function LocationPicker({ value, onChange, defaultOpen = false })
           <div className="bg-gray-100 px-4 py-2 text-sm text-gray-700">
             💡 Cliquez sur la carte pour placer votre camion
           </div>
-          <MapContainer
-            center={position ? [position.lat, position.lng] : [46.603354, 1.888334]} // Centre de la France
-            zoom={position ? 15 : 6}
-            style={{ height: '400px', width: '100%' }}
-            scrollWheelZoom={true}
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <LocationMarker position={position} setPosition={handlePositionChange} />
-          </MapContainer>
+          <ErrorBoundary title="Carte indisponible">
+            <Suspense
+              fallback={
+                <div className="p-6 text-sm text-gray-600">
+                  Chargement de la carte…
+                </div>
+              }
+            >
+              <LocationPickerMap position={position} onPositionChange={handlePositionChange} />
+            </Suspense>
+          </ErrorBoundary>
         </div>
       )}
 

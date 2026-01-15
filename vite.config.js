@@ -22,7 +22,6 @@ export default defineConfig({
 
           // Gros vendors ciblés
           if (id.includes('/firebase/')) return 'vendor-firebase';
-          if (id.includes('/leaflet/') || id.includes('/react-leaflet/')) return 'vendor-leaflet';
           if (id.includes('/@stripe/') || id.includes('/stripe/')) return 'vendor-stripe';
           if (id.includes('/chart.js/') || id.includes('/react-chartjs-2/') || id.includes('/recharts/')) {
             return 'vendor-charts';
@@ -36,11 +35,6 @@ export default defineConfig({
 
           // Utils
           if (id.includes('/lodash')) return 'vendor-lodash';
-
-          // React/router (souvent déjà séparés, mais on fixe un chunk stable)
-          if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/react-router-dom/')) {
-            return 'vendor-react';
-          }
 
           // Le reste des deps
           return 'vendor';

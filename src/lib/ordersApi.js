@@ -37,7 +37,7 @@ async function postJson(path, body) {
       } else {
         msg = await res.text();
       }
-    } catch (_parseErr) {
+    } catch {
       try {
         msg = await res.text();
       } catch {
