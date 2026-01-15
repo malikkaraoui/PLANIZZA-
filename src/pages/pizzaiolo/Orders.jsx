@@ -65,9 +65,12 @@ export default function PizzaioloOrders() {
   });
 
   const [filtersVisible, setFiltersVisible] = useState(false); // Afficher/cacher les filtres
-  
-  // Modal de détails de commande
-  const [selectedOrder, setSelectedOrder] = useState(null);
+
+  // Détails inline (accordion) : une seule carte ouverte à la fois
+  const [expandedOrderId, setExpandedOrderId] = useState(null);
+
+  // Historique : pop-up type ticket de caisse
+  const [selectedHistoryOrder, setSelectedHistoryOrder] = useState(null);
 
   // Charger les détails du camion (cadence + horaires) dès que truckId est connu.
   useEffect(() => {
@@ -577,7 +580,10 @@ export default function PizzaioloOrders() {
                       onAccept={handleAccept}
                       onDeliver={handleDeliver}
                       onMarkPaid={handleMarkPaid}
-                      onClick={() => setSelectedOrder(order)}
+                      expanded={expandedOrderId === order.id}
+                      onToggleExpanded={() =>
+                        setExpandedOrderId((prev) => (prev === order.id ? null : order.id))
+                      }
                       updating={updating}
                       borderVariant="paid"
                     />
@@ -617,7 +623,10 @@ export default function PizzaioloOrders() {
                       onAccept={handleAccept}
                       onDeliver={handleDeliver}
                       onMarkPaid={handleMarkPaid}
-                      onClick={() => setSelectedOrder(order)}
+                      expanded={expandedOrderId === order.id}
+                      onToggleExpanded={() =>
+                        setExpandedOrderId((prev) => (prev === order.id ? null : order.id))
+                      }
                       updating={updating}
                       borderVariant="unpaid"
                     />
@@ -657,7 +666,10 @@ export default function PizzaioloOrders() {
                       onAccept={handleAccept}
                       onDeliver={handleDeliver}
                       onMarkPaid={handleMarkPaid}
-                      onClick={() => setSelectedOrder(order)}
+                      expanded={expandedOrderId === order.id}
+                      onToggleExpanded={() =>
+                        setExpandedOrderId((prev) => (prev === order.id ? null : order.id))
+                      }
                       updating={updating}
                       borderVariant="paid"
                     />
@@ -697,7 +709,10 @@ export default function PizzaioloOrders() {
                       onAccept={handleAccept}
                       onDeliver={handleDeliver}
                       onMarkPaid={handleMarkPaid}
-                      onClick={() => setSelectedOrder(order)}
+                      expanded={expandedOrderId === order.id}
+                      onToggleExpanded={() =>
+                        setExpandedOrderId((prev) => (prev === order.id ? null : order.id))
+                      }
                       updating={updating}
                       borderVariant="unpaid"
                     />
@@ -728,7 +743,7 @@ export default function PizzaioloOrders() {
                 <Card 
                   key={order.id} 
                   className="glass-premium glass-glossy border-white/20 p-4 rounded-3xl opacity-60 hover:opacity-100 transition-opacity cursor-pointer"
-                  onClick={() => setSelectedOrder(order)}
+                  onClick={() => setSelectedHistoryOrder(order)}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -776,162 +791,139 @@ export default function PizzaioloOrders() {
         </section>
       )}
 
-      {/* Modal de détails de commande */}
-      <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
-        <DialogContent className="max-w-2xl glass-premium glass-glossy border-white/20 rounded-[32px] max-h-[90vh] overflow-y-auto">
-          {selectedOrder && (
+      {/* Historique: pop-up type ticket de caisse */}
+      <Dialog open={!!selectedHistoryOrder} onOpenChange={() => setSelectedHistoryOrder(null)}>
+        <DialogContent className="max-w-xl glass-premium glass-glossy border-white/20 rounded-[28px] max-h-[90vh] overflow-y-auto">
+          {selectedHistoryOrder ? (
             <>
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-3 text-2xl">
-                  <span>Commande #{selectedOrder.id.slice(-6).toUpperCase()}</span>
-                  <Badge className={`${(isExpired(selectedOrder) ? STATUS_CONFIG.lost : STATUS_CONFIG[selectedOrder.status] || STATUS_CONFIG.delivered).color} text-white rounded-full`}>
-                    {isExpired(selectedOrder) ? 'Perdue' : (STATUS_CONFIG[selectedOrder.status] || STATUS_CONFIG.delivered).label}
+                <DialogTitle className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl font-black">Ticket</span>
+                    <span className="text-sm font-black text-muted-foreground">
+                      #{selectedHistoryOrder.id.slice(-6).toUpperCase()}
+                    </span>
+                  </div>
+                  <Badge className={`${(isExpired(selectedHistoryOrder) ? STATUS_CONFIG.lost : STATUS_CONFIG[selectedHistoryOrder.status] || STATUS_CONFIG.delivered).color} text-white rounded-full`}>
+                    {isExpired(selectedHistoryOrder) ? 'Perdue' : (STATUS_CONFIG[selectedHistoryOrder.status] || STATUS_CONFIG.delivered).label}
                   </Badge>
                 </DialogTitle>
               </DialogHeader>
 
-              <div className="space-y-6 mt-4">
-                {/* Informations générales */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">Date et heure</p>
-                    <p className="font-bold">
-                      {new Date(selectedOrder.createdAt).toLocaleDateString('fr-FR', { 
-                        day: 'numeric', 
-                        month: 'long',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </p>
+              <div className="mt-4 space-y-4">
+                {/* En-tête */}
+                <div className="rounded-2xl bg-white/5 border border-white/10 p-4 space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground font-bold">Date</span>
+                    <span className="font-black">
+                      {(() => {
+                        const ms = getCreatedAtMs(selectedHistoryOrder);
+                        if (!ms) return '—';
+                        return new Date(ms).toLocaleString('fr-FR', {
+                          day: '2-digit',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        });
+                      })()}
+                    </span>
                   </div>
-
-                  {selectedOrder.customerName && (
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Client</p>
-                      <p className="font-bold">{selectedOrder.customerName}</p>
-                    </div>
-                  )}
-
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">Mode de retrait</p>
-                    <div className="flex items-center gap-2">
-                      {selectedOrder.deliveryMethod === 'delivery' ? (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground font-bold">Client</span>
+                    <span className="font-black">
+                      {selectedHistoryOrder.customerName || '—'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground font-bold">Retrait</span>
+                    <span className="font-black inline-flex items-center gap-2">
+                      {selectedHistoryOrder.deliveryMethod === 'delivery' ? (
                         <>
                           <Bike className="h-4 w-4" />
-                          <span className="font-bold">Livraison à domicile</span>
+                          Livraison
                         </>
                       ) : (
                         <>
                           <Store className="h-4 w-4" />
-                          <span className="font-bold">Retrait au camion</span>
+                          Camion
                         </>
                       )}
-                    </div>
+                    </span>
                   </div>
-
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">Paiement</p>
-                    <div className="flex items-center gap-2">
-                      {selectedOrder.payment?.provider === 'stripe' ? (
-                        <>
-                          <CreditCard className="h-4 w-4 text-emerald-500" />
-                          <span className="font-bold">En ligne</span>
-                          <Badge className="bg-emerald-500 text-white text-xs rounded-full">
-                            {selectedOrder.payment?.paymentStatus === 'paid' ? 'Payé' : 'En attente'}
-                          </Badge>
-                        </>
-                      ) : (
-                        <>
-                          <CreditCard className="h-4 w-4 text-purple-500" />
-                          <span className="font-bold">Manuel</span>
-                          <Badge className="bg-purple-500 text-white text-xs rounded-full">
-                            {selectedOrder.payment?.paymentStatus === 'paid' ? 'Payé' : 'À payer'}
-                          </Badge>
-                        </>
-                      )}
-                    </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground font-bold">Paiement</span>
+                    <span className="font-black inline-flex items-center gap-2">
+                      <CreditCard className={`h-4 w-4 ${selectedHistoryOrder.payment?.provider === 'stripe' ? 'text-emerald-500' : 'text-purple-500'}`} />
+                      {selectedHistoryOrder.payment?.provider === 'stripe' ? 'En ligne' : 'Manuel'}
+                      <Badge className={`${selectedHistoryOrder.payment?.paymentStatus === 'paid' ? 'bg-emerald-600/90' : 'bg-orange-600/90'} text-white rounded-full text-xs`}>
+                        {selectedHistoryOrder.payment?.paymentStatus === 'paid' ? 'Payé' : 'En attente'}
+                      </Badge>
+                    </span>
                   </div>
                 </div>
 
                 {/* Articles */}
-                <div className="space-y-3">
-                  <p className="text-sm font-bold text-muted-foreground">Articles</p>
+                <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
+                  <div className="text-sm font-black mb-3">Articles</div>
                   <div className="space-y-2">
-                    {selectedOrder.items?.map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-white/5">
-                        <div className="flex items-center gap-3">
-                          <span className="font-black text-primary">{item.qty}x</span>
-                          <span className="font-bold">{item.name}</span>
+                    {(Array.isArray(selectedHistoryOrder.items) ? selectedHistoryOrder.items : []).map((item, idx) => (
+                      <div key={idx} className="flex items-start justify-between gap-3 text-sm">
+                        <div className="min-w-0">
+                          <div className="font-black truncate">
+                            <span className="text-primary">{item.qty}x</span> {item.name}
+                          </div>
+                          {/* Modifs ingrédients (ticket) */}
+                          {(item.removedIngredients?.length > 0 || item.addedIngredients?.length > 0) ? (
+                            <div className="mt-1 text-xs space-y-1">
+                              {item.removedIngredients?.length > 0 ? (
+                                <div className="text-red-500 font-bold">➖ Sans: {item.removedIngredients.join(', ')}</div>
+                              ) : null}
+                              {item.addedIngredients?.length > 0 ? (
+                                <div className="text-green-500 font-bold">➕ Avec: {item.addedIngredients.join(', ')}</div>
+                              ) : null}
+                            </div>
+                          ) : null}
                         </div>
-                        <span className="font-bold text-muted-foreground">
-                          {((item.priceCents * item.qty) / 100).toFixed(2)} €
-                        </span>
+                        <div className="shrink-0 font-black text-muted-foreground">
+                          {typeof item.priceCents === 'number'
+                            ? `${(((item.priceCents || 0) * (item.qty || 0)) / 100).toFixed(2)} €`
+                            : ''}
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Total */}
-                <div className="space-y-2 pt-4 border-t border-white/10">
+                {/* Totaux */}
+                <div className="rounded-2xl bg-white/5 border border-white/10 p-4 space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Total HT</span>
-                    <span className="font-bold">
-                      {(selectedOrder.totalCents / (1 + TVA_RATE) / 100).toFixed(2)} €
+                    <span className="text-muted-foreground font-bold">Total HT</span>
+                    <span className="font-black">
+                      {typeof selectedHistoryOrder.totalCents === 'number'
+                        ? `${(selectedHistoryOrder.totalCents / (1 + TVA_RATE) / 100).toFixed(2)} €`
+                        : '—'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">TVA (10%)</span>
-                    <span className="font-bold">
-                      {(selectedOrder.totalCents / 100 - selectedOrder.totalCents / (1 + TVA_RATE) / 100).toFixed(2)} €
+                    <span className="text-muted-foreground font-bold">TVA (10%)</span>
+                    <span className="font-black">
+                      {typeof selectedHistoryOrder.totalCents === 'number'
+                        ? `${(selectedHistoryOrder.totalCents / 100 - selectedHistoryOrder.totalCents / (1 + TVA_RATE) / 100).toFixed(2)} €`
+                        : '—'}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between pt-2 border-t border-white/10">
-                    <span className="text-xl font-black">Total TTC</span>
-                    <span className="text-2xl font-black text-primary">
-                      {(selectedOrder.totalCents / 100).toFixed(2)} €
+                  <div className="pt-2 border-t border-white/10 flex items-center justify-between">
+                    <span className="text-lg font-black">Total TTC</span>
+                    <span className="text-xl font-black text-primary">
+                      {typeof selectedHistoryOrder.totalCents === 'number'
+                        ? `${(selectedHistoryOrder.totalCents / 100).toFixed(2)} €`
+                        : '—'}
                     </span>
                   </div>
                 </div>
-
-                {/* Timeline */}
-                {selectedOrder.timeline && (
-                  <div className="space-y-3">
-                    <p className="text-sm font-bold text-muted-foreground">Chronologie</p>
-                    <div className="space-y-2">
-                      {selectedOrder.timeline.acceptedAt && (
-                        <div className="flex items-center gap-3 text-sm">
-                          <CheckCircle className="h-4 w-4 text-blue-500" />
-                          <span>Prise en charge</span>
-                          <span className="text-muted-foreground">
-                            {new Date(selectedOrder.timeline.acceptedAt).toLocaleTimeString('fr-FR')}
-                          </span>
-                        </div>
-                      )}
-                      {selectedOrder.timeline.readyAt && (
-                        <div className="flex items-center gap-3 text-sm">
-                          <Pizza className="h-4 w-4 text-orange-500" />
-                          <span>Prête</span>
-                          <span className="text-muted-foreground">
-                            {new Date(selectedOrder.timeline.readyAt).toLocaleTimeString('fr-FR')}
-                          </span>
-                        </div>
-                      )}
-                      {selectedOrder.timeline.deliveredAt && (
-                        <div className="flex items-center gap-3 text-sm">
-                          <Package className="h-4 w-4 text-green-500" />
-                          <span>Délivrée</span>
-                          <span className="text-muted-foreground">
-                            {new Date(selectedOrder.timeline.deliveredAt).toLocaleTimeString('fr-FR')}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
             </>
-          )}
+          ) : null}
         </DialogContent>
       </Dialog>
 
