@@ -864,64 +864,81 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
         v2MapKitchenStatusFromV1Status(pre?.status);
       const prePaymentStatus = pre?.v2?.paymentStatus || v2MapPaymentStatus(pre);
 
-      let result;
-      try {
+      const computeBaseV2 = (orderLike) => {
+        const existingV2 = orderLike?.v2 && typeof orderLike.v2 === "object" ? orderLike.v2 : null;
+        return existingV2 || v2BuildBase({ ...orderLike, id: orderId }, { nowIso, nowMs });
+      };
+
+      const runTx = async ({ enforceExpectedUpdatedAt = true } = {}) => {
         // NOTE: Admin SDK transaction signature is (updateFn, onComplete?, applyLocally?)
         // Passing an options object as 2nd arg crashes with:
         // "Reference.transaction failed: onComplete argument must be a valid function."
-        result = await orderRef.transaction((current) => {
-        if (!current) return;
+        return orderRef.transaction(
+          (current) => {
+            if (!current) return;
 
-        const existingV2 = current?.v2 && typeof current.v2 === "object" ? current.v2 : null;
-        const baseV2 = existingV2 || v2BuildBase({ ...current, id: orderId }, { nowIso, nowMs });
+            const baseV2 = computeBaseV2(current);
 
-        if (typeof expectedUpdatedAtMs === "number") {
-          const cur = baseV2.updatedAtMs;
-          if (typeof cur === "number" && cur !== expectedUpdatedAtMs) {
-            return; // abort => conflict
-          }
-        }
+            // Idempotence: si la commande est déjà dans l'état demandé, on ne change rien.
+            if (baseV2?.kitchenStatus === nextKitchenStatus) {
+              return current;
+            }
 
-        const check = v2CanTransition(baseV2, nextKitchenStatus, { managerOverride });
-        if (!check.ok) {
-          return; // abort
-        }
+            if (enforceExpectedUpdatedAt && typeof expectedUpdatedAtMs === "number") {
+              const cur = baseV2.updatedAtMs;
+              if (typeof cur === "number" && cur !== expectedUpdatedAtMs) {
+                return; // abort => conflict
+              }
+            }
 
-        const nextV2 = omitUndefinedDeep({
-          ...baseV2,
-          kitchenStatus: nextKitchenStatus,
-          updatedAt: nowIso,
-          updatedAtMs: nowMs,
-          timestamps: v2ApplyEventTimestamps({
-            nextKitchenStatus,
-            nowIso,
-            currentTimestamps: {
-              ...v2DeriveTimestampsFromLegacyTimeline(current),
-              ...(baseV2.timestamps || {}),
-            },
-          }),
-        });
+            const check = v2CanTransition(baseV2, nextKitchenStatus, { managerOverride });
+            if (!check.ok) {
+              return; // abort
+            }
 
-        if (managerOverride) {
-          nextV2.flags = { ...(nextV2.flags || {}), managerOverride: true };
-        }
+            const nextV2 = omitUndefinedDeep({
+              ...baseV2,
+              kitchenStatus: nextKitchenStatus,
+              updatedAt: nowIso,
+              updatedAtMs: nowMs,
+              timestamps: v2ApplyEventTimestamps({
+                nextKitchenStatus,
+                nowIso,
+                currentTimestamps: {
+                  ...v2DeriveTimestampsFromLegacyTimeline(current),
+                  ...(baseV2.timestamps || {}),
+                },
+              }),
+            });
 
-        const v1Status = v2MapKitchenStatusToV1Status(nextKitchenStatus);
-        const timelineKey = v2TimelineKeyForV1Status(v1Status);
+            if (managerOverride) {
+              nextV2.flags = { ...(nextV2.flags || {}), managerOverride: true };
+            }
 
-        const next = { ...current };
-        next.v2 = nextV2;
-        next.status = v1Status;
-        next.updatedAt = rtdbServerTimestamp();
-        if (!next.timeline) next.timeline = {};
-        if (timelineKey) {
-          // timelineKey est un chemin, on gère les 2 niveaux.
-          const [, key] = timelineKey.split("/");
-          next.timeline[key] = rtdbServerTimestamp();
-        }
+            const v1Status = v2MapKitchenStatusToV1Status(nextKitchenStatus);
+            const timelineKey = v2TimelineKeyForV1Status(v1Status);
 
-        return omitUndefinedDeep(next);
-        }, undefined, false);
+            const next = { ...current };
+            next.v2 = nextV2;
+            next.status = v1Status;
+            next.updatedAt = rtdbServerTimestamp();
+            if (!next.timeline) next.timeline = {};
+            if (timelineKey) {
+              // timelineKey est un chemin, on gère les 2 niveaux.
+              const [, key] = timelineKey.split("/");
+              next.timeline[key] = rtdbServerTimestamp();
+            }
+
+            return omitUndefinedDeep(next);
+          },
+          undefined,
+          false
+        );
+      };
+
+      let result;
+      try {
+        result = await runTx({ enforceExpectedUpdatedAt: true });
       } catch (txErr) {
         console.error("[PLANIZZA][pizzaioloTransitionOrderV2] transaction failed", {
           errorId,
@@ -933,11 +950,70 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
       }
 
       if (!result.committed) {
-        // Differencier conflit vs transition invalid (best-effort)
-        if (typeof expectedUpdatedAtMs === "number") {
-          return res.status(409).json({ error: "conflict" });
+        // On re-lit pour distinguer précisément conflit vs transition refusée,
+        // et rendre l'opération idempotente (double-clic / UI en retard).
+        const latestSnap = await orderRef.get();
+        const latest = latestSnap.exists() ? latestSnap.val() : null;
+        const latestV2 = latest ? computeBaseV2(latest) : null;
+
+        const curKitchen = latestV2?.kitchenStatus;
+        const curUpdatedAtMs = latestV2?.updatedAtMs;
+
+        if (curKitchen === nextKitchenStatus) {
+          // Déjà fait (idempotent)
+          return res.json({
+            ok: true,
+            noop: true,
+            kitchenStatus: curKitchen,
+            updatedAtMs: curUpdatedAtMs,
+          });
         }
-        return res.status(409).json({ error: "transition_refused" });
+
+        const canNow = latestV2
+          ? v2CanTransition(latestV2, nextKitchenStatus, { managerOverride })
+          : { ok: false, reason: "Commande introuvable" };
+
+        // Si l'optimistic lock a échoué mais que la transition est toujours valide,
+        // on tente 1 retry sans expectedUpdatedAtMs (évite des 409 liés à des updates annexes).
+        if (typeof expectedUpdatedAtMs === "number" && canNow.ok) {
+          const retry = await runTx({ enforceExpectedUpdatedAt: false });
+          if (retry.committed) {
+            await writeOrderEvent(orderId, {
+              type: "STATUS_CHANGED",
+              actor: "PIZZAIOLO",
+              source: "pizzaioloTransitionOrderV2",
+              from: {
+                kitchenStatus: curKitchen || preKitchenStatus,
+                paymentStatus: prePaymentStatus,
+              },
+              to: { kitchenStatus: nextKitchenStatus, paymentStatus: prePaymentStatus },
+            });
+            return res.json({
+              ok: true,
+              updatedAtMs: nowMs,
+              updatedAt: nowIso,
+              retried: true,
+            });
+          }
+        }
+
+        if (
+          typeof expectedUpdatedAtMs === "number" &&
+          typeof curUpdatedAtMs === "number" &&
+          curUpdatedAtMs !== expectedUpdatedAtMs
+        ) {
+          return res.status(409).json({
+            error: "conflict",
+            currentKitchenStatus: curKitchen,
+            currentUpdatedAtMs: curUpdatedAtMs,
+          });
+        }
+
+        return res.status(409).json({
+          error: "transition_refused",
+          reason: canNow?.reason || "transition_refused",
+          currentKitchenStatus: curKitchen,
+        });
       }
 
       await writeOrderEvent(orderId, {

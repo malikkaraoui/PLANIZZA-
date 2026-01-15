@@ -353,6 +353,19 @@ export default function OrdersPageTimeDriven() {
         else if (action.nextKitchenStatus === 'CANCELED') setMessage('✅ Commande annulée.');
       }
     } catch (err) {
+      const status = err?.status;
+      const apiErr = err?.details?.error;
+      const apiReason = err?.details?.reason;
+
+      if (status === 409 && apiErr === 'conflict') {
+        setMessage('❌ Cette commande a été mise à jour ailleurs. Réessaie dans 1 seconde.');
+        return;
+      }
+      if (status === 409 && apiErr === 'transition_refused') {
+        setMessage(`❌ Action refusée${apiReason ? ` : ${apiReason}` : ''}.`);
+        return;
+      }
+
       setMessage(`❌ ${String(err?.message || err)}`);
     } finally {
       setMutating(false);
