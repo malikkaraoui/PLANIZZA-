@@ -622,7 +622,7 @@ exports.createCheckoutSession = onRequest(
 // Endpoint pizzaiolo (HTTP) : mise à jour du statut d'une commande.
 // Objectif: éviter les writes directs depuis le client et centraliser les garde-fous.
 exports.pizzaioloUpdateOrderStatus = onRequest(
-  { region: "us-central1" },
+  { region: "us-central1", invoker: "public" },
   async (req, res) => {
     setCors(req, res);
     if (req.method === "OPTIONS") return res.status(204).send("");
@@ -806,7 +806,7 @@ exports.pizzaioloMarkOrderPaid = onRequest(
 
 // Endpoint pizzaiolo (HTTP) : transition v2 atomique (transaction) + optimistic locking.
 exports.pizzaioloTransitionOrderV2 = onRequest(
-  { region: "us-central1" },
+  { region: "us-central1", invoker: "public" },
   async (req, res) => {
     setCors(req, res);
     if (req.method === "OPTIONS") return res.status(204).send("");
