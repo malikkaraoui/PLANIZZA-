@@ -9,6 +9,12 @@ const { rtdbServerTimestamp } = require("./utils/timestamps");
 // Initialiser Firebase Admin
 admin.initializeApp();
 
+const DEBUG_V2 = process.env.DEBUG_V2_TRANSITIONS === "true";
+function debugLog(...args) {
+  if (!DEBUG_V2) return;
+  console.log(...args);
+}
+
 // Firebase RTDB n'accepte pas les valeurs `undefined` (même côté Admin SDK).
 // On nettoie donc systématiquement les payloads avant écriture.
 function omitUndefinedDeep(value) {
@@ -269,7 +275,7 @@ function v2CanTransition(orderV2, nextKitchenStatus, { managerOverride = false }
   const paymentStatus = orderV2?.paymentStatus;
 
   // DEBUG: log exact des paramètres
-  console.log("[PLANIZZA][v2CanTransition] check", {
+  debugLog("[PLANIZZA][v2CanTransition] check", {
     from,
     fromType: typeof from,
     nextKitchenStatus,
@@ -870,7 +876,7 @@ exports.pizzaioloTransitionOrderV2 = onCall(
       const orderPath = `orders/${orderId}`;
       const orderRef = admin.database().ref(orderPath);
 
-      console.log("🔍 [V2 LOOKUP]", {
+      debugLog("🔍 [V2 LOOKUP]", {
         errorId,
         orderId,
         path: orderPath,
@@ -881,7 +887,7 @@ exports.pizzaioloTransitionOrderV2 = onCall(
 
       const snap = await orderRef.get();
 
-      console.log("🔍 [V2 LOOKUP RESULT]", {
+      debugLog("🔍 [V2 LOOKUP RESULT]", {
         errorId,
         orderId,
         exists: snap.exists(),
@@ -899,7 +905,7 @@ exports.pizzaioloTransitionOrderV2 = onCall(
 
       const pre = snap.val();
 
-      console.log("[PLANIZZA][pizzaioloTransitionOrderV2] request", {
+      debugLog("[PLANIZZA][pizzaioloTransitionOrderV2] request", {
         errorId,
         uid,
         orderId,
@@ -920,7 +926,7 @@ exports.pizzaioloTransitionOrderV2 = onCall(
       const prePaymentStatus = pre?.v2?.paymentStatus || v2MapPaymentStatus(pre);
 
       // 🔍 LOG BACKEND: état reçu
-      console.log("🟧 [BACK] Action reçue:", {
+      debugLog("🟧 [BACK] Action reçue:", {
         errorId,
         orderId,
         action,
@@ -938,7 +944,7 @@ exports.pizzaioloTransitionOrderV2 = onCall(
           v2BuildBase({ ...orderLike, id: orderId }, { nowIso, nowMs });
 
         // DEBUG: log l'état v2 calculé pour diagnostiquer les transitions refusées
-        console.log("[PLANIZZA][pizzaioloTransitionOrderV2] computeBaseV2", {
+        debugLog("[PLANIZZA][pizzaioloTransitionOrderV2] computeBaseV2", {
           errorId,
           orderId,
           hasEmbeddedV2: Boolean(existingV2),
@@ -989,7 +995,7 @@ exports.pizzaioloTransitionOrderV2 = onCall(
             const check = v2CanTransition(baseV2, targetStatus, { managerOverride });
             if (!check.ok) {
               abortReason = check.reason || "transition_check_failed";
-              console.log("[PLANIZZA][pizzaioloTransitionOrderV2] transition refused in tx", {
+              debugLog("[PLANIZZA][pizzaioloTransitionOrderV2] transition refused in tx", {
                 errorId,
                 orderId,
                 from: baseV2?.kitchenStatus,
@@ -1042,7 +1048,7 @@ exports.pizzaioloTransitionOrderV2 = onCall(
 
         // Log l'abort reason après la transaction
         if (!result.committed && abortReason) {
-          console.log("[PLANIZZA][pizzaioloTransitionOrderV2] tx not committed", {
+          debugLog("[PLANIZZA][pizzaioloTransitionOrderV2] tx not committed", {
             errorId,
             orderId,
             abortReason,
@@ -1123,7 +1129,7 @@ exports.pizzaioloTransitionOrderV2 = onCall(
             };
           } else if (retryWasIdempotent) {
             // Le retry a constaté que c'était déjà fait (idempotent)
-            console.log("[PLANIZZA][pizzaioloTransitionOrderV2] retry was idempotent", {
+            debugLog("[PLANIZZA][pizzaioloTransitionOrderV2] retry was idempotent", {
               errorId,
               orderId,
             });
@@ -1134,7 +1140,7 @@ exports.pizzaioloTransitionOrderV2 = onCall(
               retried: true,
             };
           } else {
-            console.log("[PLANIZZA][pizzaioloTransitionOrderV2] retry also failed", {
+            debugLog("[PLANIZZA][pizzaioloTransitionOrderV2] retry also failed", {
               errorId,
               orderId,
             });
@@ -1153,7 +1159,7 @@ exports.pizzaioloTransitionOrderV2 = onCall(
           });
         }
 
-        console.log("[PLANIZZA][pizzaioloTransitionOrderV2] FINAL 409", {
+        console.warn("[PLANIZZA][pizzaioloTransitionOrderV2] FINAL 409", {
           errorId,
           orderId,
           txAbortReason,

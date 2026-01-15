@@ -23,6 +23,7 @@ const PizzaioloStats = lazy(() => import('../pages/pizzaiolo/Stats'));
 const PizzaioloLive = lazy(() => import('../pages/pizzaiolo/Live'));
 const PizzaioloStart = lazy(() => import('../pages/pizzaiolo/Start'));
 const CreateTruck = lazy(() => import('../pages/pizzaiolo/CreateTruck'));
+const E2ETransitionContract = lazy(() => import('../pages/E2ETransitionContract'));
 
 import RootLayout from '../components/layout/RootLayout';
 import ProtectedRoute from './ProtectedRoute';
@@ -42,6 +43,10 @@ function wrap(element) {
     </Suspense>
   );
 }
+
+const e2eRoutes = import.meta.env.VITE_E2E === 'true'
+  ? [{ path: '__e2e__/transition', element: wrap(<E2ETransitionContract />) }]
+  : [];
 
 export const router = createBrowserRouter([
   {
@@ -112,6 +117,8 @@ export const router = createBrowserRouter([
           { path: 'live', element: wrap(<PizzaioloLive />) },
         ],
       },
+
+      ...e2eRoutes,
 
       // Route dynamique truck en DERNIER (catch-all pour les slugs)
       { path: ':truckId', element: wrap(<TruckDetails />) },

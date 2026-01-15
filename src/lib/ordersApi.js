@@ -1,4 +1,5 @@
 import { httpsCallable } from 'firebase/functions';
+import { assertValidTransitionPayload } from './transitionValidation';
 import { auth, functions, isFirebaseConfigured } from './firebase';
 
 const FUNCTIONS_BASE =
@@ -70,17 +71,21 @@ export async function pizzaioloMarkOrderPaid({ orderId, method = 'OTHER' }) {
   return postJson('pizzaioloMarkOrderPaid', { orderId, method });
 }
 
-export async function pizzaioloTransitionOrderV2({
-  orderId,
-  action,
-  expectedUpdatedAtMs,
-  managerOverride = false,
-}) {
+export async function pizzaioloTransitionOrderV2(payload) {
   if (!isFirebaseConfigured || !functions) {
     throw new Error(
       "Firebase Functions n'est pas configuré. Configurez .env.local (Firebase) et démarrez les émulateurs ou déployez les functions."
     );
   }
+
+  assertValidTransitionPayload(payload);
+
+  const {
+    orderId,
+    action,
+    expectedUpdatedAtMs,
+    managerOverride = false,
+  } = payload;
 
   try {
     const callTransition = httpsCallable(functions, 'pizzaioloTransitionOrderV2');

@@ -10,6 +10,7 @@ import { useAutoDismissMessage } from '../../hooks/useAutoDismissMessage';
 
 import { legacyToOrderV2 } from '../../features/orders/v2/adapters/legacyToV2';
 import { pizzaioloMarkOrderPaid, pizzaioloTransitionOrderV2 } from '../../lib/ordersApi';
+import { devLog } from '../../lib/devLog';
 
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -340,7 +341,7 @@ export default function OrdersPageTimeDriven() {
         const expectedUpdatedAtMs = typeof row.v2.updatedAtMs === 'number' ? row.v2.updatedAtMs : undefined;
         
         // 🔍 LOG: payload V2 action-based
-        console.log('[FRONT V2 TRANSITION]', {
+        devLog('[FRONT V2 TRANSITION]', {
           orderId: row.legacy.id,
           action: action.key.toUpperCase(),
           expectedUpdatedAtMs,
