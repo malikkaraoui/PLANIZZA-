@@ -268,6 +268,16 @@ function v2CanTransition(orderV2, nextKitchenStatus, { managerOverride = false }
   const from = orderV2?.kitchenStatus;
   const paymentStatus = orderV2?.paymentStatus;
 
+  // DEBUG: log exact des paramètres
+  console.log("[PLANIZZA][v2CanTransition] check", {
+    from,
+    fromType: typeof from,
+    nextKitchenStatus,
+    paymentStatus,
+    hasOrderV2: Boolean(orderV2),
+    orderV2Keys: orderV2 ? Object.keys(orderV2) : null,
+  });
+
   const allowed = {
     NEW: ["QUEUED", "CANCELED"],
     QUEUED: ["PREPPING", "CANCELED"],
