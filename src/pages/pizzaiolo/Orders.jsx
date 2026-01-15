@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Clock, User, Pizza, CheckCircle, ChefHat, Package, ArrowLeft, Filter, Store, Bike, CreditCard, X, Calendar } from 'lucide-react';
 import { ref, get, set } from 'firebase/database';
@@ -62,6 +62,128 @@ export default function PizzaioloOrders() {
   const [message, setMessage] = useState('');
   // Les messages de succès/info disparaissent (les ❌ restent).
   useAutoDismissMessage(message, setMessage, { delayMs: 5000, dismissErrors: false });
+
+  // Optimistic UI: on applique le changement immédiatement (localStorage), puis RTDB rattrape.
+  // Objectif: retrouver l'effet “instantané” qu'apporte normalement le SDK RTDB (latency compensation)
+  // tout en gardant les writes orders côté serveur only (Functions).
+  const overridesStorageKey = useMemo(() => {
+    if (!truckId) return null;
+    return `planizza:pizzaiolo:orderStatusOverrides:${truckId}`;
+  }, [truckId]);
+
+  const [statusOverrides, setStatusOverrides] = useState({});
+
+  useEffect(() => {
+    if (!overridesStorageKey) {
+      setStatusOverrides({});
+      return;
+    }
+
+    try {
+      const raw = localStorage.getItem(overridesStorageKey);
+      const parsed = raw ? JSON.parse(raw) : {};
+      const loaded = parsed && typeof parsed === 'object' ? parsed : {};
+
+      // IMPORTANT: ne pas écraser un override optimistic posé entre-temps.
+      // Exemple bug: clic "Prise en charge" -> override ajouté -> effect load localStorage (retardé)
+      // écrase avec un snapshot plus ancien => la tuile revient à l'état initial (flicker).
+      setStatusOverrides((prev) => {
+        const prevObj = prev && typeof prev === 'object' ? prev : {};
+        const merged = { ...loaded };
+
+        for (const [orderId, ov] of Object.entries(prevObj)) {
+          const cur = merged[orderId];
+          const ovTs = typeof ov?.ts === 'number' ? ov.ts : 0;
+          const curTs = typeof cur?.ts === 'number' ? cur.ts : 0;
+
+          // Garder la version la plus récente (ou celle du runtime si aucun ts côté loaded)
+          if (!cur || ovTs >= curTs) {
+            merged[orderId] = ov;
+          }
+        }
+
+        return merged;
+      });
+    } catch {
+      setStatusOverrides({});
+    }
+  }, [overridesStorageKey]);
+
+  useEffect(() => {
+    if (!overridesStorageKey) return;
+    try {
+      localStorage.setItem(overridesStorageKey, JSON.stringify(statusOverrides || {}));
+    } catch {
+      // best-effort
+    }
+  }, [overridesStorageKey, statusOverrides]);
+
+  const uiOrders = useMemo(() => {
+    if (!Array.isArray(orders) || !orders.length) return [];
+    if (!statusOverrides || typeof statusOverrides !== 'object') return orders;
+
+    return orders.map((o) => {
+      const ov = statusOverrides[o.id];
+      if (!ov) return o;
+
+      const next = { ...o };
+      if (ov.status) next.status = ov.status;
+      if (ov.timelinePatch && typeof ov.timelinePatch === 'object') {
+        next.timeline = { ...(o.timeline || {}), ...ov.timelinePatch };
+      }
+      return next;
+    });
+  }, [orders, statusOverrides]);
+
+  // Réconciliation: si RTDB a déjà la valeur finale, on retire l'override.
+  useEffect(() => {
+    if (!statusOverrides || typeof statusOverrides !== 'object') return;
+    if (!Array.isArray(orders) || !orders.length) return;
+
+    const byId = new Map(orders.map((o) => [o.id, o]));
+    const next = { ...statusOverrides };
+    let changed = false;
+
+    for (const [orderId, ov] of Object.entries(statusOverrides)) {
+      const live = byId.get(orderId);
+      if (!live) continue;
+
+      // Si le statut côté serveur correspond à l'optimistic, on peut purger.
+      if (ov?.status && live.status === ov.status) {
+        delete next[orderId];
+        changed = true;
+      }
+    }
+
+    if (changed) setStatusOverrides(next);
+  }, [orders, statusOverrides]);
+
+  const applyOptimisticStatus = (orderId, nextStatus) => {
+    if (!orderId || !nextStatus) return;
+    const now = Date.now();
+    const patch = {};
+    if (nextStatus === 'accepted') patch.acceptedAt = now;
+    if (nextStatus === 'delivered') patch.deliveredAt = now;
+
+    setStatusOverrides((prev) => ({
+      ...(prev || {}),
+      [orderId]: {
+        status: nextStatus,
+        timelinePatch: patch,
+        ts: now,
+      },
+    }));
+  };
+
+  const clearOptimisticStatus = (orderId) => {
+    if (!orderId) return;
+    setStatusOverrides((prev) => {
+      if (!prev || typeof prev !== 'object' || !prev[orderId]) return prev;
+      const next = { ...prev };
+      delete next[orderId];
+      return next;
+    });
+  };
 
   // États des filtres
   const [filters, setFilters] = useState({
@@ -191,11 +313,13 @@ export default function PizzaioloOrders() {
   // Prendre en charge
   const handleAccept = async (orderId) => {
     console.log('[Orders] Clic sur Prendre en charge, orderId:', orderId);
+    applyOptimisticStatus(orderId, 'accepted');
     const result = await updateStatus(orderId, 'accepted');
     console.log('[Orders] Résultat:', result);
     if (result?.ok) {
       setMessage('✅ Commande prise en charge.');
     } else {
+      clearOptimisticStatus(orderId);
       setMessage(`❌ Impossible de prendre en charge. ${result?.error || updateError || ''}`.trim());
     }
   };
@@ -204,7 +328,7 @@ export default function PizzaioloOrders() {
   const handleDeliver = async (orderId) => {
     console.log('[Orders] Clic sur Délivré, orderId:', orderId);
     
-    const order = orders.find((o) => o.id === orderId);
+    const order = uiOrders.find((o) => o.id === orderId);
     const paymentStatus = order?.payment?.paymentStatus;
     const paymentProvider = order?.payment?.provider;
 
@@ -232,11 +356,13 @@ export default function PizzaioloOrders() {
       }
     }
 
+    applyOptimisticStatus(orderId, 'delivered');
     const result = await updateStatus(orderId, 'delivered');
     console.log('[Orders] Résultat:', result);
     if (result?.ok) {
       setMessage('✅ Commande délivrée.');
     } else {
+      clearOptimisticStatus(orderId);
       // Exemple fréquent: 409 — Paiement requis avant livraison/remise
       setMessage(`❌ Livraison refusée. ${result?.error || updateError || ''}`.trim());
     }
@@ -253,7 +379,7 @@ export default function PizzaioloOrders() {
   };
 
   // Appliquer les filtres sur TOUTES les commandes (actives + historique)
-  const allFilteredOrders = getFilteredOrders(orders, filters);
+  const allFilteredOrders = getFilteredOrders(uiOrders, filters);
   const filteredActiveOrders = allFilteredOrders.filter((o) => {
     if (['delivered', 'cancelled'].includes(o.status)) return false;
     if (isExpired(o)) return false;

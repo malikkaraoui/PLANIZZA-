@@ -143,11 +143,13 @@ export function groupOrdersByStatus(orders) {
     };
   }
 
+  const isPaid = (o) => o?.payment?.paymentStatus === 'paid' || o?.v2?.paymentStatus === 'PAID';
+
   const groups = {
-    notAcceptedPaid: orders.filter(o => o.status === 'received' && o.payment?.paymentStatus === 'paid'),
-    notAcceptedUnpaid: orders.filter(o => o.status === 'received' && o.payment?.paymentStatus !== 'paid'),
-    acceptedPaid: orders.filter(o => o.status === 'accepted' && o.payment?.paymentStatus === 'paid'),
-    acceptedUnpaid: orders.filter(o => o.status === 'accepted' && o.payment?.paymentStatus !== 'paid')
+    notAcceptedPaid: orders.filter((o) => o.status === 'received' && isPaid(o)),
+    notAcceptedUnpaid: orders.filter((o) => o.status === 'received' && !isPaid(o)),
+    acceptedPaid: orders.filter((o) => o.status === 'accepted' && isPaid(o)),
+    acceptedUnpaid: orders.filter((o) => o.status === 'accepted' && !isPaid(o))
   };
 
   console.log('[groupOrdersByStatus] Groupes:', {

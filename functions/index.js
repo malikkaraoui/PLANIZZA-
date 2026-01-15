@@ -655,8 +655,9 @@ exports.pizzaioloUpdateOrderStatus = onRequest(
       const truckId = order?.truckId;
       await assertPizzaioloOwnsTruck({ uid, truckId });
 
-      const paymentStatus = order?.payment?.paymentStatus;
-      if (newStatus === "delivered" && paymentStatus !== "paid" && !managerOverride) {
+      const legacyPaid = order?.payment?.paymentStatus === "paid";
+      const v2Paid = order?.v2?.paymentStatus === "PAID";
+      if (newStatus === "delivered" && !legacyPaid && !v2Paid && !managerOverride) {
         return res.status(409).json({ error: "Paiement requis avant livraison/remise" });
       }
 

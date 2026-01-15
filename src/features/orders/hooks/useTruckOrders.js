@@ -44,8 +44,9 @@ export function useTruckOrders(truckId) {
               // Pour les commandes manuelles, on garde tout sauf 'created'
               if (order.payment?.provider === 'manual') return true;
               
-              // Pour les commandes en ligne, on garde si payment.paymentStatus = 'paid'
-              if (order.payment?.provider === 'stripe' && order.payment?.paymentStatus === 'paid') return true;
+              // Pour les commandes en ligne, on garde si payée (legacy ou v2)
+              const isPaid = order.payment?.paymentStatus === 'paid' || order.v2?.paymentStatus === 'PAID';
+              if (order.payment?.provider === 'stripe' && isPaid) return true;
               
               // Sinon, on exclut
               return false;
