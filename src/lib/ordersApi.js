@@ -33,7 +33,14 @@ async function postJson(path, body) {
     try {
       if (contentType.includes('application/json')) {
         details = await res.json();
-        msg = typeof details?.error === 'string' ? details.error : JSON.stringify(details);
+        if (typeof details?.error === 'string') {
+          msg = details.error;
+          if (details?.errorId) {
+            msg += ` (id: ${details.errorId})`;
+          }
+        } else {
+          msg = JSON.stringify(details);
+        }
       } else {
         msg = await res.text();
       }

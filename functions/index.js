@@ -207,6 +207,10 @@ function v2BuildBase(order, { nowIso, nowMs }) {
     null;
   const createdAtIso = v2IsoFromMs(createdAtMs, nowIso) || nowIso;
 
+  const updatedAtMs =
+    (typeof order?.updatedAt === "number" && Number.isFinite(order.updatedAt) ? order.updatedAt : null) ||
+    null;
+
   const promisedAtIso = v2InferPromisedAtIso({
     order,
     createdAtIso,
@@ -221,7 +225,9 @@ function v2BuildBase(order, { nowIso, nowMs }) {
     promisedAt: promisedAtIso,
     promisedAtMs: Number.isFinite(promisedAtMs) ? promisedAtMs : undefined,
     updatedAt: nowIso,
-    updatedAtMs: nowMs,
+    // On essaie de dériver d'abord d'un updatedAt persistant (legacy) pour que l'optimistic locking
+    // reste utile même si /v2 n'existe pas encore.
+    updatedAtMs: (typeof updatedAtMs === "number" ? updatedAtMs : nowMs),
     kitchenStatus: v2MapKitchenStatusFromV1Status(order?.status),
     paymentStatus: v2MapPaymentStatus(order),
     fulfillment: v2InferFulfillment(order),
@@ -812,6 +818,8 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
     if (req.method === "OPTIONS") return res.status(204).send("");
     if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
+    const errorId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
     try {
       const uid = await requireAuthUid(req);
 
@@ -837,6 +845,16 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
       if (!snap.exists()) return res.status(404).json({ error: "Commande introuvable" });
       const pre = snap.val();
 
+      console.log("[PLANIZZA][pizzaioloTransitionOrderV2] request", {
+        errorId,
+        uid,
+        orderId,
+        nextKitchenStatus,
+        expectedUpdatedAtMsType: typeof expectedUpdatedAtMs,
+        managerOverride,
+        origin: req.headers.origin || null,
+      });
+
       await assertPizzaioloOwnsTruck({ uid, truckId: pre?.truckId });
 
       const nowIso = new Date().toISOString();
@@ -846,7 +864,9 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
         v2MapKitchenStatusFromV1Status(pre?.status);
       const prePaymentStatus = pre?.v2?.paymentStatus || v2MapPaymentStatus(pre);
 
-      const result = await orderRef.transaction((current) => {
+      let result;
+      try {
+        result = await orderRef.transaction((current) => {
         if (!current) return;
 
         const existingV2 = current?.v2 && typeof current.v2 === "object" ? current.v2 : null;
@@ -898,7 +918,16 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
         }
 
         return omitUndefinedDeep(next);
-      }, { applyLocally: false });
+        }, { applyLocally: false });
+      } catch (txErr) {
+        console.error("[PLANIZZA][pizzaioloTransitionOrderV2] transaction failed", {
+          errorId,
+          message: txErr?.message,
+          name: txErr?.name,
+          stack: txErr?.stack,
+        });
+        throw txErr;
+      }
 
       if (!result.committed) {
         // Differencier conflit vs transition invalid (best-effort)
@@ -919,8 +948,17 @@ exports.pizzaioloTransitionOrderV2 = onRequest(
       return res.json({ ok: true, updatedAtMs: nowMs, updatedAt: nowIso });
     } catch (err) {
       const status = err?.status || 500;
-      console.error("[PLANIZZA][pizzaioloTransitionOrderV2] error", err);
-      return res.status(status).json({ error: status === 500 ? "internal" : String(err.message || err) });
+      console.error("[PLANIZZA][pizzaioloTransitionOrderV2] error", {
+        errorId,
+        message: err?.message,
+        name: err?.name,
+        stack: err?.stack,
+        status,
+      });
+      return res.status(status).json({
+        error: status === 500 ? "internal" : String(err?.message || err),
+        errorId: status === 500 ? errorId : undefined,
+      });
     }
   }
 );

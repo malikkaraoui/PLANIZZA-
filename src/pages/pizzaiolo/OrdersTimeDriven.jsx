@@ -6,6 +6,7 @@ import { useAuth } from '../../app/providers/AuthProvider';
 import { usePizzaioloTruckId } from '../../features/pizzaiolo/hooks/usePizzaioloTruckId';
 import { useTruckOrders } from '../../features/orders/hooks/useTruckOrders';
 import { useServerNow } from '../../hooks/useServerNow';
+import { useAutoDismissMessage } from '../../hooks/useAutoDismissMessage';
 
 import { legacyToOrderV2 } from '../../features/orders/v2/adapters/legacyToV2';
 import { pizzaioloMarkOrderPaid, pizzaioloTransitionOrderV2 } from '../../lib/ordersApi';
@@ -267,6 +268,8 @@ export default function OrdersPageTimeDriven() {
 
   const [q, setQ] = useState('');
   const [mutating, setMutating] = useState(false);
+  const [message, setMessage] = useState('');
+  useAutoDismissMessage(message, setMessage, { delayMs: 5000, dismissErrors: false });
 
   const rows = useMemo(() => {
     const term = String(q || '').trim().toLowerCase();
@@ -329,6 +332,7 @@ export default function OrdersPageTimeDriven() {
 
       if (action.kind === 'markPaid') {
         await pizzaioloMarkOrderPaid({ orderId: row.legacy.id, method: 'CASH' });
+        setMessage('✅ Paiement enregistré.');
         return;
       }
 
@@ -339,7 +343,17 @@ export default function OrdersPageTimeDriven() {
           nextKitchenStatus: action.nextKitchenStatus,
           expectedUpdatedAtMs,
         });
+
+        // Message ultra simple (v0)
+        if (action.nextKitchenStatus === 'QUEUED') setMessage('✅ Commande acceptée.');
+        else if (action.nextKitchenStatus === 'PREPPING') setMessage('✅ Préparation démarrée.');
+        else if (action.nextKitchenStatus === 'READY') setMessage('✅ Commande prête.');
+        else if (action.nextKitchenStatus === 'HANDOFF') setMessage('✅ Commande remise.');
+        else if (action.nextKitchenStatus === 'DONE') setMessage('✅ Commande terminée.');
+        else if (action.nextKitchenStatus === 'CANCELED') setMessage('✅ Commande annulée.');
       }
+    } catch (err) {
+      setMessage(`❌ ${String(err?.message || err)}`);
     } finally {
       setMutating(false);
     }
@@ -403,6 +417,18 @@ export default function OrdersPageTimeDriven() {
           Erreur commandes: {String(ordersError?.message || ordersError)}
         </div>
       )) || null}
+
+      {message ? (
+        <div
+          className={`mb-4 rounded-2xl border p-3 text-xs ${
+            message.startsWith('❌')
+              ? 'border-red-500/20 bg-red-950/40 text-red-100'
+              : 'border-emerald-500/20 bg-emerald-950/30 text-emerald-50'
+          }`}
+        >
+          {message}
+        </div>
+      ) : null}
 
       <div className="grid gap-3">
         <TimeSection
