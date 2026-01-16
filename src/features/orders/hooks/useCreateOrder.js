@@ -5,7 +5,15 @@ import { createCheckoutSession } from '../../../lib/stripe';
 export function useCreateOrder() {
   const [loading, setLoading] = useState(false);
 
-  const createOrder = async ({ truckId, items, userUid, customerName, deliveryMethod }) => {
+  const createOrder = async ({
+    truckId,
+    items,
+    userUid,
+    customerName,
+    deliveryMethod,
+    pickupTime,
+    deliveryAddress,
+  }) => {
     setLoading(true);
     try {
       if (!userUid) {
@@ -30,6 +38,8 @@ export function useCreateOrder() {
         })),
         deliveryMethod: deliveryMethod || 'pickup',
         customerName: customerName || 'Client',
+        pickupTime: pickupTime || null,
+        deliveryAddress: deliveryAddress || null,
       });
 
       return { ok: true };

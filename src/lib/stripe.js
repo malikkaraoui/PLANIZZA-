@@ -31,7 +31,15 @@ const stripePromise = publishableKey ? loadStripe(publishableKey) : Promise.reso
  *   }
  * };
  */
-export async function createCheckoutSession({ orderId, truckId, items, deliveryMethod, customerName }) {
+export async function createCheckoutSession({
+  orderId,
+  truckId,
+  items,
+  deliveryMethod,
+  customerName,
+  pickupTime,
+  deliveryAddress,
+}) {
   try {
     if (!isFirebaseConfigured || !functions) {
       throw new Error(
@@ -69,6 +77,8 @@ export async function createCheckoutSession({ orderId, truckId, items, deliveryM
             items,
             deliveryMethod,
             customerName,
+            pickupTime,
+            deliveryAddress,
           }
         : null),
     };

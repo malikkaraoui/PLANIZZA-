@@ -27,6 +27,41 @@ export function isCurrentlyOpen(openingHours) {
   return currentTime >= openTime && currentTime < closeTime;
 }
 
+export function getTodayOpeningHours(openingHours, now = new Date()) {
+  if (!openingHours || typeof openingHours !== 'object') {
+    return null;
+  }
+
+  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const currentDay = dayNames[now.getDay()];
+  const daySchedule = openingHours[currentDay];
+
+  if (!daySchedule) {
+    return {
+      dayKey: currentDay,
+      enabled: false,
+      open: null,
+      close: null,
+    };
+  }
+
+  return {
+    dayKey: currentDay,
+    enabled: Boolean(daySchedule.enabled),
+    open: daySchedule.open || null,
+    close: daySchedule.close || null,
+  };
+}
+
+export function isTimeWithinOpeningHours(time, openingHours, now = new Date()) {
+  const today = getTodayOpeningHours(openingHours, now);
+  if (!today) return null;
+  if (!today.enabled) return false;
+  if (!today.open || !today.close) return null;
+
+  return time >= today.open && time < today.close;
+}
+
 /**
  * Obtient le texte d'affichage pour le statut du camion
  */

@@ -13,9 +13,11 @@ import { ROUTES } from '../app/routes';
 import { ref, get } from 'firebase/database';
 import { db } from '../lib/firebase';
 import { useTruck } from '../features/trucks/hooks/useTruck';
-import { isCurrentlyOpen } from '../lib/openingHours';
+import { getTodayOpeningHours, isCurrentlyOpen } from '../lib/openingHours';
 import { devLog } from '../lib/devLog';
 import StickyAside from '../components/layout/StickyAside';
+import DesiredTimePicker from '../features/orders/components/DesiredTimePicker';
+import { getMinDesiredTime, validateDesiredTime } from '../features/orders/utils/desiredTime';
 
 const TVA_RATE = 0.10; // 10% TVA restauration
 
@@ -36,6 +38,8 @@ export default function Cart() {
   const { createOrder, loading: creatingOrder } = useCreateOrder();
   const [error, setError] = useState(null);
   const [deliveryMethod, setDeliveryMethod] = useState('pickup'); // 'pickup' ou 'delivery'
+  const [desiredTime, setDesiredTime] = useState('');
+  const [desiredTimeError, setDesiredTimeError] = useState('');
 
   // Règle simple et stable (pas de scroll/mesures):
   // - Sur desktop, si le panier est "petit", on met la méthode à droite sous le récap.
@@ -45,6 +49,13 @@ export default function Cart() {
   const dockMethodRight = items.length <= DOCK_METHOD_RIGHT_MAX_ITEMS;
 
   const cartSections = useMemo(() => buildCartSections(items), [items]);
+  const pizzaCount = useMemo(() => {
+    return items.reduce((sum, item) => {
+      const qty = Number(item?.qty || 0);
+      if (!Number.isFinite(qty)) return sum;
+      return isPizzaLikeCartItem(item) ? sum + qty : sum;
+    }, 0);
+  }, [items]);
 
   const getExploreUrl = () => {
     try {
@@ -155,6 +166,23 @@ export default function Cart() {
     loadUserPreferences();
   }, [user?.uid]);
 
+  const { minTime: minDesiredTime } = useMemo(() => {
+    return getMinDesiredTime({
+      now: new Date(),
+      pizzaCount,
+      deliveryMethod,
+      baseLeadMinutes: 0,
+      perPizzaMinutes: 5,
+      deliveryExtraMinutes: 15,
+    });
+  }, [pizzaCount, deliveryMethod]);
+
+  useEffect(() => {
+    if (!desiredTime) {
+      setDesiredTime(minDesiredTime);
+    }
+  }, [desiredTime, minDesiredTime]);
+
   const handleCheckout = async () => {
     // Vérifier l'authentification
     if (!isAuthenticated || !user) {
@@ -215,6 +243,37 @@ export default function Cart() {
       }
     }
 
+    // Vérifier l'heure souhaitée
+    if (!desiredTime || !/^\d{2}:\d{2}$/.test(desiredTime)) {
+      const msg = "Veuillez renseigner une heure souhaitée valide.";
+      setDesiredTimeError(msg);
+      setError(msg);
+      return;
+    }
+
+    const { minDate } = getMinDesiredTime({
+      now: new Date(),
+      pizzaCount,
+      deliveryMethod,
+      baseLeadMinutes: 0,
+      perPizzaMinutes: 5,
+      deliveryExtraMinutes: 15,
+    });
+
+    const { error: timeError } = validateDesiredTime({
+      value: desiredTime,
+      now: new Date(),
+      minDate,
+      openingHours,
+      getTodayOpeningHours,
+    });
+
+    if (timeError) {
+      setDesiredTimeError(timeError);
+      setError(timeError);
+      return;
+    }
+
     setError(null);
     
     try {
@@ -231,6 +290,7 @@ export default function Cart() {
         customerName: user.displayName || 'Client',
         deliveryMethod: deliveryMethod,
         deliveryAddress: fullAddress,
+        pickupTime: desiredTime,
       });
       // La fonction createOrder redirige automatiquement vers Stripe Checkout
     } catch (err) {
@@ -420,6 +480,36 @@ export default function Cart() {
     </Card>
   ) : null;
 
+  const desiredTimeCard = (
+    <Card className="glass-premium glass-glossy border-white/30">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg font-black tracking-tight">Heure souhaitée</CardTitle>
+        <CardDescription className="text-xs">
+          Choisissez l'heure de {deliveryMethod === 'delivery' ? 'livraison' : 'retrait'} souhaitée.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <DesiredTimePicker
+          label={deliveryMethod === 'delivery' ? 'Heure de livraison' : 'Heure de retrait'}
+          value={desiredTime}
+          onChange={setDesiredTime}
+          pizzaCount={pizzaCount}
+          deliveryMethod={deliveryMethod}
+          openingHours={openingHours}
+          baseLeadMinutes={0}
+          perPizzaMinutes={5}
+          deliveryExtraMinutes={15}
+          onErrorChange={setDesiredTimeError}
+          helperText={
+            deliveryMethod === 'delivery'
+              ? 'Minimum: 5 min par pizza + 15 min de livraison.'
+              : 'Minimum: 5 min par pizza.'
+          }
+        />
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="container mx-auto max-w-4xl px-4 py-8 sm:px-6">
       {/* Header */}
@@ -542,6 +632,9 @@ export default function Cart() {
           {/* Zone “Méthode” sous la liste (position normale) */}
           <div className={dockMethodRight ? 'lg:hidden' : ''}>{methodCard}</div>
 
+          {/* Heure souhaitée */}
+          {desiredTimeCard}
+
           {/* Formulaire livraison: toujours dans la colonne gauche pour éviter les sauts de layout */}
           {deliveryAddressCard}
         </div>
@@ -595,7 +688,7 @@ export default function Cart() {
                     className="w-full"
                     size="lg"
                     onClick={handleCheckout}
-                    disabled={creatingOrder || loadingTruck || !truckId || !canOrder}
+                    disabled={creatingOrder || loadingTruck || !truckId || !canOrder || Boolean(desiredTimeError)}
                   >
                     {creatingOrder ? 'Préparation du paiement...' : loadingTruck ? 'Vérification...' : 'Commander'}
                   </Button>

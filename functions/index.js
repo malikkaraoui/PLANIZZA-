@@ -473,8 +473,16 @@ exports.createCheckoutSession = onRequest(
       const items = req.body?.items;
       const customerName = req.body?.customerName;
       const deliveryMethod = req.body?.deliveryMethod;
+      const pickupTime = req.body?.pickupTime;
+      const deliveryAddress = req.body?.deliveryAddress;
 
       const nowClientMs = Date.now();
+      const normalizedPickupTime = typeof pickupTime === "string" && /^\d{2}:\d{2}$/.test(pickupTime)
+        ? pickupTime
+        : null;
+      const normalizedDeliveryAddress = typeof deliveryAddress === "string" && deliveryAddress.trim().length > 0
+        ? deliveryAddress.trim()
+        : null;
 
       /** @type {string | null} */
       let orderId = typeof providedOrderId === "string" ? providedOrderId : null;
@@ -520,11 +528,13 @@ exports.createCheckoutSession = onRequest(
             customerName: typeof customerName === "string" ? customerName.trim() : "Client",
             deliveryMethod: normalizedDeliveryMethod,
             deliveryCost,
+            deliveryAddress: normalizedDeliveryAddress,
             currency: "eur",
             items: safeItems,
             createdAt: rtdbServerTimestamp(),
             updatedAt: rtdbServerTimestamp(),
             createdAtClient: nowClientMs,
+            pickupTime: normalizedPickupTime,
           };
         }
       } else {
@@ -560,11 +570,13 @@ exports.createCheckoutSession = onRequest(
           customerName: typeof customerName === "string" ? customerName.trim() : "Client",
           deliveryMethod: normalizedDeliveryMethod,
           deliveryCost,
+          deliveryAddress: normalizedDeliveryAddress,
           currency: "eur",
           items: safeItems,
           createdAt: rtdbServerTimestamp(),
           updatedAt: rtdbServerTimestamp(),
           createdAtClient: nowClientMs,
+          pickupTime: normalizedPickupTime,
         };
       }
 
@@ -620,6 +632,8 @@ exports.createCheckoutSession = onRequest(
           },
           stripeCheckoutSessionId: session.id,
           updatedAt: rtdbServerTimestamp(),
+          pickupTime: normalizedPickupTime || undefined,
+          deliveryAddress: normalizedDeliveryAddress || undefined,
         };
 
         // - Si la commande existait déjà, on ne touche qu'aux champs Stripe/total.

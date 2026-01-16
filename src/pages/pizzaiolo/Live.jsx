@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Minus, Trash2, User, ShoppingCart, Check, Pizza, Wine, IceCream, Clock } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, Trash2, User, ShoppingCart, Check, Pizza, Wine, IceCream } from 'lucide-react';
 import { ref, update } from 'firebase/database';
 import { db } from '../../lib/firebase';
 import { rtdbPaths } from '../../lib/rtdbPaths';
@@ -28,6 +28,8 @@ import {
   hasValidPrice 
 } from '../../features/menu/utils/priceCalculations';
 import { formatDrinkVolumeLabel } from '../../features/menu/utils/formatDrinkVolumeLabel';
+import DesiredTimePicker from '../../features/orders/components/DesiredTimePicker';
+import { getMinDesiredTime, validateDesiredTime } from '../../features/orders/utils/desiredTime';
 
 export default function PizzaioloLive() {
   const { user } = useAuth();
@@ -199,16 +201,25 @@ export default function PizzaioloLive() {
       return;
     }
 
-    // Validation: empêcher les heures dans le passé (validation finale)
+    // Validation: empêcher les heures invalides (validation finale)
     if (pickupTime && /^\d{2}:\d{2}$/.test(pickupTime)) {
-      const now = new Date();
-      const [hours, minutes] = pickupTime.split(':').map(Number);
-      const pickupDate = new Date();
-      pickupDate.setHours(hours, minutes, 0, 0);
+      const { minDate } = getMinDesiredTime({
+        now: new Date(),
+        pizzaCount: 0,
+        deliveryMethod: 'pickup',
+        baseLeadMinutes: 0,
+        perPizzaMinutes: 0,
+        deliveryExtraMinutes: 0,
+      });
+      const { error } = validateDesiredTime({
+        value: pickupTime,
+        now: new Date(),
+        minDate,
+      });
 
-      if (pickupDate < now) {
-        setPickupTimeError("L'heure de retrait ne peut pas être dans le passé");
-        alert("❌ L'heure de retrait ne peut pas être dans le passé");
+      if (error) {
+        setPickupTimeError(error);
+        alert(`❌ ${error}`);
         return;
       }
     }
@@ -778,50 +789,17 @@ export default function PizzaioloLive() {
 
             {/* Heure de retrait */}
             <div className="mb-4">
-              <label className="flex items-center gap-2 text-sm font-bold text-muted-foreground mb-2">
-                <Clock className="h-4 w-4" />
-                Heure de retrait
-              </label>
-              <Input
-                type="time"
+              <DesiredTimePicker
+                label="Heure de retrait"
                 value={pickupTime}
-                onChange={(e) => {
-                  const newTime = e.target.value;
-                  // IMPORTANT: ne pas valider pendant la frappe.
-                  // Sinon l'input time "snap" sur une valeur (ex: 11:00) et déclenche l'erreur avant que
-                  // l'utilisateur finisse d'entrer (ex: 12:30).
-                  setPickupTimeError('');
-                  setPickupTime(newTime);
-                }}
-                onBlur={() => {
-                  // Validation douce à la fin de saisie (format complet)
-                  if (!pickupTime || !/^\d{2}:\d{2}$/.test(pickupTime)) return;
-
-                  const now = new Date();
-                  const [hours, minutes] = pickupTime.split(':').map(Number);
-                  const selectedDate = new Date();
-                  selectedDate.setHours(hours, minutes, 0, 0);
-
-                  if (selectedDate < now) {
-                    setPickupTimeError("L'heure de retrait ne peut pas être dans le passé");
-                  } else {
-                    setPickupTimeError('');
-                  }
-                }}
-                className="rounded-xl"
-                min={(() => {
-                  // Définir l'heure minimum (maintenant)
-                  const now = new Date();
-                  const h = String(now.getHours()).padStart(2, '0');
-                  const m = String(now.getMinutes()).padStart(2, '0');
-                  return `${h}:${m}`;
-                })()}
+                onChange={setPickupTime}
+                pizzaCount={0}
+                deliveryMethod="pickup"
+                baseLeadMinutes={0}
+                perPizzaMinutes={0}
+                deliveryExtraMinutes={0}
+                onErrorChange={setPickupTimeError}
               />
-              {pickupTimeError && (
-                <p className="mt-2 text-xs font-bold text-red-600">
-                  ⚠️ {pickupTimeError}
-                </p>
-              )}
             </div>
 
             {/* Items */}

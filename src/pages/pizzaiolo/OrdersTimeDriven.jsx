@@ -61,6 +61,23 @@ function safeParseMs(iso) {
   return Number.isFinite(ms) ? ms : NaN;
 }
 
+function toIsoFromMs(ms) {
+  if (!Number.isFinite(ms)) return null;
+  return new Date(ms).toISOString();
+}
+
+function projectPickupTimeIso(pickupTime, createdAtIso) {
+  if (typeof pickupTime !== 'string' || !/^\d{2}:\d{2}$/.test(pickupTime)) return null;
+  if (typeof createdAtIso !== 'string') return null;
+  const base = new Date(createdAtIso);
+  if (!Number.isFinite(base.getTime())) return null;
+  const [hh, mm] = pickupTime.split(':').map(Number);
+  const projected = new Date(base);
+  projected.setHours(hh, mm, 0, 0);
+  if (!Number.isFinite(projected.getTime())) return null;
+  return projected.toISOString();
+}
+
 /**
  * @param {string} promisedAtISO
  * @param {number} nowMs
@@ -96,6 +113,15 @@ function v2FromOrderLegacy(order) {
     const promisedAt = typeof embedded.promisedAt === 'string' ? embedded.promisedAt : undefined;
     const createdAt = typeof embedded.createdAt === 'string' ? embedded.createdAt : undefined;
 
+    const legacyCreatedAtIso =
+      toIsoFromMs(typeof order?.createdAt === 'number' ? order.createdAt : NaN) ||
+      toIsoFromMs(typeof order?.createdAtClient === 'number' ? order.createdAtClient : NaN);
+
+    const pickupProjected = projectPickupTimeIso(
+      order?.pickupTime,
+      createdAt || legacyCreatedAtIso || new Date().toISOString(),
+    );
+
     const promisedAtMs =
       typeof embedded.promisedAtMs === 'number'
         ? embedded.promisedAtMs
@@ -112,10 +138,16 @@ function v2FromOrderLegacy(order) {
 
     const updatedAtMs = typeof embedded.updatedAtMs === 'number' ? embedded.updatedAtMs : undefined;
 
+    const resolvedPromisedAt = pickupProjected || promisedAt;
+    const resolvedPromisedAtMs = pickupProjected
+      ? safeParseMs(pickupProjected)
+      : promisedAtMs;
+
     return {
       ...embedded,
       id: order.id,
-      promisedAtMs: Number.isFinite(promisedAtMs) ? promisedAtMs : undefined,
+      promisedAt: resolvedPromisedAt,
+      promisedAtMs: Number.isFinite(resolvedPromisedAtMs) ? resolvedPromisedAtMs : undefined,
       createdAtMs: Number.isFinite(createdAtMs) ? createdAtMs : undefined,
       updatedAtMs: Number.isFinite(updatedAtMs) ? updatedAtMs : undefined,
     };
