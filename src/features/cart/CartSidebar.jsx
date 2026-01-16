@@ -4,6 +4,7 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { useCart } from './hooks/useCart.jsx';
 import { buildCartSections } from './utils/cartSections';
+import { formatCartItemName } from './utils/formatCartItemName';
 
 function formatEUR(cents) {
   return (cents / 100).toFixed(2).replace('.', ',') + ' €';
@@ -147,7 +148,7 @@ export default function CartSidebar({
                       >
                         <div className="flex-1 min-w-0">
                           <div className="font-black text-sm tracking-tight truncate group-hover:text-primary transition-colors pr-8">
-                            {it.name}
+                            {formatCartItemName(it.name)}
                           </div>
 
                           {isPizzaLikeCartItem(it) && it.description && (
@@ -224,18 +225,6 @@ export default function CartSidebar({
       {/* Footer avec total + bouton - fixe */}
       {items.length > 0 && showCheckoutButton && (
         <div className={`relative z-20 border-t border-white/10 ${footerPadding}`}>
-          {/* Info paiement sécurisé */}
-          {showPaymentInfo && !compact && (
-            <div className="text-center space-y-2">
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">
-                Paiement Sécurisé
-              </p>
-              <p className="text-xs font-medium text-muted-foreground">
-                Apple Pay, Google Pay ou CB
-              </p>
-            </div>
-          )}
-
           {/* Total + Bouton */}
           <div className="space-y-4">
             <div className="flex items-center justify-between px-2">

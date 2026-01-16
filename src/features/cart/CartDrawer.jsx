@@ -4,6 +4,7 @@ import { Card } from '../../components/ui/Card';
 import { ShoppingBag, Trash2, Pizza, Minus, Plus } from 'lucide-react';
 import { useCart } from './hooks/useCart.jsx';
 import { buildCartSections } from './utils/cartSections';
+import { formatCartItemName } from './utils/formatCartItemName';
 
 function formatEUR(cents) {
   return (cents / 100).toFixed(2).replace('.', ',') + ' €';
@@ -53,7 +54,7 @@ export default function CartDrawer({ onCheckout, disabled = false }) {
                   <div key={it.id} className="group flex items-center justify-between gap-4 p-4 rounded-[28px] glass-premium hover:bg-white/10 transition-all border-white/10 shadow-sm relative overflow-hidden">
                     <div className="flex-1 min-w-0">
                       <div className="font-black text-sm tracking-tight truncate group-hover:text-primary transition-colors pr-8">
-                        {it.name}
+                        {formatCartItemName(it.name)}
                       </div>
 
                       {isPizzaLikeCartItem(it) && it.description && (

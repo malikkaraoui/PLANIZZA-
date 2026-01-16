@@ -13,7 +13,9 @@ export function formatDrinkVolumeLabel(size) {
     '50cl': '50cL',
     '75cl': '75cL',
     '1l': '1L',
+    '1L': '1L',
     '1.5l': '1,5L',
+    '1.5L': '1,5L',
   };
 
   if (map[raw]) return map[raw];

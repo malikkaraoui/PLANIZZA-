@@ -5,6 +5,7 @@ import { ref, query, orderByChild, equalTo, onValue, get } from 'firebase/databa
 import { db } from '../lib/firebase';
 import { useAuth } from '../app/providers/AuthProvider';
 import { ROUTES } from '../app/routes';
+import { formatCartItemName } from '../features/cart/utils/formatCartItemName';
 
 export default function Orders() {
   const { user } = useAuth();
@@ -196,7 +197,7 @@ export default function Orders() {
                     </div>
                   </div>
                   <div className="border-t border-gray-100 pt-4">
-                    <p className="text-gray-600 text-sm font-medium">{order.items?.map(item => `${item.qty}x ${item.name}`).join(', ')}</p>
+                    <p className="text-gray-600 text-sm font-medium">{order.items?.map(item => `${item.qty}x ${formatCartItemName(item.name)}`).join(', ')}</p>
                   </div>
                   <div className="mt-4 flex items-center justify-between">
                     <div className="flex items-center gap-2 text-sm">

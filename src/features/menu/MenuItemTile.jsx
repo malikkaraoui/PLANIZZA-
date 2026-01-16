@@ -91,22 +91,10 @@ export default function MenuItemTile({ item, onAdd, isDisabled = false }) {
 
   return (
     <Card
-      role={isAvailable ? 'button' : undefined}
-      tabIndex={isAvailable ? 0 : undefined}
-      onClick={() => {
-        handleAdd();
-      }}
-      onKeyDown={(e) => {
-        if (!isAvailable) return;
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          handleAdd();
-        }
-      }}
-      className={`group glass-premium glass-glossy overflow-hidden border-white/30 transition-all duration-300 rounded-[28px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 ${
+      className={`group glass-premium glass-glossy overflow-hidden border-white/30 transition-all duration-300 rounded-[28px] ${
         !isAvailable
           ? 'opacity-50 grayscale pointer-events-none'
-          : 'cursor-pointer hover:shadow-[0_24px_48px_-18px_rgba(0,0,0,0.18)]'
+          : 'hover:shadow-[0_24px_48px_-18px_rgba(0,0,0,0.18)]'
       }`}
     >
       <CardContent className="p-5">
@@ -158,7 +146,6 @@ export default function MenuItemTile({ item, onAdd, isDisabled = false }) {
 
               <AddToCartButton
                 onClick={(e) => {
-                  // Toute la tuile est cliquable : éviter un double ajout.
                   e.stopPropagation();
                   handleAdd();
                 }}
@@ -180,7 +167,9 @@ export default function MenuItemTile({ item, onAdd, isDisabled = false }) {
                       '50cl': '50cL',
                       '75cl': '75cL',
                       '1l': '1L',
+                      '1L': '1L',
                       '1.5l': '1,5L',
+                      '1.5L': '1,5L',
                     }[size] || size;
 
                   return (

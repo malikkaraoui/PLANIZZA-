@@ -7,6 +7,7 @@ import { Separator } from '../components/ui/separator';
 import { Input } from '../components/ui/Input';
 import { useCart } from '../features/cart/hooks/useCart.jsx';
 import { buildCartSections } from '../features/cart/utils/cartSections';
+import { formatCartItemName } from '../features/cart/utils/formatCartItemName';
 import { useAuth } from '../app/providers/AuthProvider';
 import { useCreateOrder } from '../features/orders/hooks/useCreateOrder';
 import { ROUTES } from '../app/routes';
@@ -630,7 +631,7 @@ export default function Cart() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-4">
                               <div>
-                                <h3 className="font-semibold leading-tight">{item.name}</h3>
+                                <h3 className="font-semibold leading-tight">{formatCartItemName(item.name)}</h3>
                                 {isPizzaLikeCartItem(item) && item.description && (
                                   <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                                     {item.description}

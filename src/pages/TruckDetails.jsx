@@ -4,7 +4,9 @@ import { MapPin, Pizza, X } from 'lucide-react';
 import TruckHeader from '../features/trucks/TruckHeader';
 import { useTruck } from '../features/trucks/hooks/useTruck';
 import { useMenu } from '../features/menu/hooks/useMenu';
+import { useIngredients } from '../features/menu/hooks/useIngredients';
 import MenuItemCard from '../features/menu/MenuItemCard';
+import MenuPizzaTile from '../features/menu/MenuPizzaTile';
 import CartSidebar from '../features/cart/CartSidebar';
 import { useCart } from '../features/cart/hooks/useCart.jsx';
 import { ROUTES } from '../app/routes';
@@ -18,9 +20,11 @@ export default function TruckDetails() {
   const navigate = useNavigate();
   const { truck, loading: loadingTruck, error: truckError } = useTruck(slugOrId);
   const { items: menuItems, loading: loadingMenu } = useMenu(truck?.id);
-  const { addItem, items: _items } = useCart();
+  const { ingredients } = useIngredients(truck?.id);
+  const { addItem, items: cartItems } = useCart();
   const [zoomedImage, setZoomedImage] = useState(null);
   const [showMap, setShowMap] = useState(false);
+  const [openItemKey, setOpenItemKey] = useState(null);
 
   const embeddedMenuItems = useMemo(() => {
     const raw = truck?.menu?.items;
@@ -38,6 +42,46 @@ export default function TruckDetails() {
   const canOrder = isOpen && !isPaused;
 
   const hasMenu = useMemo(() => (effectiveMenuItems?.length ?? 0) > 0, [effectiveMenuItems]);
+
+  const menuSections = useMemo(() => {
+    const items = Array.isArray(effectiveMenuItems) ? effectiveMenuItems : [];
+
+    const classify = (it) => {
+      const t = String(it?.type || '').toLowerCase();
+      switch (t) {
+        case 'pizza':
+        case 'calzone':
+          return 'pizza';
+        case 'soda':
+        case 'eau':
+        case 'biere':
+        case 'vin':
+          return 'boisson';
+        case 'dessert':
+          return 'dessert';
+        default:
+          return 'autres';
+      }
+    };
+
+    const sectionOrder = ['pizza', 'boisson', 'dessert', 'autres'];
+    const titles = {
+      pizza: 'Pizza',
+      boisson: 'Boisson',
+      dessert: 'Dessert',
+      autres: 'Autres',
+    };
+
+    const grouped = sectionOrder
+      .map((key) => ({
+        key,
+        title: titles[key],
+        items: items.filter((it) => it?.available !== false && classify(it) === key),
+      }))
+      .filter((section) => section.items.length > 0);
+
+    return grouped;
+  }, [effectiveMenuItems]);
 
   const handleBack = () => {
     // Comportement attendu: revenir à la page précédente (ex: /explore avec sa recherche)
@@ -132,7 +176,11 @@ export default function TruckDetails() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-12 items-start lg:grid-cols-[1fr_400px] lg:grid-rows-[auto_1fr]">
+        <div className={`grid gap-12 items-start transition-all duration-500 ${
+          cartItems.length > 0 
+            ? 'lg:grid-cols-[1fr_400px] lg:grid-rows-[auto_1fr]' 
+            : 'lg:grid-cols-1 lg:max-w-4xl lg:mx-auto'
+        }`}>
           {/* Truck Info Section */}
           <div className="lg:col-start-1 lg:row-start-1">
             <div className="glass-premium glass-glossy p-2 rounded-[40px] shadow-2xl overflow-hidden border-white/20">
@@ -244,15 +292,17 @@ export default function TruckDetails() {
           </div>
 
           {/* Sidebar / Sidebar "Control Center" */}
-          <aside className="animate-in slide-in-from-right-8 duration-700 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-24 self-start">
-            <CartSidebar onCheckout={handleCheckout} disabled={!canOrder} />
-          </aside>
+          {cartItems.length > 0 && (
+            <aside className="animate-in slide-in-from-right-8 duration-700 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-24 self-start">
+              <CartSidebar onCheckout={handleCheckout} disabled={!canOrder} />
+            </aside>
+          )}
 
           {/* Menu Section */}
           <section className="lg:col-start-1 lg:row-start-2 space-y-8 pb-32">
             <div className="flex items-center gap-4 px-2">
               <div className="h-10 w-2 bg-orange-500/20 rounded-full" />
-              <h2 className="text-3xl font-black tracking-tighter uppercase">La Carte du Chef</h2>
+              <h2 className="text-3xl font-black tracking-tighter uppercase text-gray-900 dark:text-white">La Carte du Chef</h2>
             </div>
             {!hasMenu ? (
               <div className="p-20 text-center glass-premium border-dashed border-white/20 rounded-[40px]">
@@ -283,13 +333,52 @@ export default function TruckDetails() {
                     )}
                   </div>
                 )}
-                {effectiveMenuItems.map((it) => (
-                  <MenuItemCard
-                    key={it.id}
-                    item={it}
-                    onAdd={(item) => addItem(item, { truckId: truck.id })}
-                    isDisabled={!canOrder}
-                  />
+                {menuSections.map((section) => (
+                  <div key={section.key} className="space-y-4">
+                    <div className="flex items-center justify-between rounded-2xl border border-orange-500/30 bg-orange-500/5 px-4 py-3">
+                      <h3 className="text-sm font-black tracking-widest uppercase text-gray-900 dark:text-white">
+                        {section.title}
+                      </h3>
+                      <span className="text-xs font-semibold text-orange-600 dark:text-orange-400">
+                        {section.items.length}
+                      </span>
+                    </div>
+                    <div className="grid gap-4 items-start grid-cols-[repeat(auto-fit,minmax(240px,1fr))]">
+                      {section.items.map((it, idx) => {
+                        const type = String(it?.type || '').toLowerCase();
+                        const isPizzaLike = type === 'pizza' || type === 'calzone';
+                        const rawKey = it?.id ?? it?.menuId ?? it?.slug ?? it?.name ?? 'item';
+                        const itemKey = `${section.key}-${String(rawKey)}-${idx}`;
+
+                        if (isPizzaLike) {
+                          return (
+                            <MenuPizzaTile
+                              key={itemKey}
+                              item={it}
+                              onAdd={(item) => addItem(item, { truckId: truck.id })}
+                              isDisabled={!canOrder}
+                              enableCustomization
+                              availableIngredients={ingredients}
+                              open={openItemKey === itemKey}
+                              onToggle={() =>
+                                setOpenItemKey((prev) => (prev === itemKey ? null : itemKey))
+                              }
+                              onAutoClose={() => setOpenItemKey(null)}
+                            />
+                          );
+                        }
+
+                        return (
+                          <MenuItemCard
+                            key={itemKey}
+                            item={it}
+                            onAdd={(item) => addItem(item, { truckId: truck.id })}
+                            isDisabled={!canOrder}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
                 ))}
               </div>
             )}

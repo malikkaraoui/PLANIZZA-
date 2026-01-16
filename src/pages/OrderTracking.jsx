@@ -4,6 +4,7 @@ import { ref, onValue } from 'firebase/database';
 import { Bike, Store } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { useAuth } from '../app/providers/AuthProvider';
+import { formatCartItemName } from '../features/cart/utils/formatCartItemName';
 
 const STEPS = [
   { key: 'created', label: 'Confirmée', icon: '✅' },
@@ -353,7 +354,7 @@ export default function OrderTracking() {
             {order.items?.map((item, idx) => (
               <div key={idx} className="flex justify-between items-center py-3 border-b border-gray-100 last:border-0">
                 <div>
-                  <p className="text-gray-900 font-bold">{item.name}</p>
+                  <p className="text-gray-900 font-bold">{formatCartItemName(item.name)}</p>
                   <p className="text-gray-500 text-sm font-medium">Quantité: {item.qty || 1}</p>
                 </div>
                 <p className="text-gray-900 font-bold text-lg">{((item.priceCents || 0) / 100).toFixed(2)} €</p>
