@@ -70,6 +70,8 @@ export default function PizzaioloMenu() {
     setItemDesc,
     itemType,
     setItemType,
+    selectedPhotoUrl,
+    setSelectedPhotoUrl,
 
     priceS,
     setPriceS,
@@ -335,6 +337,8 @@ export default function PizzaioloMenu() {
               itemDesc={itemDesc}
               setItemDesc={setItemDesc}
               isCustomMode={isCustomMode}
+              selectedPhotoUrl={selectedPhotoUrl}
+              setSelectedPhotoUrl={setSelectedPhotoUrl}
               priceS={priceS}
               setPriceS={setPriceS}
               priceM={priceM}

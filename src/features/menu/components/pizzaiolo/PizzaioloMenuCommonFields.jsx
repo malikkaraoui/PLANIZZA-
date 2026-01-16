@@ -1,5 +1,6 @@
 import { Input } from '../../../../components/ui/Input';
 import { DRINK_SIZES, VINS } from '../../constants';
+import PizzaPhotoCarousel from './PizzaPhotoCarousel';
 
 export function PizzaioloMenuCommonFields({
   selectedCategory,
@@ -9,6 +10,9 @@ export function PizzaioloMenuCommonFields({
   itemDesc,
   setItemDesc,
   isCustomMode,
+  
+  selectedPhotoUrl,
+  setSelectedPhotoUrl,
 
   priceS,
   setPriceS,
@@ -80,6 +84,13 @@ export function PizzaioloMenuCommonFields({
             rows={3}
           />
         </div>
+      )}
+
+      {(selectedCategory === 'pizza' || selectedCategory === 'calzone') && (
+        <PizzaPhotoCarousel
+          selectedPhotoUrl={selectedPhotoUrl}
+          onSelectPhoto={setSelectedPhotoUrl}
+        />
       )}
 
       {selectedCategory === 'pizza' && (

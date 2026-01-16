@@ -19,6 +19,7 @@ export function usePizzaioloMenuDraft() {
   const [itemName, setItemName] = useState('');
   const [itemDesc, setItemDesc] = useState('');
   const [itemType, setItemType] = useState('pizza');
+  const [selectedPhotoUrl, setSelectedPhotoUrl] = useState(null);
 
   // Prix & diamètres (pizza/calzone)
   const [priceS, setPriceS] = useState('');
@@ -49,6 +50,7 @@ export function usePizzaioloMenuDraft() {
     setHasStartedTyping(false);
     setIsCustomMode(false);
     if (!keepItemType) setItemType('pizza');
+    setSelectedPhotoUrl(null);
 
     setPriceS('');
     setPriceM('');
@@ -112,6 +114,7 @@ export function usePizzaioloMenuDraft() {
       type: itemType,
       name: itemName,
       description: effectiveDescription,
+      photo: selectedPhotoUrl,
       priceS,
       priceM,
       priceL,
@@ -128,6 +131,7 @@ export function usePizzaioloMenuDraft() {
       itemType,
       itemName,
       effectiveDescription,
+      selectedPhotoUrl,
       priceS,
       priceM,
       priceL,
@@ -160,6 +164,8 @@ export function usePizzaioloMenuDraft() {
     setItemDesc,
     itemType,
     setItemType,
+    selectedPhotoUrl,
+    setSelectedPhotoUrl,
 
     // Prix/tailles
     priceS,
