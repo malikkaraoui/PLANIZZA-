@@ -6,6 +6,8 @@ import { useAuth } from '../app/providers/AuthProvider';
 import { db } from '../lib/firebase';
 import { ref, onValue } from 'firebase/database';
 
+const DESIRED_TIME_STORAGE_KEY = 'planizza:desiredTime:v1';
+
 export default function CheckoutSuccess() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -23,6 +25,11 @@ export default function CheckoutSuccess() {
   useEffect(() => {
     // UX: on vide le panier local après un paiement réussi.
     clear();
+    try {
+      localStorage.removeItem(DESIRED_TIME_STORAGE_KEY);
+    } catch {
+      // ignore
+    }
   }, [clear]);
 
   // UX prod: cette page ne doit jamais rester plus de 5s.

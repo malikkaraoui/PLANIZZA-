@@ -92,6 +92,11 @@ export default function OrderTracking() {
   const currentStatus = order.status || 'created';
   const timeline = order.timeline || {};
   const currentStepIndex = STEPS.findIndex((s) => s.key === currentStatus);
+  const desiredTime = typeof order.pickupTime === 'string' && order.pickupTime.length > 0
+    ? order.pickupTime
+    : order.v2?.promisedAt
+      ? new Date(order.v2.promisedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+      : '-';
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
@@ -108,7 +113,7 @@ export default function OrderTracking() {
             </button>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-6 gap-6">
             <div>
               <span className="text-gray-500 text-sm font-medium">Commande</span>
               <p className="text-gray-900 font-mono text-lg font-bold">#{orderId.slice(0, 8)}</p>
@@ -120,6 +125,12 @@ export default function OrderTracking() {
                   hour: '2-digit', 
                   minute: '2-digit' 
                 }) : '-'}
+              </p>
+            </div>
+            <div>
+              <span className="text-gray-500 text-sm font-medium">Heure souhaitée</span>
+              <p className="text-gray-900 font-bold text-lg">
+                {desiredTime}
               </p>
             </div>
             <div>

@@ -5,7 +5,7 @@ import { ITEM_TYPES } from '../../constants';
 import { formatDrinkVolumeLabel } from '../../utils/formatDrinkVolumeLabel';
 import { useSingleOpenItem } from '../../tiles/useSingleOpenItem';
 
-const SECTIONS_ORDER = ['pizzas', 'boissons', 'desserts', 'autres'];
+const SECTIONS_ORDER = ['pizzas', 'calzones', 'boissons', 'desserts', 'autres'];
 
 function typeEmoji(type) {
   const raw = ITEM_TYPES.find((t) => t.value === type)?.label;
@@ -31,8 +31,9 @@ function sectionForType(type) {
   const t = String(type || '').toLowerCase();
   switch (t) {
     case 'pizza':
-    case 'calzone':
       return 'pizzas';
+    case 'calzone':
+      return 'calzones';
     case 'soda':
     case 'eau':
     case 'biere':
@@ -48,7 +49,9 @@ function sectionForType(type) {
 function sectionTitle(sectionKey) {
   switch (sectionKey) {
     case 'pizzas':
-      return 'Pizzas & calzones';
+      return 'Pizzas';
+    case 'calzones':
+      return 'Calzones';
     case 'boissons':
       return 'Boissons';
     case 'desserts':
@@ -176,9 +179,11 @@ export function PizzaioloMenuItemList({ items = [], onDelete, onSetAvailability,
       ) : (
         grouped.map((group) => (
           <div key={group.key} className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-black tracking-widest uppercase text-gray-700">{group.title}</h3>
-              <span className="text-xs font-semibold text-gray-500">{group.items.length}</span>
+            <div className="flex items-center justify-between rounded-xl border border-slate-200/70 bg-slate-50 px-4 py-2">
+              <h3 className="text-xs sm:text-sm font-black tracking-widest uppercase text-gray-800">
+                {group.title}
+              </h3>
+              <span className="text-xs font-semibold text-gray-600">{group.items.length}</span>
             </div>
 
             <div className="grid gap-4 items-start sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

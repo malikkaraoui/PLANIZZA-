@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { ShoppingBag, ArrowLeft, Trash2, Minus, Plus, Bike, Store } from 'lucide-react';
 import { Button } from '../components/ui/Button';
@@ -20,6 +20,7 @@ import DesiredTimePicker from '../features/orders/components/DesiredTimePicker';
 import { getMinDesiredTime, validateDesiredTime } from '../features/orders/utils/desiredTime';
 
 const TVA_RATE = 0.10; // 10% TVA restauration
+const DESIRED_TIME_STORAGE_KEY = 'planizza:desiredTime:v1';
 
 function formatEUR(cents) {
   return (cents / 100).toFixed(2).replace('.', ',') + ' €';
@@ -38,8 +39,20 @@ export default function Cart() {
   const { createOrder, loading: creatingOrder } = useCreateOrder();
   const [error, setError] = useState(null);
   const [deliveryMethod, setDeliveryMethod] = useState('pickup'); // 'pickup' ou 'delivery'
-  const [desiredTime, setDesiredTime] = useState('');
+  const [desiredTime, setDesiredTime] = useState(() => {
+    try {
+      const raw = localStorage.getItem(DESIRED_TIME_STORAGE_KEY);
+      if (!raw) return '';
+      const parsed = JSON.parse(raw);
+      const storedTime = parsed?.value;
+      if (typeof storedTime !== 'string' || !/^\d{2}:\d{2}$/.test(storedTime)) return '';
+      return storedTime;
+    } catch {
+      return '';
+    }
+  });
   const [desiredTimeError, setDesiredTimeError] = useState('');
+  const desiredTimeSaveTimerRef = useRef(null);
 
   // Règle simple et stable (pas de scroll/mesures):
   // - Sur desktop, si le panier est "petit", on met la méthode à droite sous le récap.
@@ -177,11 +190,60 @@ export default function Cart() {
     });
   }, [pizzaCount, deliveryMethod]);
 
+  // Si le stockage correspond à un autre camion, on recale sur la valeur minimale
+  useEffect(() => {
+    if (!truckId || !desiredTime) return;
+    try {
+      const raw = localStorage.getItem(DESIRED_TIME_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      const storedTruckId = parsed?.truckId || null;
+      if (storedTruckId && storedTruckId !== truckId) {
+        const t = setTimeout(() => setDesiredTime(minDesiredTime), 0);
+        return () => clearTimeout(t);
+      }
+    } catch {
+      // ignore
+    }
+  }, [truckId, desiredTime, minDesiredTime]);
+
   useEffect(() => {
     if (!desiredTime) {
-      setDesiredTime(minDesiredTime);
+      const t = setTimeout(() => setDesiredTime(minDesiredTime), 0);
+      return () => clearTimeout(t);
     }
   }, [desiredTime, minDesiredTime]);
+
+  // Sauvegarder l'heure souhaitée dans le storage navigateur
+  useEffect(() => {
+    if (desiredTimeSaveTimerRef.current) {
+      clearTimeout(desiredTimeSaveTimerRef.current);
+      desiredTimeSaveTimerRef.current = null;
+    }
+
+    if (!desiredTime) return;
+
+    desiredTimeSaveTimerRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(
+          DESIRED_TIME_STORAGE_KEY,
+          JSON.stringify({
+            value: desiredTime,
+            truckId: truckId ?? null,
+            updatedAt: Date.now(),
+          })
+        );
+      } catch {
+        // ignore
+      }
+    }, 1000);
+
+    return () => {
+      if (desiredTimeSaveTimerRef.current) {
+        clearTimeout(desiredTimeSaveTimerRef.current);
+      }
+    };
+  }, [desiredTime, truckId]);
 
   const handleCheckout = async () => {
     // Vérifier l'authentification
