@@ -62,8 +62,8 @@ export default function AddToCartButton({
   const ui = getClassesForMode({ mode, size });
 
   const stateClasses = justAdded
-    ? 'bg-green-500 hover:bg-green-500 text-white shadow-green-500/30'
-    : 'bg-white/85 hover:bg-orange-500/10 text-orange-600 border border-orange-500/40 hover:border-orange-500/60 shadow-orange-500/10';
+    ? 'bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg shadow-orange-500/30 border-orange-600'
+    : 'bg-white hover:bg-orange-50 text-orange-600 border border-orange-500/40 hover:border-orange-500/70 shadow-md hover:shadow-orange-500/20';
 
   return (
     <Button

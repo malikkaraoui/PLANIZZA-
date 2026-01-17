@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Pencil } from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import AddToCartButton from './AddToCartButton';
@@ -288,8 +288,8 @@ export default function MenuPizzaTile({
               <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
                 Tailles
               </div>
-              <div className="inline-flex items-center bg-white/10 rounded-full p-0.5 gap-0.5 border border-white/20 shadow-sm">
-                {sizes.map((s) => {
+              <div className="inline-flex items-center bg-white/10 rounded-full p-0.5 border border-white/20 shadow-sm">
+                {sizes.map((s, idx) => {
                   const active = s.key === (selectedSizeData?.key || selectedSize);
                   const letter = s.key.toUpperCase().charAt(0);
                   
@@ -302,17 +302,30 @@ export default function MenuPizzaTile({
                         e.stopPropagation();
                         setSelectedSize(s.key);
                       }}
-                      className={`rounded-full font-black text-[11px] tracking-tight transition-all whitespace-nowrap ${
-                        active
-                          ? 'px-3 py-1.5 bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-md'
-                          : 'px-2 py-1.5 text-gray-600 hover:text-gray-900 hover:bg-white/10'
-                      }`}
+                      className="relative px-6 py-1.5 font-black text-[11px] tracking-tight whitespace-nowrap transition-colors duration-300"
                     >
-                      {active ? `${letter} (${s.diameter || ''})` : letter}
+                      {/* Background orange animé */}
+                      <span
+                        className={`absolute inset-0 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 shadow-md transition-all duration-300 ease-out ${
+                          active ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+                        }`}
+                      />
+                      
+                      {/* Contenu */}
+                      <span className={`relative z-10 transition-colors duration-300 ${active ? 'text-white' : 'text-gray-600'}`}>
+                        {letter}
+                      </span>
                     </button>
                   );
                 })}
               </div>
+              
+              {/* Info taille sélectionnée en dessous */}
+              {selectedSizeData && (
+                <div className="text-[11px] font-bold text-gray-700 transition-opacity duration-300">
+                  {sizeLabel(selectedSizeData.key, selectedSizeData.diameter)} - {formatEUR(selectedSizeData.priceCents)}
+                </div>
+              )}
             </div>
           )}
 
@@ -326,9 +339,10 @@ export default function MenuPizzaTile({
                   e.stopPropagation();
                   setCustomizeOpen(true);
                 }}
-                className="flex-shrink-0 h-10 px-4 rounded-xl text-[11px] font-black tracking-wide uppercase transition-all bg-white/10 text-gray-700 hover:bg-white/20 hover:text-gray-900 border border-white/20"
+                className="group flex-shrink-0 h-10 w-10 rounded-xl text-[11px] font-black tracking-wide uppercase transition-all bg-gradient-to-br from-orange-100 to-orange-200 hover:from-orange-500 hover:to-orange-600 text-orange-600 hover:text-white border border-orange-300 hover:border-orange-600 shadow-sm hover:shadow-md flex items-center justify-center"
+                title="Personnaliser"
               >
-                ⚙️
+                <Pencil className="h-4 w-4 transition-transform group-hover:scale-110" />
               </button>
             )}
 
