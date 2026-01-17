@@ -61,12 +61,12 @@ export const PIZZA_PHOTO_PRESETS = [
   },
   {
     id: 'pizza-11',
-    url: 'https://images.unsplash.com/photo-1571407970349-bc81e7e96a47?w=400&h=400&fit=crop',
+    url: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=400&fit=crop&q=80',
     name: 'Burrata'
   },
   {
     id: 'pizza-12',
-    url: 'https://images.unsplash.com/photo-1585238341710-5a6ebfcd5c9d?w=400&h=400&fit=crop',
+    url: 'https://images.unsplash.com/photo-1571997478779-2adcbbe9ab2f?w=400&h=400&fit=crop&q=80',
     name: 'Jambon cru'
   },
   {
@@ -131,7 +131,7 @@ export const PIZZA_PHOTO_PRESETS = [
   },
   {
     id: 'pizza-25',
-    url: 'https://images.unsplash.com/photo-1571407970349-bc81e7e96a47?w=400&h=400&fit=crop',
+    url: 'https://images.unsplash.com/photo-1590947132387-155cc02f3212?w=400&h=400&fit=crop&q=80',
     name: 'Savoyarde'
   },
   {

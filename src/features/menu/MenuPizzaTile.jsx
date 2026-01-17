@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
@@ -83,12 +83,34 @@ export default function MenuPizzaTile({
 
   const open = openProp ?? openState;
   const toggleOpen = () => {
+    // Nettoyer le timer autoClose en cas de toggle manuel
+    if (autoCloseTimerRef.current) {
+      clearTimeout(autoCloseTimerRef.current);
+      autoCloseTimerRef.current = null;
+    }
+    
     if (typeof onToggle === 'function') {
       onToggle();
       return;
     }
     setOpenState((v) => !v);
   };
+
+  // Nettoyer le timer autoClose quand open change
+  useEffect(() => {
+    if (autoCloseTimerRef.current) {
+      clearTimeout(autoCloseTimerRef.current);
+      autoCloseTimerRef.current = null;
+    }
+  }, [open]);
+
+  // Nettoyer tous les timers au démontage
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+      if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
+    };
+  }, []);
 
   const selectedSizeData = useMemo(() => {
     return sizes.find((s) => s.key === selectedSize) || sizes[0];
