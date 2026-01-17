@@ -29,6 +29,7 @@ export function buildMenuItemData(draft) {
   const type = draft?.type;
   const name = (draft?.name || '').trim();
   const description = (draft?.description || '').trim();
+  const photo = draft?.photo || null;
 
   if (!name) return { ok: false, error: 'Nom manquant' };
 
@@ -38,6 +39,11 @@ export function buildMenuItemData(draft) {
     type,
     createdAt: Date.now(),
   };
+
+  // Ajouter la photo si présente
+  if (photo) {
+    itemData.photo = photo;
+  }
 
   // Pizza: sizes S/M/L
   if (type === 'pizza') {

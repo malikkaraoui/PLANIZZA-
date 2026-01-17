@@ -43,6 +43,7 @@ export function usePizzaioloMenuEditor(truckId) {
         type: draft.type,
         name: draft.name,
         description: draft.description,
+        photo: draft.photo,
         priceS: draft.priceS,
         priceM: draft.priceM,
         priceL: draft.priceL,
