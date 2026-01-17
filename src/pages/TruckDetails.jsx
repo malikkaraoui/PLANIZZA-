@@ -26,6 +26,21 @@ export default function TruckDetails() {
   const [showMap, setShowMap] = useState(false);
   const [openItemKey, setOpenItemKey] = useState(null);
 
+  const formatShortAddress = (addr) => {
+    if (!addr) return 'Adresse non renseignée';
+    let parts = addr.split(',').map((p) => p.trim());
+    // Retirer 'France' si présent en dernier
+    if (parts.length > 1 && parts[parts.length - 1].toLowerCase() === 'france') {
+      parts.pop();
+    }
+    // Si on a encore beaucoup de parties (format Google complet), 
+    // on garde Numéro, Rue, Ville.
+    if (parts.length >= 3) {
+      return parts.slice(0, 3).join(', ');
+    }
+    return parts.join(', ');
+  };
+
   const embeddedMenuItems = useMemo(() => {
     const raw = truck?.menu?.items;
     if (!raw || typeof raw !== 'object') return [];
@@ -225,7 +240,7 @@ export default function TruckDetails() {
                       </div>
                       <div className="flex-1 text-left space-y-1">
                         <p className="font-black text-sm tracking-tight group-hover:text-primary transition-colors">
-                          {truck.location.address || 'Adresse non renseignée'}
+                          {formatShortAddress(truck.location.address)}
                         </p>
                         {truck.location.lat && truck.location.lng && (
                           <p className="text-xs text-muted-foreground/60 font-medium">
@@ -235,16 +250,20 @@ export default function TruckDetails() {
                       </div>
                     </button>
 
-                    {/* Carte intégrée */}
-                    {showMap && truck.location.lat && truck.location.lng && (
-                      <div className="relative rounded-[24px] overflow-hidden shadow-2xl border-2 border-white/30 animate-in slide-in-from-top duration-500">
-                        <iframe
-                          src={`https://www.google.com/maps?q=${truck.location.lat},${truck.location.lng}&hl=fr&z=16&output=embed`}
-                          className="w-full h-100 border-0"
-                          loading="lazy"
-                          referrerPolicy="no-referrer-when-downgrade"
-                          title="Emplacement du camion"
-                        />
+                    {/* Carte intégrée - Animée */}
+                    {truck.location.lat && truck.location.lng && (
+                      <div className={`grid transition-all duration-500 ease-in-out ${showMap ? 'grid-rows-[1fr] opacity-100 mt-6' : 'grid-rows-[0fr] opacity-0'}`}>
+                        <div className="overflow-hidden">
+                          <div className="relative rounded-[24px] overflow-hidden shadow-2xl border-2 border-white/30">
+                            <iframe
+                              src={`https://www.google.com/maps?q=${truck.location.lat},${truck.location.lng}&hl=fr&z=16&output=embed`}
+                              className="w-full h-100 border-0"
+                              loading="lazy"
+                              referrerPolicy="no-referrer-when-downgrade"
+                              title="Emplacement du camion"
+                            />
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>

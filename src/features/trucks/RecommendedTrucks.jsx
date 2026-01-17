@@ -25,14 +25,6 @@ export default function RecommendedTrucks() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-center gap-4 py-2 opacity-50">
-                <div className="h-px w-12 bg-white/10" />
-                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">
-                    Sélectionnés pour vous
-                </span>
-                <div className="h-px w-12 bg-white/10" />
-            </div>
-
             <div className="flex flex-wrap justify-center gap-6 md:gap-8 px-4">
                 {recommended.map((truck) => (
                     <Link

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
-import CityAutocomplete from '../components/ui/CityAutocomplete';
+import LocationSearch from '../components/ui/LocationSearch';
 import TruckCard from '../features/trucks/TruckCard';
 import { useTrucks } from '../features/trucks/hooks/useTrucks';
 import { searchFrenchCities } from '../lib/franceCities';
@@ -141,47 +141,36 @@ export default function Home() {
             Commandez votre pizza
           </h1>
 
-          <form onSubmit={onSubmit} className="mt-8 mx-auto max-w-3xl text-left">
-            <div className="text-sm font-semibold text-gray-800">Où</div>
-
-            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
-              <Button type="submit" className="sm:w-auto">
-                Recherche
-              </Button>
-
-              <div className="flex-1">
-                <CityAutocomplete
-                  inputRef={whereRef}
-                  value={where}
-                  onChange={(next) => setWhere(next)}
-                  onSelect={(city) => {
-                    setWhere(city.name);
-
-                    if (typeof city.lat === 'number' && typeof city.lng === 'number') {
-                      const pos = { lat: city.lat, lng: city.lng };
-                      setPosition(pos);
-                      try {
-                        localStorage.setItem(LS_POSITION, JSON.stringify(pos));
-                      } catch {
-                        // noop
-                      }
-                    }
-
-                    try {
-                      localStorage.setItem(LS_WHERE, city.name);
-                      localStorage.setItem(LS_CITY, JSON.stringify(city));
-                    } catch {
-                      // noop
-                    }
-                  }}
-                  placeholder="Adresse, ville...."
-                  ariaLabel="Où"
-                  position={position}
-                  inputClassName="text-base placeholder:font-bold placeholder:text-gray-900"
-                />
-              </div>
-            </div>
-          </form>
+          <div className="mt-12 mx-auto max-w-2xl">
+            <LocationSearch
+              variant="hero"
+              value={where}
+              onChange={setWhere}
+              onSelect={(city) => {
+                setWhere(city.name);
+                if (typeof city.lat === 'number' && typeof city.lng === 'number') {
+                  const pos = { lat: city.lat, lng: city.lng };
+                  setPosition(pos);
+                  try {
+                    localStorage.setItem(LS_POSITION, JSON.stringify(pos));
+                  } catch {}
+                }
+                try {
+                  localStorage.setItem(LS_WHERE, city.name);
+                  localStorage.setItem(LS_CITY, JSON.stringify(city));
+                } catch {}
+              }}
+              onSearch={onSubmit}
+              placeholder="Où voulez-vous manger ?"
+              inputRef={whereRef}
+            />
+            <Button 
+              onClick={onSubmit}
+              className="mt-6 w-full h-16 rounded-2xl bg-primary text-white font-black text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
+            >
+              C'est parti !
+            </Button>
+          </div>
         </div>
       </section>
 

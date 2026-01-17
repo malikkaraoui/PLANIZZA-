@@ -9,7 +9,7 @@ import { Card, CardContent } from '../components/ui/Card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '../components/ui/sheet';
 import { Separator } from '../components/ui/separator';
 import { Skeleton } from '../components/ui/skeleton';
-import CityAutocomplete from '../components/ui/CityAutocomplete';
+import LocationSearch from '../components/ui/LocationSearch';
 import { getBrowserPosition } from '../lib/geo';
 import { reverseGeocodeCommune, searchFrenchCities } from '../lib/franceCities';
 import RecommendedTrucks from '../features/trucks/RecommendedTrucks';
@@ -39,6 +39,7 @@ export default function TrucksNew() {
   const [position, setPosition] = useState(null);
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState(null);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
 
   // Filtres - Restaurer depuis localStorage au montage
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -334,13 +335,16 @@ export default function TrucksNew() {
 
   if (!hasBaseLocation) {
     return (
-      <div className="relative isolate min-h-[calc(100vh-140px)] flex items-center justify-center px-6 overflow-hidden">
+      <div className="relative isolate min-h-[calc(100vh-140px)] flex items-center justify-center px-6 overflow-visible">
         <div className="absolute top-1/4 left-1/4 -z-10 w-125 h-125 bg-primary/20 rounded-full blur-[120px] animate-pulse" />
         <div className="absolute bottom-1/4 right-1/4 -z-10 w-100 h-100 bg-blue-500/10 rounded-full blur-[100px] animate-pulse duration-700" />
 
-        <div className="w-full max-w-4xl space-y-12 py-20 relative">
-          <div className="glass-premium glass-glossy p-12 sm:p-20 text-center space-y-10 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.25)] border-white/30 backdrop-blur-3xl">
-            <div className="space-y-6">
+        <div className="w-full max-w-4xl space-y-12 py-20 relative overflow-visible z-30">
+          <div className="glass-premium relative z-40 p-12 sm:p-20 text-center shadow-[0_50px_100px_-20px_rgba(0,0,0,0.25)] border-white/30 backdrop-blur-3xl overflow-visible group">
+            <div className="glass-glossy absolute inset-0 rounded-[inherit] pointer-events-none" />
+            
+            <div className="relative z-10 space-y-10">
+              <div className="space-y-6">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-premium border-white/40 text-xs font-black tracking-widest uppercase text-primary animate-in fade-in slide-in-from-bottom-4 duration-1000">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
@@ -358,25 +362,17 @@ export default function TrucksNew() {
             </div>
 
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-16 duration-1000 delay-500">
-              <div className="relative group max-w-lg mx-auto text-left">
-                <div className="absolute -inset-1 bg-linear-to-r from-primary to-orange-500 rounded-[32px] blur opacity-10 group-hover:opacity-30 transition duration-1000"></div>
-                <div className="relative flex items-center h-20 px-6 rounded-[28px] bg-white/80 border border-white/40 focus-within:ring-8 focus-within:ring-primary/15 focus-within:border-primary/50 transition-all duration-500 shadow-2xl backdrop-blur-3xl hover:border-primary/30 group/input">
-                  <div className="relative z-10 p-2 rounded-xl bg-primary/5 group-hover/input:bg-primary/10 transition-colors duration-500">
-                    <MapPin className="h-6 w-6 text-primary shrink-0 group-hover/input:scale-110 transition-transform" />
-                  </div>
-                  <CityAutocomplete
-                    value={whereInput}
-                    onChange={handleWhereChange}
-                    onSelect={selectCity}
-                    onSearch={handleSearchSubmit}
-                    placeholder="Entrez une ville ou un code postal..."
-                    className="flex-1 ml-4"
-                    inputClassName="h-full text-xl font-bold tracking-tight text-foreground selection:bg-primary/20 selection:text-primary caret-primary bg-transparent"
-                  />
-                </div>
-              </div>
+              <LocationSearch
+                variant="hero"
+                value={whereInput}
+                onChange={handleWhereChange}
+                onSelect={selectCity}
+                onSearch={handleSearchSubmit}
+                onOpenChange={setSuggestionsOpen}
+                className="max-w-lg mx-auto"
+              />
 
-              <div className="flex items-center justify-center gap-4 py-2">
+              <div className={`flex items-center justify-center gap-4 py-2 transition-opacity duration-200 ${suggestionsOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                 <div className="h-px w-12 bg-white/10" />
                 <span className="text-xs font-black text-muted-foreground/40 uppercase tracking-widest">Ou laissez la magie opérer</span>
                 <div className="h-px w-12 bg-white/10" />
@@ -386,7 +382,7 @@ export default function TrucksNew() {
                 variant="ghost"
                 onClick={enableNearMe}
                 disabled={geoLoading}
-                className="group relative h-16 w-full max-w-md rounded-2xl glass-premium border-white/30 hover:bg-white/10 text-lg font-black tracking-tight transition-all hover:scale-[1.02] active:scale-95 overflow-hidden"
+                className={`group relative h-16 w-full max-w-md rounded-2xl glass-premium border-white/30 hover:bg-white/10 text-lg font-black tracking-tight transition-all hover:scale-[1.02] active:scale-95 overflow-hidden ${suggestionsOpen ? 'opacity-0 pointer-events-none translate-y-2' : ''}`}
               >
                 <div className="absolute inset-0 bg-primary/5 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
                 <div className="relative flex items-center justify-center gap-3">
@@ -402,6 +398,7 @@ export default function TrucksNew() {
               )}
             </div>
           </div>
+        </div>
 
           <RecommendedTrucks />
         </div>
@@ -411,7 +408,7 @@ export default function TrucksNew() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-16">
-      <div className="glass-premium p-10 sm:p-14 space-y-10 relative overflow-visible group">
+      <div className="glass-premium p-10 sm:p-14 space-y-10 relative z-40 overflow-visible group">
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-1000" />
 
         <div className="space-y-8 relative">
@@ -431,23 +428,15 @@ export default function TrucksNew() {
 
           {/* Barre uniforme: 2 cellules de même largeur */}
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="relative group text-left">
-              <div className="absolute -inset-1 bg-linear-to-r from-primary to-orange-500 rounded-[28px] blur opacity-5 group-hover:opacity-15 transition duration-1000" />
-              <div className="relative flex items-center h-16 px-5 rounded-[24px] bg-white/80 border border-white/40 focus-within:ring-8 focus-within:ring-primary/15 focus-within:border-primary/50 transition-all duration-500 shadow-lg backdrop-blur-3xl hover:border-primary/30 group/input">
-                <div className="relative z-10 p-1.5 rounded-lg bg-primary/5 group-hover/input:bg-primary/10 transition-colors duration-500">
-                  <MapPin className="h-5 w-5 text-primary shrink-0 group-hover/input:scale-110 transition-transform" />
-                </div>
-                <CityAutocomplete
-                  value={whereInput}
-                  onChange={handleWhereChange}
-                  onSelect={selectCity}
-                  onSearch={handleSearchSubmit}
-                  placeholder="Changer de lieu..."
-                  className="flex-1 ml-3"
-                  inputClassName="h-full text-lg font-bold tracking-tight text-foreground selection:bg-primary/20 selection:text-primary caret-primary bg-transparent"
-                />
-              </div>
-            </div>
+            <LocationSearch
+              variant="compact"
+              value={whereInput}
+              onChange={handleWhereChange}
+              onSelect={selectCity}
+              onSearch={handleSearchSubmit}
+              onOpenChange={setSuggestionsOpen}
+              placeholder="Changer de lieu..."
+            />
 
             <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
               <SheetTrigger asChild>
@@ -587,7 +576,7 @@ export default function TrucksNew() {
         </div>
       </div>
 
-      <div className="space-y-10">
+      <div className="space-y-10 relative z-0">
         <div className="flex items-center justify-between px-2">
           <h2 className="text-2xl font-black tracking-tighter flex items-center gap-3 opacity-90">
             <div className="w-2 h-10 bg-primary/20 rounded-full" />
