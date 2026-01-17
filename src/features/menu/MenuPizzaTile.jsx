@@ -104,6 +104,13 @@ export default function MenuPizzaTile({
     }
   }, [open]);
 
+  // Reset la taille sélectionnée au prix minimum quand on ferme la tuile
+  useEffect(() => {
+    if (!open) {
+      setSelectedSize(defaultSizeKey);
+    }
+  }, [open, defaultSizeKey]);
+
   // Nettoyer tous les timers au démontage
   useEffect(() => {
     return () => {
@@ -224,7 +231,11 @@ export default function MenuPizzaTile({
           )}
           <div className="absolute top-3 right-3 flex items-center gap-2">
             <div className="rounded-full bg-white/90 px-3 py-1 text-xs font-black text-orange-600 shadow">
-              {minPrice ? `Dès ${formatEUR(minPrice)}` : '—'}
+              {open && selectedSizeData?.priceCents
+                ? formatEUR(selectedSizeData.priceCents)
+                : minPrice
+                ? `Dès ${formatEUR(minPrice)}`
+                : '—'}
             </div>
             {!open && (
               <div className="group">
@@ -270,18 +281,17 @@ export default function MenuPizzaTile({
         }`}
         aria-hidden={!open}
       >
-        <div className="p-5 space-y-4">
-          {/* Tailles */}
-          {sizes.length > 0 && (
+        <div className="px-5 pt-3 pb-4 space-y-3">
+          {/* Tailles - Segmented Control */}
+          {sizes.length > 1 && (
             <div className="space-y-2">
               <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
                 Tailles
               </div>
-              <div className="inline-flex items-center bg-white/10 rounded-full p-1 gap-1 border border-white/20">
+              <div className="inline-flex items-center bg-white/10 rounded-full p-0.5 gap-0.5 border border-white/20 shadow-sm">
                 {sizes.map((s) => {
                   const active = s.key === (selectedSizeData?.key || selectedSize);
-                  const shortLabel = s.key.toUpperCase().charAt(0); // Juste la première lettre
-                  const fullLabel = `${sizeLabel(s.key, s.diameter)} - ${formatEUR(s.priceCents)}`;
+                  const letter = s.key.toUpperCase().charAt(0);
                   
                   return (
                     <button
@@ -292,13 +302,13 @@ export default function MenuPizzaTile({
                         e.stopPropagation();
                         setSelectedSize(s.key);
                       }}
-                      className={`rounded-full font-black transition-all whitespace-nowrap ${
+                      className={`rounded-full font-black text-[11px] tracking-tight transition-all whitespace-nowrap ${
                         active
-                          ? 'px-3 py-1.5 text-[9px] bg-primary text-white shadow-md'
-                          : 'px-2.5 py-1.5 text-[10px] text-gray-600 hover:text-gray-900'
+                          ? 'px-3 py-1.5 bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-md'
+                          : 'px-2 py-1.5 text-gray-600 hover:text-gray-900 hover:bg-white/10'
                       }`}
                     >
-                      {active ? fullLabel : shortLabel}
+                      {active ? `${letter} (${s.diameter || ''})` : letter}
                     </button>
                   );
                 })}
@@ -306,29 +316,21 @@ export default function MenuPizzaTile({
             </div>
           )}
 
-          {/* Personnalisation */}
-          {enableCustomization && (
-            <div className="flex items-center justify-end">
+          {/* CTA + Personnalisation intégrée */}
+          <div className="flex items-center gap-2 pt-1">
+            {enableCustomization && (
               <button
                 type="button"
-                onClick={() => setCustomizeOpen(true)}
-                className="rounded-full px-3 py-1.5 text-[10px] font-black tracking-widest uppercase transition-all bg-white/10 text-gray-700 hover:bg-white/20"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setCustomizeOpen(true);
+                }}
+                className="flex-shrink-0 h-10 px-4 rounded-xl text-[11px] font-black tracking-wide uppercase transition-all bg-white/10 text-gray-700 hover:bg-white/20 hover:text-gray-900 border border-white/20"
               >
-                Personnaliser
+                ⚙️
               </button>
-            </div>
-          )}
-
-          {/* CTA */}
-          <div className="flex items-center justify-between gap-3 pt-1">
-            <div className="text-xs font-bold text-muted-foreground/60">
-              {selectedSizeData ? (
-                <>
-                  {sizeLabel(selectedSizeData.key, selectedSizeData.diameter)} •{' '}
-                  <span className="font-black text-foreground/80">{formatEUR(selectedSizeData.priceCents)}</span>
-                </>
-              ) : null}
-            </div>
+            )}
 
             <AddToCartButton
               mode="expanded"
