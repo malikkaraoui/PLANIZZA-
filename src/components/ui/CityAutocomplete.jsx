@@ -41,6 +41,7 @@ export default function CityAutocomplete({
   inputClassName = '',
   className = '',
   onOpenChange,
+  variant = 'hero',
 }) {
   const innerRef = useRef(null);
   const refToUse = inputRef || innerRef;
@@ -67,6 +68,13 @@ export default function CityAutocomplete({
   }, []);
 
   const sortedItems = useMemo(() => sortCitiesByProximity(items, position), [items, position]);
+
+  // Calcul des offsets selon la variante du parent LocationSearch
+  // hero: px-6 (1.5rem), compact: px-5 (1.25rem), plus ml-3 (0.75rem) de CityAutocomplete lui-même
+  const isHero = variant === 'hero';
+  const paddingX = isHero ? '1.5rem' : '1.25rem';
+  const panelOffsetLeft = `calc(-1 * (${paddingX} + 0.75rem))`;
+  const panelOffsetRight = `calc(-${paddingX})`;
 
   const doSearch = useMemo(
     () =>
@@ -175,7 +183,7 @@ export default function CityAutocomplete({
   }, [refToUse]);
 
   return (
-    <div className={`${className}`} data-city-autocomplete-root>
+    <div className={`relative ${className}`} data-city-autocomplete-root>
       <input
         ref={refToUse}
         value={value}
@@ -198,15 +206,18 @@ export default function CityAutocomplete({
 
       {open && sortedItems.length > 0 && (
         <>
-          {/* Backdrop pour masquer le contenu en dessous */}
-          <div className="fixed inset-0 z-[9998]" onClick={() => setOpen(false)} />
-
-          <div className="absolute left-0 right-0 top-full mt-2 rounded-3xl shadow-[0_30px_60px_-20px_rgba(0,0,0,0.4)] border border-white/40 z-[9999] animate-in fade-in slide-in-from-top-4 duration-300 bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl">
+          <div 
+            className="absolute top-full mt-2 rounded-3xl shadow-[0_30px_60px_-20px_rgba(0,0,0,0.4)] border border-white/40 z-[100000] animate-in fade-in slide-in-from-top-4 duration-300 bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl"
+            style={{
+              left: panelOffsetLeft,
+              right: panelOffsetRight,
+            }}
+          >
             <div className="pointer-events-none absolute inset-x-4 top-[-8px] h-6 rounded-full bg-white/40 blur-2xl opacity-40" />
             <ul
               ref={listRef}
               onWheelCapture={handleWheelCapture}
-              className="relative max-h-[280px] overflow-auto py-3 custom-scrollbar rounded-3xl"
+              className="relative max-h-[240px] overflow-auto py-3 custom-scrollbar rounded-3xl"
             >
             {sortedItems.map((c, idx) => {
               const active = idx === activeIndex;
@@ -245,10 +256,13 @@ export default function CityAutocomplete({
 
       {open && value.trim().length >= 2 && !loading && sortedItems.length === 0 && (
         <>
-          {/* Backdrop pour masquer le contenu en dessous */}
-          <div className="fixed inset-0 z-[9998]" onClick={() => setOpen(false)} />
-
-          <div className="absolute left-0 right-0 top-full mt-2 rounded-3xl p-6 text-center shadow-2xl border border-white/40 z-[9999] animate-in fade-in slide-in-from-top-4 duration-300 bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl">
+          <div 
+            className="absolute top-full mt-2 rounded-3xl p-6 text-center shadow-2xl border border-white/40 z-[100000] animate-in fade-in slide-in-from-top-4 duration-300 bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl"
+            style={{
+              left: panelOffsetLeft,
+              right: panelOffsetRight,
+            }}
+          >
             <div className="pointer-events-none absolute inset-x-4 top-[-8px] h-6 rounded-full bg-white/40 blur-2xl opacity-40" />
             <p className="text-sm font-bold text-muted-foreground/60">Aucun résultat pour cette recherche</p>
           </div>

@@ -446,15 +446,17 @@ export default function TrucksNew() {
 
           {/* Barre uniforme: 2 cellules de même largeur sur desktop, empilées sur mobile */}
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-            <LocationSearch
-              variant="compact"
-              value={whereInput}
-              onChange={handleWhereChange}
-              onSelect={selectCity}
-              onSearch={handleSearchSubmit}
-              onOpenChange={setSuggestionsOpen}
-              placeholder="Changer de lieu..."
-            />
+            <div className="relative z-50">
+              <LocationSearch
+                variant="compact"
+                value={whereInput}
+                onChange={handleWhereChange}
+                onSelect={selectCity}
+                onSearch={handleSearchSubmit}
+                onOpenChange={setSuggestionsOpen}
+                placeholder="Changer de lieu..."
+              />
+            </div>
 
             <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
               <SheetTrigger asChild>

@@ -37,7 +37,7 @@ export default function LocationSearch({
   const paddingX = isHero ? 'px-6' : 'px-5';
 
   return (
-    <div className={`relative group w-full text-left ${className}`}>
+    <div className={`relative group w-full text-left ${className}`} data-location-search-root>
       {/* Glow extérieur (uniquement en hero ou selon envie) */}
       {isHero && (
         <div className="absolute -inset-1 bg-linear-to-r from-primary to-orange-500 rounded-[32px] blur opacity-10 group-hover:opacity-30 transition duration-1000"></div>
@@ -65,8 +65,9 @@ export default function LocationSearch({
           onSearch={onSearch}
           placeholder={placeholder}
           className="flex-1 ml-3 h-full"
-          inputClassName={`h-full w-full text-foreground selection:bg-primary/20 selection:text-primary caret-primary bg-transparent font-bold tracking-tight ${isHero ? 'text-base sm:text-xl' : 'text-base sm:text-lg'} ${inputClassName}`}
+          inputClassName={`h-full w-full text-foreground selection:bg-primary/20 selection:text-primary caret-primary bg-transparent font-bold tracking-tight text-base sm:text-lg ${isHero ? 'sm:text-xl' : ''} ${inputClassName}`}
           onOpenChange={handleOpenChange}
+          variant={variant}
         />
       </div>
     </div>

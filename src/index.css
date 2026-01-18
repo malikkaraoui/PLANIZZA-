@@ -3,6 +3,22 @@
 @plugin "tailwindcss-animate";
 @custom-variant dark (&:is(.dark *));
 
+/* Prévenir le décalage horizontal sur mobile */
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  position: relative;
+}
+
+/* Forcer font-size minimum 16px sur les inputs mobiles pour éviter le zoom Safari */
+@media (max-width: 640px) {
+  input[type="text"],
+  input[type="search"],
+  input {
+    font-size: 16px !important;
+  }
+}
+
 /* Animation CSS pour détecter l'autofill Chrome/Edge */
 @keyframes onAutoFillStart {
   from {
