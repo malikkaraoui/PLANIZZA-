@@ -3,7 +3,19 @@ import { ref, query, orderByChild, equalTo, get } from 'firebase/database';
 import { db } from '../../../lib/firebase';
 import { useAuth } from '../../../app/providers/AuthProvider';
 import { useTrucks } from './useTrucks';
-import { kmBetween, getBrowserPosition } from '../../../lib/geo';
+import { kmBetween } from '../../../lib/geo';
+
+function readCachedPosition() {
+    try {
+        const raw = localStorage.getItem('planizza.position');
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed.lat === 'number' && typeof parsed.lng === 'number') return parsed;
+    } catch {
+        // noop
+    }
+    return null;
+}
 
 export function useRecommendedTrucks() {
     const { user } = useAuth();
@@ -44,7 +56,9 @@ export function useRecommendedTrucks() {
 
             // 2. Si moins de 3, ajouter par distance (si position dispo)
             if (recs.length < 3) {
-                const pos = await getBrowserPosition();
+                // Important : ne pas déclencher la géoloc automatiquement (Safari peut refuser sans prompt).
+                // On utilise uniquement une position déjà connue (cache localStorage).
+                const pos = readCachedPosition();
                 if (pos) {
                     const sortedByDist = [...allTrucks]
                         .map(t => ({ ...t, dist: kmBetween(pos, t.location) }))
