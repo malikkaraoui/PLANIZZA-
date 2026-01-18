@@ -25,14 +25,25 @@ export function kmBetween(a, b) {
 export async function getBrowserPosition() {
   if (!('geolocation' in navigator)) return null;
 
-  return new Promise((resolve) => {
+  // La géolocalisation est bloquée en contexte non sécurisé.
+  // Exception: localhost est considéré comme "potentially trustworthy".
+  const hostname = typeof window !== 'undefined' ? window.location?.hostname : '';
+  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+  if (typeof window !== 'undefined' && !window.isSecureContext && !isLocalhost) {
+    const err = new Error('GEO_INSECURE_CONTEXT');
+    err.code = 'GEO_INSECURE_CONTEXT';
+    err.origin = window.location?.origin;
+    throw err;
+  }
+
+  return new Promise((resolve, reject) => {
     navigator.geolocation.getCurrentPosition(
       (pos) =>
         resolve({
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
         }),
-      () => resolve(null),
+      (error) => reject(error),
       { enableHighAccuracy: true, timeout: 5000 }
     );
   });

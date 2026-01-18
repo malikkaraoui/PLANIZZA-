@@ -183,11 +183,7 @@ export default function TrucksNew() {
     setGeoError(null);
     try {
       const pos = await getBrowserPosition();
-      if (!pos) {
-        setGeoError('Impossible d\'accéder à votre localisation.');
-        setGeoLoading(false);
-        return;
-      }
+      if (!pos) throw new Error('GEO_EMPTY');
 
       // IMPORTANT : On attend le reverse geocoding AVANT de mettre à jour position et URL
       try {
@@ -236,7 +232,24 @@ export default function TrucksNew() {
       }
     } catch (error) {
       console.error('GPS error:', error);
-      setGeoError('Impossible d\'accéder à votre localisation.');
+      // Erreurs explicites pour Safari / dev server
+      if (error?.code === 'GEO_INSECURE_CONTEXT') {
+        const origin = error?.origin || window.location?.origin || '';
+        setGeoError(
+          `Localisation bloquée car la page n'est pas en HTTPS (${origin}). Ouvrez http://localhost:5173 ou utilisez HTTPS pour les tests sur IP.`
+        );
+      } else if (error?.code === 1) {
+        // PERMISSION_DENIED
+        setGeoError('Accès à la localisation refusé. Autorisez la localisation pour ce site dans Safari.');
+      } else if (error?.code === 2) {
+        // POSITION_UNAVAILABLE
+        setGeoError('Position indisponible. Vérifiez que la localisation est activée sur macOS et que Safari est autorisé.');
+      } else if (error?.code === 3) {
+        // TIMEOUT
+        setGeoError('Localisation trop longue à obtenir (timeout). Réessayez ou désactivez/réactivez la localisation.');
+      } else {
+        setGeoError('Impossible d\'accéder à votre localisation.');
+      }
     } finally {
       setGeoLoading(false);
     }
