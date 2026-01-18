@@ -13,6 +13,7 @@ import { ROUTES } from '../app/routes';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
 import { isCurrentlyOpen } from '../lib/openingHours';
+import StickyCartBar from '../features/cart/StickyCartBar';
 
 export default function TruckDetails() {
   const { truckId: slugOrId } = useParams();
@@ -191,11 +192,10 @@ export default function TruckDetails() {
           </CardContent>
         </Card>
       ) : (
-        <div className={`grid gap-12 items-start transition-all duration-500 ${
-          cartItems.length > 0 
-            ? 'lg:grid-cols-[1fr_400px] lg:grid-rows-[auto_1fr]' 
-            : 'lg:grid-cols-1 lg:max-w-4xl lg:mx-auto'
-        }`}>
+        <div className={`grid gap-12 items-start transition-all duration-500 ${cartItems.length > 0
+          ? 'lg:grid-cols-[1fr_400px] lg:grid-rows-[auto_1fr]'
+          : 'lg:grid-cols-1 lg:max-w-4xl lg:mx-auto'
+          }`}>
           {/* Truck Info Section */}
           <div className="lg:col-start-1 lg:row-start-1">
             <div className="glass-premium glass-glossy p-2 rounded-[40px] shadow-2xl overflow-hidden border-white/20">
@@ -228,7 +228,7 @@ export default function TruckDetails() {
                     <div className="h-7 w-1.5 bg-primary/20 rounded-full" />
                     <h2 className="text-sm font-black tracking-widest uppercase">Emplacement</h2>
                   </div>
-                  
+
                   <div className="space-y-4">
                     {/* Info adresse - Cliquable */}
                     <button
@@ -312,7 +312,7 @@ export default function TruckDetails() {
 
           {/* Sidebar / Sidebar "Control Center" */}
           {cartItems.length > 0 && (
-            <aside className="animate-in slide-in-from-right-8 duration-700 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-24 self-start">
+            <aside className="hidden lg:block animate-in slide-in-from-right-8 duration-700 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-24 self-start">
               <CartSidebar onCheckout={handleCheckout} disabled={!canOrder} />
             </aside>
           )}
@@ -407,7 +407,7 @@ export default function TruckDetails() {
 
       {/* Modal de zoom pour les photos */}
       {zoomedImage && (
-        <div 
+        <div
           className="fixed inset-0 z-100 flex items-center justify-center bg-black/90 backdrop-blur-md animate-in fade-in duration-300"
           onClick={() => setZoomedImage(null)}
         >
@@ -420,7 +420,7 @@ export default function TruckDetails() {
           </button>
 
           {/* Image zoomée */}
-          <div 
+          <div
             className="relative max-w-[95vw] max-h-[95vh] animate-in zoom-in duration-300"
             onClick={(e) => e.stopPropagation()}
           >
@@ -432,6 +432,9 @@ export default function TruckDetails() {
           </div>
         </div>
       )}
+
+      {/* Mobile Sticky Cart Bar */}
+      <StickyCartBar />
     </div>
   );
 }

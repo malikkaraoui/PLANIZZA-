@@ -135,9 +135,9 @@ export default function Home() {
 
   return (
     <div className="bg-gray-50">
-      <section className="mx-auto max-w-6xl px-4 pt-14 pb-10">
+      <section className="mx-auto max-w-6xl px-4 pt-8 pb-6 sm:pt-14 sm:pb-10">
         <div className="text-center">
-          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-gray-900">
+          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-gray-900">
             Commandez votre pizza
           </h1>
 
@@ -153,40 +153,42 @@ export default function Home() {
                   setPosition(pos);
                   try {
                     localStorage.setItem(LS_POSITION, JSON.stringify(pos));
-                  } catch {}
+                  } catch { // noop }
+                  }
+                  try {
+                    localStorage.setItem(LS_WHERE, city.name);
+                    localStorage.setItem(LS_CITY, JSON.stringify(city));
+                  } catch { // noop }
+                  }
                 }
-                try {
-                  localStorage.setItem(LS_WHERE, city.name);
-                  localStorage.setItem(LS_CITY, JSON.stringify(city));
-                } catch {}
-              }}
-              onSearch={onSubmit}
-              placeholder="Où voulez-vous manger ?"
-              inputRef={whereRef}
-            />
-            <Button 
-              onClick={onSubmit}
-              className="mt-6 w-full h-16 rounded-2xl bg-primary text-white font-black text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
-            >
-              C'est parti !
-            </Button>
+                onSearch = { onSubmit }
+                placeholder = "Où voulez-vous manger ?"
+                inputRef = { whereRef }
+                  />
           </div>
+          <Button
+            onClick={onSubmit}
+            className="mt-6 w-full h-16 rounded-2xl bg-primary text-white font-black text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
+          >
+            C'est parti !
+          </Button>
         </div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-4 pb-14">
-        <div className="mt-2">
-          {loading ? (
-            <div className="text-gray-600">Chargement…</div>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              {topTrucks.map((t) => (
-                <TruckCard key={t.id} truck={t} />
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
     </div>
+      </section >
+
+    <section className="mx-auto max-w-6xl px-4 pb-14">
+      <div className="mt-2">
+        {loading ? (
+          <div className="text-gray-600">Chargement…</div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            {topTrucks.map((t) => (
+              <TruckCard key={t.id} truck={t} />
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+    </div >
   );
 }

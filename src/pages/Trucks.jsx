@@ -193,7 +193,7 @@ export default function TrucksNew() {
       try {
         const commune = await reverseGeocodeCommune(pos);
         const name = String(commune?.name || '').trim();
-        
+
         if (name) {
           // Maintenant qu'on a le nom de la ville, on peut tout mettre à jour ensemble
           setWhereInput(name);
@@ -335,70 +335,75 @@ export default function TrucksNew() {
 
   if (!hasBaseLocation) {
     return (
-      <div className="relative isolate min-h-[calc(100vh-140px)] flex items-center justify-center px-6 overflow-visible">
+      <div className="relative isolate min-h-[500px] lg:min-h-[calc(100vh-140px)] flex items-center justify-center px-6 overflow-hidden">
         <div className="absolute top-1/4 left-1/4 -z-10 w-125 h-125 bg-primary/20 rounded-full blur-[120px] animate-pulse" />
         <div className="absolute bottom-1/4 right-1/4 -z-10 w-100 h-100 bg-blue-500/10 rounded-full blur-[100px] animate-pulse duration-700" />
 
         <div className="w-full max-w-4xl space-y-12 py-20 relative overflow-visible z-30">
           <div className="glass-premium relative z-40 p-12 sm:p-20 text-center shadow-[0_50px_100px_-20px_rgba(0,0,0,0.25)] border-white/30 backdrop-blur-3xl overflow-visible group">
             <div className="glass-glossy absolute inset-0 rounded-[inherit] pointer-events-none" />
-            
+
             <div className="relative z-10 space-y-10">
               <div className="space-y-6">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-premium border-white/40 text-xs font-black tracking-widest uppercase text-primary animate-in fade-in slide-in-from-bottom-4 duration-1000">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                </span>
-                Le futur de la pizza est ici
-              </div>
-              <h1 className="text-5xl sm:text-7xl font-black tracking-tighter text-premium-gradient animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
-                Où êtes-vous ?
-              </h1>
-              <p className="mx-auto max-w-2xl text-lg sm:text-xl font-medium text-muted-foreground/80 leading-relaxed animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300">
-                Découvrez les camions à pizza les plus futuristes et gourmands de votre ville.
-                Une expérience culinaire hors du commun.
-              </p>
-            </div>
-
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-16 duration-1000 delay-500">
-              <LocationSearch
-                variant="hero"
-                value={whereInput}
-                onChange={handleWhereChange}
-                onSelect={selectCity}
-                onSearch={handleSearchSubmit}
-                onOpenChange={setSuggestionsOpen}
-                className="max-w-lg mx-auto"
-              />
-
-              <div className={`flex items-center justify-center gap-4 py-2 transition-opacity duration-200 ${suggestionsOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-                <div className="h-px w-12 bg-white/10" />
-                <span className="text-xs font-black text-muted-foreground/40 uppercase tracking-widest">Ou laissez la magie opérer</span>
-                <div className="h-px w-12 bg-white/10" />
-              </div>
-
-              <Button
-                variant="ghost"
-                onClick={enableNearMe}
-                disabled={geoLoading}
-                className={`group relative h-16 w-full max-w-md rounded-2xl glass-premium border-white/30 hover:bg-white/10 text-lg font-black tracking-tight transition-all hover:scale-[1.02] active:scale-95 overflow-hidden ${suggestionsOpen ? 'opacity-0 pointer-events-none translate-y-2' : ''}`}
-              >
-                <div className="absolute inset-0 bg-primary/5 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-                <div className="relative flex items-center justify-center gap-3">
-                  <div className={`p-2 rounded-full ${geoLoading ? 'bg-primary/20' : 'bg-primary/10 group-hover:bg-primary/20'} transition-colors`}>
-                    <Crosshair className={`h-5 w-5 text-primary ${geoLoading ? 'animate-spin' : 'group-hover:rotate-90 transition-transform duration-500'}`} />
-                  </div>
-                  {geoLoading ? 'Localisation...' : 'Utiliser ma position actuelle'}
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-premium border-white/40 text-xs font-black tracking-widest uppercase text-primary animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                  </span>
+                  Le futur de la pizza est ici
                 </div>
-              </Button>
+                <h1 className="text-5xl sm:text-7xl font-black tracking-tighter text-premium-gradient animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
+                  Où êtes-vous ?
+                </h1>
+                <p className="mx-auto max-w-2xl text-lg sm:text-xl font-medium text-muted-foreground/80 leading-relaxed animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300">
+                  Découvrez les camions à pizza les plus futuristes et gourmands de votre ville.
+                  Une expérience culinaire hors du commun.
+                </p>
+              </div>
 
-              {geoError && (
-                <p className="text-sm font-bold text-destructive animate-in fade-in slide-in-from-top-2">{geoError}</p>
-              )}
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-16 duration-1000 delay-500">
+                <LocationSearch
+                  variant="hero"
+                  value={whereInput}
+                  onChange={handleWhereChange}
+                  onSelect={selectCity}
+                  onSearch={handleSearchSubmit}
+                  onOpenChange={setSuggestionsOpen}
+                  className="max-w-lg mx-auto"
+                />
+
+                <div className={`flex items-center justify-center gap-4 py-2 transition-opacity duration-200 ${suggestionsOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                  <div className="h-px w-12 bg-white/10" />
+                  <span className="text-xs font-black text-muted-foreground/40 uppercase tracking-widest">Ou laissez la magie opérer</span>
+                  <div className="h-px w-12 bg-white/10" />
+                </div>
+
+                <Button
+                  variant="ghost"
+                  onClick={enableNearMe}
+                  disabled={geoLoading}
+                  className={`group relative h-16 w-full max-w-md rounded-2xl glass-premium border-white/30 hover:bg-white/10 text-lg font-black tracking-tight transition-all hover:scale-[1.02] active:scale-95 overflow-hidden ${suggestionsOpen ? 'opacity-0 pointer-events-none translate-y-2' : ''}`}
+                >
+                  <div className="absolute inset-0 bg-primary/5 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+                  <div className="relative flex items-center justify-center gap-3">
+                    <div className={`p-2 rounded-full ${geoLoading ? 'bg-primary/20' : 'bg-primary/10 group-hover:bg-primary/20'} transition-colors`}>
+                      <Crosshair className={`h-5 w-5 text-primary ${geoLoading ? 'animate-spin' : 'group-hover:rotate-90 transition-transform duration-500'}`} />
+                    </div>
+                    {geoLoading ? 'Localisation...' : (
+                      <>
+                        <span className="sm:hidden">Autour de moi</span>
+                        <span className="hidden sm:inline">Utiliser ma position actuelle</span>
+                      </>
+                    )}
+                  </div>
+                </Button>
+
+                {geoError && (
+                  <p className="text-sm font-bold text-destructive animate-in fade-in slide-in-from-top-2">{geoError}</p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
           <RecommendedTrucks />
         </div>
@@ -407,8 +412,8 @@ export default function TrucksNew() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-16">
-      <div className="glass-premium p-10 sm:p-14 space-y-10 relative z-40 overflow-visible group">
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:py-12 sm:px-6 lg:px-8 space-y-10 sm:space-y-16">
+      <div className="glass-premium p-6 sm:p-14 space-y-6 sm:space-y-10 relative z-40 overflow-visible group">
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-1000" />
 
         <div className="space-y-8 relative">
@@ -417,7 +422,7 @@ export default function TrucksNew() {
               <div className="w-8 h-px bg-primary/40" />
               Exploration culinaire
             </div>
-            <h1 className="text-5xl font-black tracking-tighter sm:text-7xl text-premium-gradient leading-tight">
+            <h1 className="text-4xl font-black tracking-tighter sm:text-7xl text-premium-gradient leading-tight">
               Explorez les camions
             </h1>
             <p className="text-lg font-medium text-muted-foreground/80 flex items-center gap-3">
@@ -426,8 +431,8 @@ export default function TrucksNew() {
             </p>
           </div>
 
-          {/* Barre uniforme: 2 cellules de même largeur */}
-          <div className="grid gap-4 md:grid-cols-2">
+          {/* Barre uniforme: 2 cellules de même largeur sur desktop, empilées sur mobile */}
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
             <LocationSearch
               variant="compact"
               value={whereInput}

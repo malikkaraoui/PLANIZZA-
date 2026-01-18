@@ -27,7 +27,7 @@ export default function LocationSearch({
   };
 
   const isHero = variant === "hero";
-  
+
   // Rayons de bordures dynamiques
   const borderRadiusClasses = isHero
     ? (isOpen ? 'rounded-t-[28px] rounded-b-[16px]' : 'rounded-[28px]')
@@ -65,7 +65,7 @@ export default function LocationSearch({
           onSearch={onSearch}
           placeholder={placeholder}
           className="flex-1 ml-3 h-full"
-          inputClassName={`h-full w-full text-foreground selection:bg-primary/20 selection:text-primary caret-primary bg-transparent font-bold tracking-tight ${isHero ? 'text-xl' : 'text-lg'} ${inputClassName}`}
+          inputClassName={`h-full w-full text-foreground selection:bg-primary/20 selection:text-primary caret-primary bg-transparent font-bold tracking-tight ${isHero ? 'text-base sm:text-xl' : 'text-base sm:text-lg'} ${inputClassName}`}
           onOpenChange={handleOpenChange}
         />
       </div>

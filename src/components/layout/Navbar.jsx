@@ -80,23 +80,23 @@ export default function Navbar() {
 
   return (
     <header className={`sticky top-0 z-50 flex justify-center w-full pointer-events-none transition-transform duration-300 ease-in-out ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}>
-      <div className="container max-w-7xl w-full px-4 sm:px-6 lg:px-8 pointer-events-auto">
-        <div className="floating-island w-full h-20 items-center justify-between flex px-8 transition-transform duration-500 hover:scale-[1.01]">
+      <div className="container max-w-7xl w-full px-2 sm:px-6 lg:px-8 pointer-events-auto">
+        <div className="floating-island w-full h-16 sm:h-20 items-center justify-between flex px-4 sm:px-8 transition-transform duration-500 hover:scale-[1.01]">
           {/* Logo */}
           <Link
             to={ROUTES.explore}
-            className="flex items-center gap-3 font-black text-2xl tracking-tighter group"
+            className="flex items-center gap-2 sm:gap-3 font-black text-xl sm:text-2xl tracking-tighter group"
           >
-            <div className="relative grid place-items-center h-11 w-11 rounded-full">
+            <div className="relative grid place-items-center h-9 w-9 sm:h-11 sm:w-11 rounded-full">
               {/* Halo circulaire (évite le carré visible sur Safari/Chrome) */}
               <div className="absolute inset-0 rounded-full bg-primary blur-lg opacity-20 group-hover:opacity-40 transition-opacity" />
-              <Pizza className="relative h-7 w-7 text-primary animate-bounce-subtle" />
+              <Pizza className="relative h-6 w-6 sm:h-7 sm:w-7 text-primary animate-bounce-subtle" />
             </div>
-            <span className="hidden sm:inline text-premium-gradient">PLANIZZA</span>
+            <span className="text-premium-gradient">PLANIZZA</span>
           </Link>
 
           {/* Navigation */}
-          <nav className="flex items-center gap-2 sm:gap-6">
+          <nav className="flex items-center gap-1 sm:gap-6">
             {/* Widget de cadence sur page Orders (desktop uniquement) */}
             {isOnOrdersPage && isPizzaiolo ? (
               <div className="hidden lg:flex items-center">
@@ -109,7 +109,7 @@ export default function Navbar() {
                         setPizzaPerHour(newValue);
                         if (db && pizzaioloTruckId) {
                           const capacityRef = ref(db, `public/trucks/${pizzaioloTruckId}/capacity/pizzaPerHour`);
-                          set(capacityRef, newValue).catch(err => 
+                          set(capacityRef, newValue).catch(err =>
                             console.error('[Navbar] Erreur sauvegarde cadence:', err)
                           );
                         }
@@ -127,7 +127,7 @@ export default function Navbar() {
                         setPizzaPerHour(newValue);
                         if (db && pizzaioloTruckId) {
                           const capacityRef = ref(db, `public/trucks/${pizzaioloTruckId}/capacity/pizzaPerHour`);
-                          set(capacityRef, newValue).catch(err => 
+                          set(capacityRef, newValue).catch(err =>
                             console.error('[Navbar] Erreur sauvegarde cadence:', err)
                           );
                         }
@@ -146,13 +146,13 @@ export default function Navbar() {
               <>
                 {/* Panier */}
                 <Link to={ROUTES.cart}>
-                  <Button variant="ghost" size="icon" className="relative group/cart h-12 w-12 rounded-full hover:bg-white/10 transition-all">
+                  <Button variant="ghost" size="icon" className="relative group/cart h-10 w-10 sm:h-12 sm:w-12 rounded-full hover:bg-white/10 transition-all">
                     <ShoppingCart
-                      className={`h-6 w-6 transition-transform group-hover/cart:-rotate-12 ${cartHasItems ? 'text-primary' : 'text-muted-foreground/70'}`}
+                      className={`h-5 w-5 sm:h-6 sm:w-6 transition-transform group-hover/cart:-rotate-12 ${cartHasItems ? 'text-primary' : 'text-muted-foreground/70'}`}
                     />
                     {cartHasItems && (
                       <Badge
-                        className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 text-[10px] flex items-center justify-center bg-primary text-white border-2 border-white/20 shadow-lg shadow-primary/40 animate-in zoom-in"
+                        className="absolute -right-1 -top-1 h-4 w-4 sm:h-5 sm:w-5 rounded-full p-0 text-[9px] sm:text-[10px] flex items-center justify-center bg-primary text-white border-2 border-white/20 shadow-lg shadow-primary/40 animate-in zoom-in"
                       >
                         {cartItemsCount}
                       </Badge>
@@ -190,17 +190,17 @@ export default function Navbar() {
             {isAuthenticated && user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="gap-3 h-12 rounded-full pl-2 pr-5 transition-all group hover:bg-white/10">
+                  <Button variant="ghost" className="gap-3 h-10 sm:h-12 rounded-full pl-1 sm:pl-2 pr-2 sm:pr-5 transition-all group hover:bg-white/10">
                     <div className="relative">
-                      <Avatar className="h-9 w-9 border-2 border-white/40 shadow-xl group-hover:scale-110 transition-transform">
+                      <Avatar className="h-8 w-8 sm:h-9 sm:w-9 border-2 border-white/40 shadow-xl group-hover:scale-110 transition-transform">
                         <AvatarImage src={user.photoURL} alt={user.displayName || 'User'} />
                         <AvatarFallback className="bg-primary/20 text-primary font-bold">
                           {user.email?.[0]?.toUpperCase() || 'U'}
                         </AvatarFallback>
                       </Avatar>
                       {isPizzaiolo && (
-                        <div className="absolute -bottom-0.5 -right-0.5 h-5 w-5 rounded-full bg-orange-500 border-2 border-white shadow-lg flex items-center justify-center">
-                          <ChefHat className="h-2.5 w-2.5 text-white" />
+                        <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-orange-500 border-2 border-white shadow-lg flex items-center justify-center">
+                          <ChefHat className="h-2 w-2 sm:h-2.5 sm:w-2.5 text-white" />
                         </div>
                       )}
                     </div>
@@ -208,7 +208,7 @@ export default function Navbar() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-72 glass-deep border-white/20 p-2 mt-4 rounded-3xl shadow-2xl animate-in slide-in-from-top-2">
-                  
+
                   {/* Espace Client */}
                   <div className="px-3 py-2">
                     <p className="text-xs font-bold text-muted-foreground/60 uppercase tracking-wider px-2 mb-1">Espace Client</p>
@@ -251,8 +251,8 @@ export default function Navbar() {
               </DropdownMenu>
             ) : (
               <Link to={ROUTES.login}>
-                <Button className="h-11 rounded-full bg-linear-to-r from-primary to-orange-500 shadow-xl shadow-primary/20 hover:shadow-primary/40 px-8 font-black transition-all hover:scale-105 active:scale-95">
-                  <User className="mr-2 h-4 w-4" />
+                <Button className="h-9 sm:h-11 rounded-full bg-linear-to-r from-primary to-orange-500 shadow-xl shadow-primary/20 hover:shadow-primary/40 px-4 sm:px-8 font-black transition-all hover:scale-105 active:scale-95 text-xs sm:text-sm">
+                  <User className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                   Connexion
                 </Button>
               </Link>
