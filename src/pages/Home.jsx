@@ -67,22 +67,24 @@ export default function Home() {
   const { trucks, loading } = useTrucks({ locationText: where, position });
   const topTrucks = useMemo(() => trucks.slice(0, 2), [trucks]);
 
-  const onSubmit = async (e) => {
-    e.preventDefault();
+  const submitWhere = async (whereText) => {
+    const queryText = String(whereText || '').trim();
     // "Valider ma localisation" => on mémorise puis on affiche la liste.
-    if (!where.trim()) {
+    if (!queryText) {
       whereRef.current?.focus?.();
       return;
     }
 
+    // Si la recherche est déclenchée depuis l'autocomplete (Enter), on s'aligne sur la valeur saisie.
+    if (queryText !== where) setWhere(queryText);
+
     try {
-      localStorage.setItem(LS_WHERE, where.trim());
+      localStorage.setItem(LS_WHERE, queryText);
     } catch {
       // noop
     }
 
     // URL partageable: on préfère une position (centre de commune) si on peut la déduire.
-    const queryText = where.trim();
     let nextWhere = queryText;
     let nextPos = position;
     let nextPc = null;
@@ -133,6 +135,11 @@ export default function Home() {
     navigate(`/explore?${params.toString()}`);
   };
 
+  const onSubmit = (e) => {
+    e?.preventDefault?.();
+    return submitWhere(where);
+  };
+
   return (
     <div className="bg-gray-50">
       <section className="mx-auto max-w-6xl px-4 pt-8 pb-6 sm:pt-14 sm:pb-10">
@@ -146,6 +153,9 @@ export default function Home() {
               variant="hero"
               value={where}
               onChange={setWhere}
+              onSearch={submitWhere}
+              placeholder="Où voulez-vous manger ?"
+              inputRef={whereRef}
               onSelect={(city) => {
                 setWhere(city.name);
                 if (typeof city.lat === 'number' && typeof city.lng === 'number') {
@@ -153,18 +163,18 @@ export default function Home() {
                   setPosition(pos);
                   try {
                     localStorage.setItem(LS_POSITION, JSON.stringify(pos));
-                  } catch { // noop }
-                  }
-                  try {
-                    localStorage.setItem(LS_WHERE, city.name);
-                    localStorage.setItem(LS_CITY, JSON.stringify(city));
-                  } catch { // noop }
+                  } catch {
+                    // noop
                   }
                 }
-                onSearch = { onSubmit }
-                placeholder = "Où voulez-vous manger ?"
-                inputRef = { whereRef }
-                  />
+                try {
+                  localStorage.setItem(LS_WHERE, city.name);
+                  localStorage.setItem(LS_CITY, JSON.stringify(city));
+                } catch {
+                  // noop
+                }
+              }}
+            />
           </div>
           <Button
             onClick={onSubmit}
@@ -173,22 +183,21 @@ export default function Home() {
             C'est parti !
           </Button>
         </div>
-    </div>
-      </section >
+      </section>
 
-    <section className="mx-auto max-w-6xl px-4 pb-14">
-      <div className="mt-2">
-        {loading ? (
-          <div className="text-gray-600">Chargement…</div>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2">
-            {topTrucks.map((t) => (
-              <TruckCard key={t.id} truck={t} />
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
-    </div >
+      <section className="mx-auto max-w-6xl px-4 pb-14">
+        <div className="mt-2">
+          {loading ? (
+            <div className="text-gray-600">Chargement…</div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {topTrucks.map((t) => (
+                <TruckCard key={t.id} truck={t} />
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
   );
 }
