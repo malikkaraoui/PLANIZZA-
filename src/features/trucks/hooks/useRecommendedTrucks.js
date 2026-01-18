@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { ref, query, orderByChild, equalTo, get } from 'firebase/database';
 import { db } from '../../../lib/firebase';
 import { useAuth } from '../../../app/providers/AuthProvider';
@@ -23,8 +23,23 @@ export function useRecommendedTrucks() {
     const [recommended, setRecommended] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    // IMPORTANT: Certains hooks peuvent renvoyer un nouvel array à chaque render.
+    // Sans garde, l'effet ci-dessous peut se relancer en boucle et provoquer
+    // "Maximum update depth exceeded".
+    const trucksKey = useMemo(() => {
+        if (!Array.isArray(allTrucks) || !allTrucks.length) return 'none';
+        // Clé stable et indépendante de l'ordre
+        const ids = allTrucks.map((t) => String(t?.id ?? '')).filter(Boolean).sort();
+        return ids.join('|');
+    }, [allTrucks]);
+    const lastRunKeyRef = useRef('');
+
     useEffect(() => {
         if (allTrucksLoading || !allTrucks.length) return;
+
+        const runKey = `${user?.uid || 'anon'}::${trucksKey}`;
+        if (runKey === lastRunKeyRef.current) return;
+        lastRunKeyRef.current = runKey;
 
         async function getRecommendations() {
             let recs = [];
@@ -91,7 +106,7 @@ export function useRecommendedTrucks() {
         }
 
         getRecommendations();
-    }, [user, allTrucks, allTrucksLoading]);
+    }, [user?.uid, trucksKey, allTrucksLoading, allTrucks]);
 
     return { recommended, loading };
 }
