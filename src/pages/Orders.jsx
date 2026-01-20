@@ -6,6 +6,7 @@ import { db } from '../lib/firebase';
 import { useAuth } from '../app/providers/AuthProvider';
 import { ROUTES } from '../app/routes';
 import { formatCartItemName } from '../features/cart/utils/formatCartItemName';
+import BackButton from '../components/ui/BackButton';
 
 export default function Orders() {
   const { user } = useAuth();
@@ -120,13 +121,9 @@ export default function Orders() {
     <div className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Bouton retour */}
-        <button
-          onClick={() => navigate(ROUTES.account)}
-          className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mb-6"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Retour
-        </button>
+        <div className="mb-6">
+          <BackButton />
+        </div>
 
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Mes commandes</h1>

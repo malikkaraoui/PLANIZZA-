@@ -5,6 +5,7 @@ import { ref, update } from 'firebase/database';
 import { db } from '../../lib/firebase';
 import { ROUTES } from '../../app/routes';
 import { Button } from '../../components/ui/Button';
+import BackButton from '../../components/ui/BackButton';
 
 function PricingCard({ title, subtitle, tagline, bullets }) {
   return (
@@ -63,6 +64,7 @@ export default function PizzaioloStart() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
+      <BackButton className="mb-6" />
       {/* Hero */}
       <div className="text-center">
         <h1 className="text-4xl font-bold text-gray-900">

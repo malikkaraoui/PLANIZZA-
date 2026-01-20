@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import PartnerTapbar from '../components/partner/PartnerTapbar';
 import { Button } from '../components/ui/Button';
 import { ROUTES } from '../app/routes';
+import BackButton from '../components/ui/BackButton';
 
 function Card({ title, subtitle, tagline, cta, bullets, onCtaClick }) {
   return (
@@ -42,6 +43,7 @@ export default function DevenezPartenaireTarifs() {
       <PartnerTapbar />
 
       <div className="mx-auto max-w-3xl px-4 py-10">
+        <BackButton className="mb-6" />
         <p className="text-sm font-semibold text-gray-700">Titre de section</p>
         <h1 className="mt-2 text-3xl font-extrabold text-gray-900">
           Des offres Pizza Commande adaptées à votre camion à pizza

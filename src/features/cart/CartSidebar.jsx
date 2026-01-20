@@ -19,8 +19,8 @@ function isPizzaLikeCartItem(it) {
  * Composant sidebar de panier réutilisable
  * Peut être utilisé en mode sticky (TruckDetails) ou inline (Checkout)
  */
-export default function CartSidebar({ 
-  onCheckout, 
+export default function CartSidebar({
+  onCheckout,
   disabled = false,
   checkoutButtonText = "Valider la commande",
   showCheckoutButton = true,
@@ -100,9 +100,14 @@ export default function CartSidebar({
   const ctaText = compact ? 'text-xs' : 'text-sm';
   const scrollGutterRight = compact ? 'pr-3' : 'pr-4';
 
+  // Hauteur max = viewport - top dynamique - blanc bas
+  const maxCardHeight = 'calc(100vh - var(--cart-top, 112px) - var(--cart-bottom-gap, 40px))';
+
   return (
-    <Card className={`glass-premium glass-glossy rounded-[40px] border-white/30 shadow-2xl relative overflow-hidden flex flex-col min-h-0 lg:h-[calc(100vh-12rem)] lg:max-h-[calc(100vh-12rem)] ${className}`}>
-      <div className="absolute top-0 right-0 -z-10 w-32 h-32 bg-primary/10 rounded-full blur-2xl" />
+    <Card
+      style={{ maxHeight: maxCardHeight }}
+      className={`glass-premium glass-glossy rounded-[32px] border-white/30 shadow-xl relative overflow-hidden flex flex-col transition-all duration-300 ${className}`}>
+      <div className="absolute top-0 right-0 -z-10 w-24 h-24 bg-primary/8 rounded-full blur-2xl" />
 
       {/* Header panier - fixe */}
       <div className={`flex items-center gap-4 border-b border-white/10 ${headerPadding}`}>
@@ -114,11 +119,11 @@ export default function CartSidebar({
 
       {/* Contenu scrollable */}
       {/* NOTE: en flex-col, il faut min-h-0 sur la zone scrollable sinon elle pousse le footer hors de la Card. */}
-      <div className={`relative flex-1 min-h-0 ${bodyXPadding}`}>
+      <div className="relative flex-1 min-h-0 w-full flex flex-col">
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className={`h-full min-h-0 overflow-y-auto custom-scrollbar ${bodyYPadding} ${scrollGutterRight}`}
+          className={`flex-1 overflow-y-auto custom-scrollbar ${bodyXPadding} ${bodyYPadding} ${scrollGutterRight}`}
         >
           {items.length === 0 ? (
             <div className="py-12 text-center space-y-4">
@@ -160,11 +165,10 @@ export default function CartSidebar({
                           <div className="flex items-center justify-between mt-2">
                             <div className="flex items-center gap-1.5 p-1 rounded-xl glass-deep border-white/10">
                               <button
-                                className={`p-1.5 rounded-lg transition-colors ${
-                                  it.qty > 1 
-                                    ? 'hover:bg-white/10 text-muted-foreground/60 cursor-pointer' 
-                                    : 'text-transparent pointer-events-none'
-                                }`}
+                                className={`p-1.5 rounded-lg transition-colors ${it.qty > 1
+                                  ? 'hover:bg-white/10 text-muted-foreground/60 cursor-pointer'
+                                  : 'text-transparent pointer-events-none'
+                                  }`}
                                 onClick={() => it.qty > 1 && updateItemQty(it.id, it.qty - 1)}
                                 disabled={it.qty === 1}
                               >
@@ -201,13 +205,13 @@ export default function CartSidebar({
 
         {/* Indication persistante : fondu (liquid glass) quand du contenu est hors champ */}
         {items.length > 0 && isScrollable && !atTop && (
-          <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-10">
+          <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-10 z-10">
             <div className="absolute inset-0 bg-linear-to-b from-background/80 via-background/35 to-transparent backdrop-blur-[2px]" />
           </div>
         )}
 
         {items.length > 0 && isScrollable && !atBottom && (
-          <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-14">
+          <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-14 z-10 border-b-[24px] border-transparent">
             <div className="absolute inset-0 bg-linear-to-t from-background/80 via-background/35 to-transparent backdrop-blur-[2px]" />
             {/* Petit hint ultra discret, toujours présent tant qu'il reste du contenu dessous */}
             <div className="absolute inset-x-0 bottom-1.5 flex justify-center">

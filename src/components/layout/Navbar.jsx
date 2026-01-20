@@ -79,8 +79,8 @@ export default function Navbar() {
   }, [isOnOrdersPage, pizzaioloTruckId]);
 
   return (
-    <header className={`sticky top-0 z-50 flex justify-center w-full pointer-events-none transition-transform duration-300 ease-in-out ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}>
-      <div className="container max-w-7xl w-full px-2 sm:px-6 lg:px-8 pointer-events-auto">
+    <header className={`fixed top-0 z-50 flex justify-center w-full transition-transform duration-300 ease-in-out ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}>
+      <div className="container max-w-7xl w-full px-2 sm:px-6 lg:px-8">
         <div className="floating-island w-full h-16 sm:h-20 items-center justify-between flex px-4 sm:px-8 transition-transform duration-500 hover:scale-[1.01]">
           {/* Logo */}
           <Link

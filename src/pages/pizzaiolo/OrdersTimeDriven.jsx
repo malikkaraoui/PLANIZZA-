@@ -15,6 +15,7 @@ import { devLog } from '../../lib/devLog';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import BackButton from '../../components/ui/BackButton';
 
 const KITCHEN_STATUS_LABELS = Object.freeze({
   NEW: 'NOUVELLE',
@@ -450,8 +451,7 @@ export default function OrdersPageTimeDriven() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-6">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div className="mx-auto w-full max-w-6xl px-4 py-6">      <BackButton className="mb-4" />      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="text-lg font-bold text-white">File d’attente (Temps)</div>
           <div className="mt-1 text-xs text-white/60">

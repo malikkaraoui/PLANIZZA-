@@ -8,6 +8,7 @@ import { Badge } from '../../components/ui/Badge';
 import { useTruckOrders } from '../../features/orders/hooks/useTruckOrders';
 import { usePizzaioloTruckId } from '../../features/pizzaiolo/hooks/usePizzaioloTruckId';
 import { getFilteredOrders, isExpired } from '../../features/orders/utils/orderFilters';
+import BackButton from '../../components/ui/BackButton';
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -421,13 +422,7 @@ export default function PizzaioloStats() {
 
   return (
     <div className="space-y-8">
-      <button
-        onClick={() => navigate(ROUTES.pizzaioloProfile)}
-        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Retour
-      </button>
+      <BackButton />
 
       <div>
         <h1 className="text-4xl font-black tracking-tight">Statistiques</h1>

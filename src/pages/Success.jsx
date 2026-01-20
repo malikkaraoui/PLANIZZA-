@@ -1,5 +1,6 @@
 import { CheckCircle } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
+import BackButton from '../components/ui/BackButton';
 
 export default function Success() {
   const [searchParams] = useSearchParams();
@@ -9,6 +10,7 @@ export default function Success() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center px-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
+        <BackButton className="mb-4" />
         <div className="flex justify-center mb-6">
           <CheckCircle className="w-20 h-20 text-green-500" />
         </div>

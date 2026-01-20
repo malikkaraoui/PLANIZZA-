@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 /**
  * Hook pour détecter la direction du scroll et cacher/montrer la navbar.
@@ -8,44 +8,29 @@ import { useState, useEffect } from 'react';
  */
 export function useScrollDirection(threshold = 10) {
   const [isVisible, setIsVisible] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  const lastScrollY = useRef(0);
 
   useEffect(() => {
-    let ticking = false;
-
     const handleScroll = () => {
-      if (ticking) return;
+      const currentScrollY = window.scrollY;
 
-      window.requestAnimationFrame(() => {
-        const currentScrollY = window.scrollY;
+      // Toujours visible si en haut de page
+      if (currentScrollY < 10) {
+        setIsVisible(true);
+        lastScrollY.current = currentScrollY;
+        return;
+      }
 
-        // Si on est tout en haut, toujours montrer
-        if (currentScrollY <= 0) {
-          setIsVisible(true);
-          setLastScrollY(currentScrollY);
-          ticking = false;
-          return;
-        }
+      // Détection simple : scroll up = montre, scroll down = cache
+      if (currentScrollY < lastScrollY.current) {
+        // Scroll vers le haut → MONTRER
+        setIsVisible(true);
+      } else if (currentScrollY > lastScrollY.current + 10) {
+        // Scroll vers le bas de plus de 10px → CACHER
+        setIsVisible(false);
+      }
 
-        // Calculer la différence depuis le dernier scroll
-        const diff = currentScrollY - lastScrollY;
-
-        // Si différence assez significative (> threshold)
-        if (Math.abs(diff) > threshold) {
-          if (diff > 0) {
-            // Scroll vers le bas → cacher
-            setIsVisible(false);
-          } else {
-            // Scroll vers le haut → montrer
-            setIsVisible(true);
-          }
-          setLastScrollY(currentScrollY);
-        }
-
-        ticking = false;
-      });
-
-      ticking = true;
+      lastScrollY.current = currentScrollY;
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -53,7 +38,7 @@ export function useScrollDirection(threshold = 10) {
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
-  }, [lastScrollY, threshold]);
+  }, []);
 
   return { isVisible };
 }

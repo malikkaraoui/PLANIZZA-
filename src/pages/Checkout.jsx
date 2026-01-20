@@ -5,6 +5,7 @@ import { useAuth } from '../app/providers/AuthProvider';
 import { useCart } from '../features/cart/hooks/useCart.jsx';
 import { useCreateOrder } from '../features/orders/hooks/useCreateOrder';
 import { ROUTES } from '../app/routes';
+import BackButton from '../components/ui/BackButton';
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -75,6 +76,7 @@ export default function Checkout() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
+      <BackButton className="mb-6" />
       <h1 className="text-2xl font-bold text-gray-900">Checkout</h1>
       <p className="mt-2 text-sm text-gray-600">
         MVP navigation : cette page déclenche Stripe Checkout via Firebase

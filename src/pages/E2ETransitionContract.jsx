@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { pizzaioloTransitionOrderV2 } from '../lib/ordersApi';
+import BackButton from '../components/ui/BackButton';
 
 export default function E2ETransitionContract() {
   const [result, setResult] = useState('idle');
@@ -20,6 +21,7 @@ export default function E2ETransitionContract() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 text-white">
+      <BackButton className="mb-4" />
       <h1 className="text-xl font-semibold">E2E Transition Contract</h1>
       <p className="mt-2 text-sm text-white/70">
         Page de test (VITE_E2E=true). Vérifie que le payload callable contient action.

@@ -18,6 +18,7 @@ import {
   PizzaioloMenuPizzaPresetGrid,
   PizzaioloMenuCalzonePresetGrid,
 } from '../../features/menu/components/pizzaiolo';
+import BackButton from '../../components/ui/BackButton';
 
 export default function PizzaioloMenu() {
   const { user } = useAuth();
@@ -163,13 +164,7 @@ export default function PizzaioloMenu() {
   return (
     <div className="space-y-6">
       {/* Bouton retour */}
-      <button
-        onClick={() => navigate('/pro/truck')}
-        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Retour au tableau de bord
-      </button>
+      <BackButton />
 
       <Card className="p-6">
         <div className="flex items-center justify-between">

@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { MapPin, Pizza, X } from 'lucide-react';
 import TruckHeader from '../features/trucks/TruckHeader';
 import { useTruck } from '../features/trucks/hooks/useTruck';
@@ -8,16 +8,17 @@ import { useIngredients } from '../features/menu/hooks/useIngredients';
 import MenuItemCard from '../features/menu/MenuItemCard';
 import MenuPizzaTile from '../features/menu/MenuPizzaTile';
 import CartSidebar from '../features/cart/CartSidebar';
+import CartIndicator from '../features/cart/CartIndicator';
 import { useCart } from '../features/cart/hooks/useCart.jsx';
 import { ROUTES } from '../app/routes';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
 import { isCurrentlyOpen } from '../lib/openingHours';
 import StickyCartBar from '../features/cart/StickyCartBar';
+import BackButton from '../components/ui/BackButton';
 
 export default function TruckDetails() {
   const { truckId: slugOrId } = useParams();
-  const location = useLocation();
   const navigate = useNavigate();
   const { truck, loading: loadingTruck, error: truckError } = useTruck(slugOrId);
   const { items: menuItems, loading: loadingMenu } = useMenu(truck?.id);
@@ -26,6 +27,75 @@ export default function TruckDetails() {
   const [zoomedImage, setZoomedImage] = useState(null);
   const [showMap, setShowMap] = useState(false);
   const [openItemKey, setOpenItemKey] = useState(null);
+  const truckCardRef = useRef(null);
+  const [cartTopPx, setCartTopPx] = useState(112);
+
+  useEffect(() => {
+    const baseTop = 112; // aligné sous la topbar
+    const updateTop = () => {
+      const el = truckCardRef.current;
+      if (!el) {
+        setCartTopPx(baseTop);
+        return;
+      }
+
+      const rect = el.getBoundingClientRect();
+      const nextTop = Math.max(baseTop, Math.round(rect.top));
+      setCartTopPx(nextTop);
+    };
+
+    // Initial: on attend que le DOM soit stable
+    const initialUpdate = setTimeout(() => {
+      updateTop();
+    }, 0);
+
+    // Puis un second recalcul après 100ms pour être sûr (images chargées, etc.)
+    const delayedUpdate = setTimeout(() => {
+      updateTop();
+    }, 100);
+
+    window.addEventListener('scroll', updateTop, { passive: true });
+    window.addEventListener('resize', updateTop);
+
+    let ro;
+    try {
+      ro = new ResizeObserver(updateTop);
+      if (truckCardRef.current) {
+        ro.observe(truckCardRef.current);
+      }
+    } catch {
+      // noop
+    }
+
+    return () => {
+      clearTimeout(initialUpdate);
+      clearTimeout(delayedUpdate);
+      window.removeEventListener('scroll', updateTop);
+      window.removeEventListener('resize', updateTop);
+      ro?.disconnect?.();
+    };
+  }, []);
+
+  // Recalculer la position du panier quand les items changent (retour depuis /panier)
+  useEffect(() => {
+    if (cartItems.length === 0) return;
+    
+    const baseTop = 112;
+    const updateTop = () => {
+      const el = truckCardRef.current;
+      if (!el) {
+        setCartTopPx(baseTop);
+        return;
+      }
+      const rect = el.getBoundingClientRect();
+      const nextTop = Math.max(baseTop, Math.round(rect.top));
+      setCartTopPx(nextTop);
+    };
+
+    // Petit délai pour laisser le DOM se stabiliser
+    const timer = setTimeout(updateTop, 50);
+    return () => clearTimeout(timer);
+  }, [cartItems.length]);
 
   const formatShortAddress = (addr) => {
     if (!addr) return 'Adresse non renseignée';
@@ -99,47 +169,25 @@ export default function TruckDetails() {
     return grouped;
   }, [effectiveMenuItems]);
 
-  const handleBack = () => {
-    // Comportement attendu: revenir à la page précédente (ex: /explore avec sa recherche)
-    // Si on arrive directement sur /truck/:id (pas d'historique SPA), on fallback sur la dernière URL /explore mémorisée.
-    if (location.key && location.key !== 'default') {
-      navigate(-1);
-      return;
-    }
-
-    try {
-      const lastExploreUrl = localStorage.getItem('planizza.lastExploreUrl');
-      if (lastExploreUrl) {
-        navigate(lastExploreUrl);
-        return;
-      }
-    } catch {
-      // noop
-    }
-
-    navigate(ROUTES.explore);
-  };
-
   const handleCheckout = async () => {
     // Navigation MVP: passage par /cart puis /checkout
     navigate(ROUTES.cart, { state: { truckId: truck.id } });
   };
 
   return (
-    <div className="relative isolate mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-12">
+    <div className="relative isolate mx-auto max-w-[92rem] px-4 py-12 sm:px-6 lg:px-8 space-y-12">
       {/* Background decorations - Ultra Dynamic */}
       <div className="absolute top-0 right-0 -z-10 w-150 h-150 bg-primary/10 rounded-full blur-[120px] animate-pulse" />
       <div className="absolute bottom-1/4 left-0 -z-10 w-100 h-100 bg-blue-500/10 rounded-full blur-[100px] animate-pulse duration-700" />
 
-      <div className="relative z-10">
-        <button
-          type="button"
-          onClick={handleBack}
-          className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl glass-premium border-white/40 text-sm font-black tracking-widest uppercase hover:bg-white/10 transition-all text-muted-foreground hover:text-primary group shadow-lg"
-        >
-          <span className="translate-x-0 group-hover:-translate-x-1 transition-transform">←</span>
-          Retour aux camions
-        </button>
+      <div
+        className={`relative z-20 w-full mb-10 ${
+          cartItems.length > 0
+            ? 'lg:pr-[310px]'
+            : 'lg:max-w-4xl lg:mx-auto'
+        }`}
+      >
+        <BackButton />
       </div>
 
       {isLoading ? (
@@ -192,13 +240,14 @@ export default function TruckDetails() {
           </CardContent>
         </Card>
       ) : (
-        <div className={`grid gap-12 items-start transition-all duration-500 ${cartItems.length > 0
-          ? 'lg:grid-cols-[1fr_400px] lg:grid-rows-[auto_1fr]'
-          : 'lg:grid-cols-1 lg:max-w-4xl lg:mx-auto'
+        <div className={`flex flex-col gap-8 transition-all duration-500 ${
+          cartItems.length > 0
+            ? 'lg:flex-row lg:pr-[310px]'
+            : 'lg:max-w-4xl lg:mx-auto'
           }`}>
-          {/* Truck Info Section */}
-          <div className="lg:col-start-1 lg:row-start-1">
-            <div className="glass-premium glass-glossy p-2 rounded-[40px] shadow-2xl overflow-hidden border-white/20">
+          <div className="flex-1 space-y-12">
+            {/* Truck Info Section */}
+            <div ref={truckCardRef} className="glass-premium glass-glossy p-2 rounded-[40px] shadow-2xl overflow-hidden border-white/20">
               <TruckHeader truck={truck} />
 
               {/* Custom Detail Strip */}
@@ -308,102 +357,118 @@ export default function TruckDetails() {
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Sidebar / Sidebar "Control Center" */}
-          {cartItems.length > 0 && (
-            <aside className="hidden lg:block animate-in slide-in-from-right-8 duration-700 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-24 self-start">
-              <CartSidebar onCheckout={handleCheckout} disabled={!canOrder} />
-            </aside>
-          )}
-
-          {/* Menu Section */}
-          <section className="lg:col-start-1 lg:row-start-2 space-y-8 pb-32">
-            <div className="flex items-center gap-4 px-2">
-              <div className="h-10 w-2 bg-orange-500/20 rounded-full" />
-              <h2 className="text-3xl font-black tracking-tighter uppercase text-gray-900 dark:text-white">La Carte du Chef</h2>
-            </div>
-            {!hasMenu ? (
-              <div className="p-20 text-center glass-premium border-dashed border-white/20 rounded-[40px]">
-                <p className="text-muted-foreground font-black italic text-lg tracking-tight">
-                  Le menu de ce camion est en cours de mise à jour... <br />
-                  Revenez dans quelques minutes !
-                </p>
+            {/* Menu Section */}
+            <section className="space-y-12">
+              <div className="flex items-center gap-4 px-2">
+                <div className="h-10 w-2 bg-orange-500/20 rounded-full" />
+                <h2 className="text-3xl font-black tracking-tighter uppercase text-gray-900 dark:text-white">La Carte du Chef</h2>
               </div>
-            ) : (
-              <div className="grid gap-8">
-                {!canOrder && (
-                  <div className="p-8 text-center glass-premium border-amber-500/30 rounded-[32px] bg-amber-50/5">
-                    {isPaused && (
-                      <>
-                        <p className="text-lg font-black text-amber-500 mb-2">☕ Pause en cours</p>
-                        <p className="text-muted-foreground font-medium">
-                          Le pizzaiolo prend un instant de repos. Les commandes sont temporairement suspendues.
-                        </p>
-                      </>
-                    )}
-                    {!isOpen && !isPaused && (
-                      <>
-                        <p className="text-lg font-black text-red-500 mb-2">🔒 Actuellement fermé</p>
-                        <p className="text-muted-foreground font-medium">
-                          Le camion est fermé. Consultez les horaires d'ouverture ci-dessus.
-                        </p>
-                      </>
-                    )}
-                  </div>
-                )}
-                {menuSections.map((section) => (
-                  <div key={section.key} className="space-y-4">
-                    <div className="flex items-center justify-between rounded-2xl border border-orange-500/30 bg-orange-500/5 px-4 py-3">
-                      <h3 className="text-sm font-black tracking-widest uppercase text-gray-900 dark:text-white">
-                        {section.title}
-                      </h3>
-                      <span className="text-xs font-semibold text-orange-600 dark:text-orange-400">
-                        {section.items.length}
-                      </span>
+              {!hasMenu ? (
+                <div className="p-20 text-center glass-premium border-dashed border-white/20 rounded-[40px]">
+                  <p className="text-muted-foreground font-black italic text-lg tracking-tight">
+                    Le menu de ce camion est en cours de mise à jour... <br />
+                    Revenez dans quelques minutes !
+                  </p>
+                </div>
+              ) : (
+                <div className="grid gap-8">
+                  {!canOrder && (
+                    <div className="p-8 text-center glass-premium border-amber-500/30 rounded-[32px] bg-amber-50/5">
+                      {isPaused && (
+                        <>
+                          <p className="text-lg font-black text-amber-500 mb-2">☕ Pause en cours</p>
+                          <p className="text-muted-foreground font-medium">
+                            Le pizzaiolo prend un instant de repos. Les commandes sont temporairement suspendues.
+                          </p>
+                        </>
+                      )}
+                      {!isOpen && !isPaused && (
+                        <>
+                          <p className="text-lg font-black text-red-500 mb-2">🔒 Actuellement fermé</p>
+                          <p className="text-muted-foreground font-medium">
+                            Le camion est fermé. Consultez les horaires d'ouverture ci-dessus.
+                          </p>
+                        </>
+                      )}
                     </div>
-                    <div className="grid gap-4 items-start grid-cols-[repeat(auto-fit,minmax(240px,1fr))]">
-                      {section.items.map((it, idx) => {
-                        const type = String(it?.type || '').toLowerCase();
-                        const isPizzaLike = type === 'pizza' || type === 'calzone';
-                        const rawKey = it?.id ?? it?.menuId ?? it?.slug ?? it?.name ?? 'item';
-                        const itemKey = `${section.key}-${String(rawKey)}-${idx}`;
+                  )}
+                  {menuSections.map((section) => (
+                    <div key={section.key} className="space-y-4">
+                      <div className="flex items-center justify-between rounded-2xl border border-orange-500/30 bg-orange-500/5 px-4 py-3">
+                        <h3 className="text-sm font-black tracking-widest uppercase text-gray-900 dark:text-white">
+                          {section.title}
+                        </h3>
+                        <span className="text-xs font-semibold text-orange-600 dark:text-orange-400">
+                          {section.items.length}
+                        </span>
+                      </div>
+                      <div className="grid gap-4 items-start grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                        {section.items.map((it, idx) => {
+                          const type = String(it?.type || '').toLowerCase();
+                          const isPizzaLike = type === 'pizza' || type === 'calzone';
+                          const rawKey = it?.id ?? it?.menuId ?? it?.slug ?? it?.name ?? 'item';
+                          const itemKey = `${section.key}-${String(rawKey)}-${idx}`;
 
-                        if (isPizzaLike) {
+                          if (isPizzaLike) {
+                            return (
+                              <MenuPizzaTile
+                                key={itemKey}
+                                item={it}
+                                onAdd={(item) => addItem(item, { truckId: truck.id })}
+                                isDisabled={!canOrder}
+                                enableCustomization
+                                availableIngredients={ingredients}
+                                open={openItemKey === itemKey}
+                                onToggle={() =>
+                                  setOpenItemKey((prev) => (prev === itemKey ? null : itemKey))
+                                }
+                                onAutoClose={() => setOpenItemKey(null)}
+                              />
+                            );
+                          }
+
                           return (
-                            <MenuPizzaTile
+                            <MenuItemCard
                               key={itemKey}
                               item={it}
                               onAdd={(item) => addItem(item, { truckId: truck.id })}
                               isDisabled={!canOrder}
-                              enableCustomization
-                              availableIngredients={ingredients}
-                              open={openItemKey === itemKey}
-                              onToggle={() =>
-                                setOpenItemKey((prev) => (prev === itemKey ? null : itemKey))
-                              }
-                              onAutoClose={() => setOpenItemKey(null)}
                             />
                           );
-                        }
-
-                        return (
-                          <MenuItemCard
-                            key={itemKey}
-                            item={it}
-                            onAdd={(item) => addItem(item, { truckId: truck.id })}
-                            isDisabled={!canOrder}
-                          />
-                        );
-                      })}
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+          {cartItems.length > 0 && (
+            <aside
+              className="hidden lg:block fixed right-[38px] w-[360px] z-40"
+              style={{
+                top: cartTopPx,
+                bottom: 40,
+                '--cart-top': `${cartTopPx}px`,
+                '--cart-bottom-gap': '40px',
+              }}
+            >
+              <div className="relative">
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full animate-bounce shadow-lg border border-white/30 z-10" />
+                <div className="animate-in slide-in-from-right-4 fade-in duration-500 ease-out">
+                  <CartSidebar
+                    onCheckout={handleCheckout}
+                    disabled={!canOrder}
+                    compact={cartItems.length === 1}
+                  />
+                </div>
               </div>
-            )}
-          </section>
+            </aside>
+          )}
         </div>
       )}
+
+      {/* Sidebar / Cart "Control Center" - géré dans le flux (sticky) */}
 
       {/* Modal de zoom pour les photos */}
       {zoomedImage && (
@@ -435,6 +500,9 @@ export default function TruckDetails() {
 
       {/* Mobile Sticky Cart Bar */}
       <StickyCartBar />
+
+      {/* Indicateur de panier sur mobile/tablet (quand pas d'articles) */}
+      {cartItems.length === 0 && <CartIndicator />}
     </div>
   );
 }

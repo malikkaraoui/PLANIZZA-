@@ -30,6 +30,7 @@ import {
 import { formatDrinkVolumeLabel } from '../../features/menu/utils/formatDrinkVolumeLabel';
 import DesiredTimePicker from '../../features/orders/components/DesiredTimePicker';
 import { getMinDesiredTime, validateDesiredTime } from '../../features/orders/utils/desiredTime';
+import BackButton from '../../components/ui/BackButton';
 
 export default function PizzaioloLive() {
   const { user } = useAuth();
@@ -300,19 +301,17 @@ export default function PizzaioloLive() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <button
-          onClick={() => {
-            if (customizingPizza) {
-              cancelCustomization();
-            } else {
-              navigate(ROUTES.pizzaioloProfile);
-            }
-          }}
-          className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {customizingPizza ? 'Annuler' : 'Retour'}
-        </button>
+        {customizingPizza ? (
+          <button
+            onClick={cancelCustomization}
+            className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Annuler
+          </button>
+        ) : (
+          <BackButton />
+        )}
         
         <h1 className="text-3xl font-black tracking-tight">
           {customizingPizza ? '✨ Personnaliser' : 'Nouvelle Commande'}

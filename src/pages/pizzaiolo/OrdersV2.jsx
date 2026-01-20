@@ -12,6 +12,7 @@ import { useServerNow } from '../../hooks/useServerNow';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
+import BackButton from '../../components/ui/BackButton';
 
 import { legacyToOrderV2 } from '../../features/orders/v2/adapters/legacyToV2';
 
@@ -301,6 +302,10 @@ export default function PizzaioloOrdersV2() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6">
+      <div className="mb-6">
+        <BackButton />
+      </div>
+      
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="text-lg font-bold text-white">Commandes (v2)</div>

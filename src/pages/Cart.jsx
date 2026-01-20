@@ -19,6 +19,7 @@ import { devLog } from '../lib/devLog';
 import StickyAside from '../components/layout/StickyAside';
 import DesiredTimePicker from '../features/orders/components/DesiredTimePicker';
 import { getMinDesiredTime, validateDesiredTime } from '../features/orders/utils/desiredTime';
+import BackButton from '../components/ui/BackButton';
 
 const TVA_RATE = 0.10; // 10% TVA restauration
 const DESIRED_TIME_STORAGE_KEY = 'planizza:desiredTime:v1';
@@ -577,13 +578,7 @@ export default function Cart() {
     <div className="container mx-auto max-w-4xl px-4 py-8 sm:px-6">
       {/* Header */}
       <div className="mb-6">
-        <Link
-          to={continueUrl}
-          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Continuer mes achats
-        </Link>
+        <BackButton className="mb-4" />
 
         {/* Titre + compteur sur UNE ligne (gain de place) */}
         <div className="flex items-baseline justify-between gap-3">

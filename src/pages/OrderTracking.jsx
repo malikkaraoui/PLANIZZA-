@@ -5,6 +5,7 @@ import { Bike, Store } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { useAuth } from '../app/providers/AuthProvider';
 import { formatCartItemName } from '../features/cart/utils/formatCartItemName';
+import BackButton from '../components/ui/BackButton';
 
 const STEPS = [
   { key: 'created', label: 'Confirmée', icon: '✅' },
@@ -102,6 +103,11 @@ export default function OrderTracking() {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-4xl mx-auto">
+        {/* Bouton retour */}
+        <div className="mb-6">
+          <BackButton />
+        </div>
+
         {/* Header */}
         <div className="bg-white border border-gray-200 shadow-sm rounded-2xl p-8 mb-8">
           <div className="flex items-center justify-between mb-6">

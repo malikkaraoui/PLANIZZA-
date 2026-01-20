@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import LocationSearch from '../components/ui/LocationSearch';
+import BackButton from '../components/ui/BackButton';
 import TruckCard from '../features/trucks/TruckCard';
 import { useTrucks } from '../features/trucks/hooks/useTrucks';
 import { searchFrenchCities } from '../lib/franceCities';
@@ -143,6 +144,7 @@ export default function Home() {
   return (
     <div className="bg-gray-50">
       <section className="mx-auto max-w-6xl px-4 pt-8 pb-6 sm:pt-14 sm:pb-10">
+        <BackButton className="mb-6" />
         <div className="text-center">
           <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-gray-900">
             Commandez votre pizza

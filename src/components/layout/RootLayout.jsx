@@ -9,7 +9,7 @@ export default function RootLayout() {
   return (
     <div className="min-h-dvh flex flex-col">
       <Navbar />
-      <main className="flex-1 bg-gray-50">
+      <main className="flex-1 bg-gray-50 pt-24">
         <ErrorBoundary title="Impossible d'afficher la page">
           <Outlet />
         </ErrorBoundary>

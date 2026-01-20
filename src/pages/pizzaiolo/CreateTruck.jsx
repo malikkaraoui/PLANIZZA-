@@ -9,6 +9,7 @@ import { generateUniqueTruckSlug } from '../../features/trucks/utils/truckSlug';
 import LocationPicker from '../../components/ui/LocationPicker';
 import ImageUploader from '../../components/ui/ImageUploader';
 import { ROUTES } from '../../app/routes';
+import BackButton from '../../components/ui/BackButton';
 
 export default function CreateTruck() {
   const { user } = useAuth();
@@ -362,6 +363,7 @@ export default function CreateTruck() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
+      <BackButton className="mb-6" />
       {/* Progress bar */}
       <div className="mb-8">
         <div className="flex items-center justify-between">

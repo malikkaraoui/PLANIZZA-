@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { CreditCard, Check, X } from 'lucide-react';
+import BackButton from '../components/ui/BackButton';
 
 export default function Pricing() {
   const [loading, setLoading] = useState(null);
@@ -73,6 +74,7 @@ export default function Pricing() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-16 px-4">
       <div className="max-w-7xl mx-auto">
+        <BackButton className="mb-8" />
         {/* Header */}
         <div className="text-center mb-16">
           <h1 className="text-5xl font-bold text-gray-900 mb-4">

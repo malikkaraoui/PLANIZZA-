@@ -1,6 +1,7 @@
 import { Link, useSearchParams } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { ROUTES } from '../app/routes';
+import BackButton from '../components/ui/BackButton';
 
 export default function DevenezPartenaireValidation() {
   const [searchParams] = useSearchParams();
@@ -9,6 +10,7 @@ export default function DevenezPartenaireValidation() {
   return (
     <div>
       <div className="mx-auto max-w-3xl px-4 py-10">
+        <BackButton className="mb-6" />
         <div className="text-center">
           <div className="text-6xl mb-4">🎉</div>
           <h1 className="text-3xl font-bold text-gray-900">Bienvenue parmi nous !</h1>

@@ -9,6 +9,7 @@ import { ROUTES } from '../app/routes';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import Card from '../components/ui/Card';
+import BackButton from '../components/ui/BackButton';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { auth, db, storage, isFirebaseConfigured } from '../lib/firebase';
 import { useCart } from '../features/cart/hooks/useCart.jsx';
@@ -326,6 +327,7 @@ export default function Account() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
+      <BackButton className="mb-4" />
       <h1 className="text-3xl font-black text-gray-900 mb-8">Mon Profil</h1>
 
       {/* Compte Google */}

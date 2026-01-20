@@ -12,6 +12,7 @@ import { Skeleton } from '../components/ui/skeleton';
 import LocationSearch from '../components/ui/LocationSearch';
 import { getBrowserPosition } from '../lib/geo';
 import { reverseGeocodeCommune, searchFrenchCities } from '../lib/franceCities';
+import BackButton from '../components/ui/BackButton';
 import RecommendedTrucks from '../features/trucks/RecommendedTrucks';
 
 const ALL_BADGES = ['Bio', 'Terroir', 'Sans gluten', 'Halal', 'Kasher', 'Sucré'];
@@ -426,6 +427,7 @@ export default function TrucksNew() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:py-12 sm:px-6 lg:px-8 space-y-10 sm:space-y-16">
+      <BackButton className="mb-6" />
       <div className="glass-premium p-6 sm:p-14 space-y-6 sm:space-y-10 relative z-40 overflow-visible group">
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-1000" />
 

@@ -24,6 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../components/ui/dialog';
+import BackButton from '../../components/ui/BackButton';
 
 const DEFAULT_OPENING_HOURS = {
   monday: { enabled: true, open: '11:00', close: '22:00' },
@@ -417,13 +418,7 @@ export default function PizzaioloProfile() {
   return (
     <div className="space-y-8">
       {/* Bouton retour */}
-      <Link
-        to={ROUTES.dashboard}
-        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Tableau de bord
-      </Link>
+      <BackButton />
 
       {/* Navigation rapide */}
       {truckId && (

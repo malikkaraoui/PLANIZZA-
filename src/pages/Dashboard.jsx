@@ -11,6 +11,7 @@ import { Badge } from '../components/ui/Badge';
 import { Input } from '../components/ui/Input';
 import { ref, get, remove, set } from 'firebase/database';
 import { db, auth, isFirebaseConfigured } from '../lib/firebase';
+import BackButton from '../components/ui/BackButton';
 import { useMyOrders } from '../features/orders/hooks/useMyOrders';
 import { useLoyaltyPoints } from '../features/users/hooks/useLoyaltyPoints';
 import { useCart } from '../features/cart/hooks/useCart.jsx';
@@ -273,6 +274,8 @@ export default function Dashboard() {
       {/* Background decorations */}
       <div className="absolute top-0 right-0 -z-10 w-150 h-150 bg-primary/5 rounded-full blur-[120px]" />
       <div className="absolute bottom-0 left-0 -z-10 w-100 h-100 bg-orange-500/5 rounded-full blur-[100px]" />
+
+      <BackButton className="mb-4" />
 
       {/* Header */}
       <div className="text-center space-y-4">

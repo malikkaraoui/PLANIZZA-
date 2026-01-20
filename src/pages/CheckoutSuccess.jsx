@@ -5,6 +5,7 @@ import { useCart } from '../features/cart/hooks/useCart.jsx';
 import { useAuth } from '../app/providers/AuthProvider';
 import { db } from '../lib/firebase';
 import { ref, onValue } from 'firebase/database';
+import BackButton from '../components/ui/BackButton';
 
 const DESIRED_TIME_STORAGE_KEY = 'planizza:desiredTime:v1';
 
@@ -122,6 +123,7 @@ export default function CheckoutSuccess() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 text-center">
+      <BackButton className="mb-6" />
       <div className="mb-6 flex justify-center text-6xl">
         {isPaid ? '🍕' : '💳'}
       </div>

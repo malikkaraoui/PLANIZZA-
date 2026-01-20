@@ -7,6 +7,7 @@ import { Button } from '../components/ui/Button';
 import { auth, isFirebaseConfigured } from '../lib/firebase';
 import { upsertUserProfile } from '../lib/userProfile';
 import { LogIn, Chrome } from 'lucide-react';
+import BackButton from '../components/ui/BackButton';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -137,6 +138,7 @@ export default function Login() {
 
   return (
     <div className="container mx-auto max-w-lg px-4 py-12">
+      <BackButton className="mb-4" />
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">Connexion</CardTitle>

@@ -18,6 +18,7 @@ import { useScrollDirection } from '../../hooks/useScrollDirection';
 import { useServerNow } from '../../hooks/useServerNow';
 import { OrderCard } from '../../features/orders/components/OrderCard';
 import { OrderSection } from '../../features/orders/components/OrderSection';
+import BackButton from '../../components/ui/BackButton';
 import { ReorderableOrderList } from '../../features/orders/components/ReorderableOrderList';
 import { usePizzaioloOrderRanking } from '../../features/orders/hooks/usePizzaioloOrderRanking';
 import { coalesceMs, toMs } from '../../lib/timestamps';
@@ -482,14 +483,7 @@ export default function PizzaioloOrders() {
     <div className="space-y-8">
       {/* En-tête compact: Retour + titre sur une seule ligne */}
       <div className="flex items-center gap-3">
-        <button
-          onClick={() => navigate(ROUTES.pizzaioloProfile)}
-          className="inline-flex items-center justify-center h-9 w-9 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 active:bg-white/15 text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="Retour"
-          title="Retour"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </button>
+        <BackButton />
         <h1 className="text-xl sm:text-2xl font-black tracking-tight">Commandes</h1>
       </div>
 
