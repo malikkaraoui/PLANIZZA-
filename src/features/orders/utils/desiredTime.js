@@ -43,7 +43,10 @@ export function getMinDesiredTime({
   const safePizzaCount = Number.isFinite(pizzaCount) ? Math.max(0, pizzaCount) : 0;
   const prepMinutes = safePizzaCount * perPizzaMinutes;
   const deliveryExtra = getDeliveryExtraMinutes(deliveryMethod, deliveryExtraMinutes);
-  const totalMinutes = baseLeadMinutes + prepMinutes + deliveryExtra;
+
+  // Minimum absolu : 15 minutes (même si pizza count = 0)
+  const calculatedMinutes = baseLeadMinutes + prepMinutes + deliveryExtra;
+  const totalMinutes = Math.max(15, calculatedMinutes);
 
   const minDate = new Date(now);
   minDate.setMinutes(minDate.getMinutes() + totalMinutes);

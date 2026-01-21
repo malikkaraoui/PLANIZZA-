@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { signInAnonymously } from 'firebase/auth';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../app/providers/AuthProvider';
 import { useCart } from '../features/cart/hooks/useCart.jsx';
 import { useCreateOrder } from '../features/orders/hooks/useCreateOrder';
 import { ROUTES } from '../app/routes';
 import BackButton from '../components/ui/BackButton';
+import { auth } from '../lib/firebase';
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -37,22 +39,18 @@ export default function Checkout() {
       return;
     }
 
-    // Générer un guestUserId si l'utilisateur n'est pas connecté
-    let userUid = user?.uid;
-    let customerName = user?.displayName || 'Client';
-    
-    if (!userUid) {
-      // Récupérer ou créer un ID invité persistant
-      let guestId = localStorage.getItem('planizza:guestUserId');
-      if (!guestId) {
-        guestId = `guest_${crypto.randomUUID()}`;
-        localStorage.setItem('planizza:guestUserId', guestId);
-      }
-      userUid = guestId;
-      customerName = 'Client';
-    }
-
     try {
+      // 1. Si pas authentifié, créer un compte Firebase anonyme
+      let userUid = user?.uid;
+      let customerName = user?.displayName || 'Client';
+
+      if (!userUid) {
+        const { user: anonUser } = await signInAnonymously(auth);
+        userUid = anonUser.uid;
+        customerName = 'Client';
+      }
+
+      // 2. Créer la commande (le token Firebase sera récupéré automatiquement par lib/stripe)
       await createOrder({
         truckId,
         items,

@@ -324,14 +324,15 @@ function v2CanTransition(orderV2, nextKitchenStatus, { managerOverride = false }
 function v2MapKitchenStatusToV1Status(kitchenStatus) {
   switch (kitchenStatus) {
     case "QUEUED":
-      return "accepted";
+      // QUEUED = Acceptée (en file d'attente) → Client voit "Reçue"
+      return "received";
     case "PREPPING":
-      return "prep";
     case "READY":
-      return "ready";
+      // PREPPING et READY = En cours de préparation → Client voit "En préparation"
+      return "accepted";
     case "HANDOFF":
     case "DONE":
-      // Compat v1: pas de HANDOFF => on compresse vers delivered.
+      // HANDOFF et DONE = Terminée → Client voit "Prête !"
       return "delivered";
     case "CANCELED":
       return "cancelled";
@@ -339,6 +340,7 @@ function v2MapKitchenStatusToV1Status(kitchenStatus) {
       return "lost";
     case "NEW":
     default:
+      // NEW = Nouvelle commande → Client voit "Reçue"
       return "received";
   }
 }
@@ -1703,3 +1705,79 @@ exports.autoExpireOrdersV2 = functions.pubsub
 //     console.log(`[PLANIZZA] advanceOrders: ${count} commande(s) avancée(s).`);
 //     return null;
 //   });
+
+/**
+ * Cleanup automatique des comptes Firebase anonymes après 48h
+ *
+ * - Scanne les utilisateurs anonymes créés il y a plus de 48h
+ * - Vérifie qu'ils n'ont pas de commandes associées
+ * - Supprime uniquement les comptes sans commandes
+ *
+ * Runs: every 24 hours
+ */
+exports.cleanupAnonymousUsers = functions.pubsub
+  .schedule("every 24 hours")
+  .timeZone("Europe/Paris")
+  .onRun(async () => {
+    const RETENTION_MS = 48 * 60 * 60 * 1000; // 48 heures
+    const cutoffTime = Date.now() - RETENTION_MS;
+
+    let deletedCount = 0;
+    let protectedCount = 0;
+    let errorCount = 0;
+
+    try {
+      // Firebase Auth limite à 1000 users par batch
+      const listUsersResult = await admin.auth().listUsers(1000);
+
+      // Filtrer les comptes anonymes créés il y a plus de 48h
+      const candidatesForDeletion = listUsersResult.users
+        .filter((user) => {
+          // Un compte est anonyme si providerData est vide
+          const isAnonymous = !user.providerData || user.providerData.length === 0;
+          if (!isAnonymous) return false;
+
+          // Vérifier l'âge du compte
+          const createdAt = new Date(user.metadata.creationTime).getTime();
+          return createdAt < cutoffTime;
+        });
+
+      console.log(`[PLANIZZA][cleanupAnonymousUsers] Found ${candidatesForDeletion.length} anonymous users older than 48h`);
+
+      // Pour chaque candidat, vérifier qu'il n'a pas de commandes
+      for (const user of candidatesForDeletion) {
+        try {
+          const uid = user.uid;
+
+          // Vérifier s'il existe des commandes pour cet UID
+          const ordersSnap = await admin
+            .database()
+            .ref("orders")
+            .orderByChild("userUid")
+            .equalTo(uid)
+            .limitToFirst(1)
+            .get();
+
+          if (ordersSnap.exists()) {
+            // L'utilisateur a des commandes, on le garde
+            protectedCount++;
+            console.log(`[PLANIZZA] Keeping anonymous user ${uid} (has orders)`);
+            continue;
+          }
+
+          // Pas de commandes, on peut supprimer
+          await admin.auth().deleteUser(uid);
+          deletedCount++;
+        } catch (err) {
+          errorCount++;
+          console.error(`[PLANIZZA] Error processing user ${user.uid}:`, err);
+        }
+      }
+
+      console.log(`[PLANIZZA][cleanupAnonymousUsers] Completed: ${deletedCount} deleted, ${protectedCount} protected, ${errorCount} errors`);
+      return null;
+    } catch (err) {
+      console.error("[PLANIZZA][cleanupAnonymousUsers] Fatal error:", err);
+      return null;
+    }
+  });

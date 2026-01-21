@@ -140,19 +140,23 @@ export default function CheckoutSuccess() {
         Redirection automatique dans <span className="font-semibold">{redirectInSec}s</span>…
       </p>
 
-      {/* On n'affiche le bloc de création de compte que si on est CERTAIN d'être guest et que le paiement n'est pas encore redirigé */}
-      {isGuest && !isPaid && (
+      {/* Afficher la proposition de création de compte APRÈS paiement validé pour les guests */}
+      {isGuest && isPaid && (
         <div className="mt-6 rounded-xl border-2 border-emerald-200 bg-emerald-50 p-6 max-w-md mx-auto animate-in fade-in duration-500">
           <h2 className="text-xl font-bold text-emerald-900 mb-2">🎉 Créez un compte pour suivre votre commande !</h2>
           <p className="text-sm text-emerald-800 mb-4">
-            En créant un compte, vous pourrez suivre votre commande en temps réel (préparation, cuisson...) et retrouver votre historique.
+            Votre paiement est confirmé ! En créant un compte maintenant, vous pourrez suivre votre commande en temps réel (préparation, cuisson...) et retrouver votre historique.
           </p>
           <Link
             to={ROUTES.register}
+            state={{ orderId }}
             className="inline-block rounded-md bg-emerald-600 px-6 py-3 text-white font-semibold hover:bg-emerald-700 transition-colors"
           >
             Créer mon compte
           </Link>
+          <p className="text-xs text-emerald-700 mt-3">
+            Ou continuez sans compte, vous pourrez toujours en créer un plus tard.
+          </p>
         </div>
       )}
 

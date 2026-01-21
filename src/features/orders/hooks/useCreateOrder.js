@@ -16,9 +16,6 @@ export function useCreateOrder() {
   }) => {
     setLoading(true);
     try {
-      if (!userUid) {
-        throw new Error('Vous devez être connecté pour créer une commande.');
-      }
       if (!truckId) {
         throw new Error('truckId manquant');
       }
@@ -28,6 +25,7 @@ export function useCreateOrder() {
 
       // Déléguer la création de la commande + session Stripe à la Cloud Function.
       // La Function calcule/normalise le total (server-side) et écrit orders/{orderId}.
+      // Note: userUid peut être undefined pour les guests (signInAnonymously sera géré dans createCheckoutSession)
       await createCheckoutSession({
         truckId,
         items: items.map((it) => ({

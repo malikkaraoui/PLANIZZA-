@@ -1,4 +1,5 @@
 import { loadStripe } from '@stripe/stripe-js';
+import { signInAnonymously } from 'firebase/auth';
 import { auth, functions, isFirebaseConfigured } from './firebase';
 
 const FUNCTIONS_BASE =
@@ -64,9 +65,14 @@ export async function createCheckoutSession({
     }
 
     // Appeler l'endpoint HTTP v2 (onRequest) avec Auth Bearer
+    // Si pas authentifié, créer un compte anonyme
+    if (!auth.currentUser) {
+      await signInAnonymously(auth);
+    }
+
     const token = await auth?.currentUser?.getIdToken?.();
     if (!token) {
-      throw new Error('Vous devez être connecté pour payer.');
+      throw new Error('Impossible de générer un token d\'authentification.');
     }
 
     const payload = {

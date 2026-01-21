@@ -41,6 +41,7 @@ export default function Cart() {
   const { createOrder, loading: creatingOrder } = useCreateOrder();
   const [error, setError] = useState(null);
   const [deliveryMethod, setDeliveryMethod] = useState('pickup'); // 'pickup' ou 'delivery'
+  const [guestName, setGuestName] = useState(''); // Nom du guest pour les non-authentifiés
   const [desiredTime, setDesiredTime] = useState(() => {
     try {
       const raw = localStorage.getItem(DESIRED_TIME_STORAGE_KEY);
@@ -248,13 +249,9 @@ export default function Cart() {
   }, [desiredTime, truckId]);
 
   const handleCheckout = async () => {
-    // Vérifier l'authentification
-    if (!isAuthenticated || !user) {
-      navigate(ROUTES.login, {
-        state: {
-          from: `${location.pathname}${location.search}`,
-        },
-      });
+    // Valider le nom du guest si non authentifié
+    if (!isAuthenticated && !guestName.trim()) {
+      setError('Veuillez renseigner votre nom pour que le pizzaiolo puisse vous identifier.');
       return;
     }
 
@@ -347,11 +344,12 @@ export default function Cart() {
         : null;
 
       // Créer la commande avec le mode de livraison choisi
+      // Pour les guests : on ne passe pas userUid ici, ce sera géré par Checkout.jsx avec signInAnonymously
       await createOrder({
         truckId,
         items,
-        userUid: user.uid,
-        customerName: user.displayName || 'Client',
+        userUid: user?.uid, // Peut être undefined pour les guests
+        customerName: isAuthenticated ? (user.displayName || 'Client') : guestName.trim(),
         deliveryMethod: deliveryMethod,
         deliveryAddress: fullAddress,
         pickupTime: desiredTime,
@@ -547,12 +545,38 @@ export default function Cart() {
   const desiredTimeCard = (
     <Card className="glass-premium glass-glossy border-white/30">
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg font-black tracking-tight">Heure souhaitée</CardTitle>
+        <CardTitle className="text-lg font-black tracking-tight">
+          {!isAuthenticated ? 'Vos informations' : 'Heure souhaitée'}
+        </CardTitle>
         <CardDescription className="text-xs">
-          Choisissez l'heure de {deliveryMethod === 'delivery' ? 'livraison' : 'retrait'} souhaitée.
+          {!isAuthenticated
+            ? 'Renseignez votre nom et l\'heure de retrait souhaitée.'
+            : `Choisissez l'heure de ${deliveryMethod === 'delivery' ? 'livraison' : 'retrait'} souhaitée.`
+          }
         </CardDescription>
       </CardHeader>
-      <CardContent className="pt-0">
+      <CardContent className="pt-0 space-y-4">
+        {/* Input nom pour les guests (non-authentifiés) */}
+        {!isAuthenticated && (
+          <div>
+            <label className="flex items-center gap-2 text-sm font-bold text-muted-foreground mb-2">
+              👤 Votre nom
+            </label>
+            <Input
+              type="text"
+              value={guestName}
+              onChange={(e) => setGuestName(e.target.value)}
+              placeholder="Ex: Jean Dupont"
+              className="rounded-xl"
+              required
+            />
+            <p className="mt-2 text-xs text-muted-foreground">
+              Votre nom permettra au pizzaiolo de vous identifier lors du retrait.
+            </p>
+          </div>
+        )}
+
+        {/* Sélecteur d'heure */}
         <DesiredTimePicker
           label={deliveryMethod === 'delivery' ? 'Heure de livraison' : 'Heure de retrait'}
           value={desiredTime}

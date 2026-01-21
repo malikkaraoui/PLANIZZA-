@@ -1,9 +1,9 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { signOut, updateProfile, deleteUser, reauthenticateWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { signOut, updateProfile, deleteUser, reauthenticateWithPopup, GoogleAuthProvider, linkWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { ref, remove, get, set } from 'firebase/database';
 import { ref as storageRef, deleteObject } from 'firebase/storage';
-import { Bike, Store, Trash2 } from 'lucide-react';
+import { Bike, Store, Trash2, AlertCircle, UserPlus } from 'lucide-react';
 import { useAuth } from '../app/providers/AuthProvider';
 import { ROUTES } from '../app/routes';
 import { Button } from '../components/ui/Button';
@@ -55,6 +55,15 @@ export default function Account() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
+
+  // Gestion upgrade compte guest
+  const [showEmailPrompt, setShowEmailPrompt] = useState(false);
+  const [upgradeEmail, setUpgradeEmail] = useState('');
+  const [upgradePassword, setUpgradePassword] = useState('');
+  const [upgrading, setUpgrading] = useState(false);
+
+  // Détection si l'utilisateur est guest
+  const isGuest = user?.isAnonymous || false;
 
   // Charger les données du profil
   useEffect(() => {
@@ -170,11 +179,38 @@ export default function Account() {
     setMessage('');
 
     try {
-      const fullPhoneNumber = phoneNumber.trim() 
+      const fullPhoneNumber = phoneNumber.trim()
         ? `${phonePrefix} ${phoneNumber.trim()}`
         : '';
-      
+
       const displayName = `${firstName.trim()} ${lastName.trim()}`.trim();
+
+      // Si guest et qu'il remplit des informations importantes, proposer l'upgrade
+      if (isGuest && (firstName.trim() || lastName.trim() || phoneNumber.trim() || street.trim())) {
+        // Sauvegarder temporairement les données
+        await set(ref(db, `users/${user.uid}`), {
+          displayName,
+          email: user.email || '',
+          photoURL: user.photoURL || '',
+          phoneNumber: fullPhoneNumber,
+          address: {
+            streetNumber: streetNumber.trim(),
+            street: street.trim(),
+            postalCode: postalCode.trim(),
+            city: city.trim(),
+            country: country.trim()
+          },
+          preferences: {
+            wantsDelivery: wantsDelivery
+          },
+          updatedAt: Date.now()
+        });
+
+        // Afficher le prompt d'upgrade
+        setShowEmailPrompt(true);
+        setSaving(false);
+        return;
+      }
 
       // ✅ Mettre à jour Firebase Auth
       if (auth.currentUser) {
@@ -205,13 +241,57 @@ export default function Account() {
 
       // Mettre à jour l'UI sans recharger toute l'app
       await refreshUser?.();
-      
+
       console.log('[PLANIZZA] Profil utilisateur mis à jour');
     } catch (err) {
       console.error('[PLANIZZA] Erreur sauvegarde profil:', err);
       setMessage('❌ Erreur lors de la sauvegarde. Réessayez.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleUpgradeAccount = async () => {
+    if (!upgradeEmail.trim() || !upgradePassword.trim()) {
+      setMessage('❌ Veuillez renseigner un email et un mot de passe.');
+      return;
+    }
+
+    setUpgrading(true);
+    setMessage('');
+
+    try {
+      if (!auth.currentUser || !isGuest) {
+        setMessage('❌ Erreur: compte non valide pour upgrade.');
+        return;
+      }
+
+      // Upgrade du compte anonyme avec email/password
+      const credential = EmailAuthProvider.credential(upgradeEmail.trim(), upgradePassword.trim());
+      await linkWithCredential(auth.currentUser, credential);
+
+      console.log('[PLANIZZA] Compte anonyme upgradé avec succès!', auth.currentUser.uid);
+
+      // Mettre à jour l'email dans RTDB
+      await set(ref(db, `users/${user.uid}/email`), upgradeEmail.trim());
+
+      setMessage('✅ Compte créé avec succès! Vous pouvez maintenant vous connecter avec votre email.');
+      setShowEmailPrompt(false);
+      setIsEditing(false);
+
+      // Rafraîchir l'utilisateur
+      await refreshUser?.();
+    } catch (err) {
+      console.error('[PLANIZZA] Erreur upgrade compte:', err);
+      if (err.code === 'auth/email-already-in-use') {
+        setMessage('❌ Cet email est déjà utilisé. Veuillez vous connecter.');
+      } else if (err.code === 'auth/credential-already-in-use') {
+        setMessage('❌ Cet email est déjà lié à un autre compte.');
+      } else {
+        setMessage('❌ Erreur lors de la création du compte. Réessayez.');
+      }
+    } finally {
+      setUpgrading(false);
     }
   };
 
@@ -330,12 +410,36 @@ export default function Account() {
       <BackButton className="mb-4" />
       <h1 className="text-3xl font-black text-gray-900 mb-8">Mon Profil</h1>
 
-      {/* Compte Google */}
+      {/* Bannière session éphémère pour les guests */}
+      {isGuest && (
+        <div className="mb-6 rounded-xl border-2 border-amber-200 bg-amber-50 p-6 animate-in fade-in duration-300">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-6 w-6 text-amber-600 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h2 className="text-lg font-bold text-amber-900 mb-2">⏳ Session éphémère</h2>
+              <p className="text-sm text-amber-800 mb-4">
+                Pour des raisons de sécurité et de traçabilité du paiement, une session temporaire a été créée automatiquement.
+                <strong> Toutes les informations liées à cette session seront supprimées dans 7 jours.</strong>
+              </p>
+              <Link to={ROUTES.register}>
+                <Button className="w-full sm:w-auto" variant="default">
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Créer mon compte pour sauvegarder mes données
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Compte */}
       <Card className="p-6 mb-6">
         <div className="flex items-start justify-between mb-6">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Compte Google</h2>
-            <p className="text-sm text-gray-600 mt-1">Informations de connexion</p>
+            <h2 className="text-xl font-bold text-gray-900">{isGuest ? 'Session temporaire' : 'Compte Google'}</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              {isGuest ? 'Informations de session' : 'Informations de connexion'}
+            </p>
           </div>
         </div>
 
@@ -705,18 +809,33 @@ export default function Account() {
             </Button>
           </Link>
 
-          <Button 
-            variant="outline" 
-            onClick={onSignOut} 
-            disabled={signingOut}
-            className="w-full"
-          >
-            {signingOut ? 'Déconnexion…' : '🚪 Se déconnecter'}
-          </Button>
-          {signOutError && <p className="text-sm text-red-600">{signOutError}</p>}
+          {/* Masquer le bouton déconnexion pour les guests */}
+          {!isGuest && (
+            <>
+              <Button
+                variant="outline"
+                onClick={onSignOut}
+                disabled={signingOut}
+                className="w-full"
+              >
+                {signingOut ? 'Déconnexion…' : '🚪 Se déconnecter'}
+              </Button>
+              {signOutError && <p className="text-sm text-red-600">{signOutError}</p>}
+            </>
+          )}
 
-          <Button 
-            variant="destructive" 
+          {/* Afficher le bouton créer compte pour les guests */}
+          {isGuest && (
+            <Link to={ROUTES.register}>
+              <Button variant="default" className="w-full">
+                <UserPlus className="h-4 w-4 mr-2" />
+                Créer mon compte
+              </Button>
+            </Link>
+          )}
+
+          <Button
+            variant="destructive"
             onClick={() => setShowDeleteConfirm(true)}
             className="w-full mt-4"
           >
@@ -725,6 +844,77 @@ export default function Account() {
           </Button>
         </div>
       </Card>
+
+      {/* Modal upgrade compte pour guest */}
+      {showEmailPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300 p-4">
+          <div className="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-300">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <UserPlus className="h-8 w-8 text-emerald-600" />
+              </div>
+              <h2 className="text-2xl font-black mb-2">Créer votre compte</h2>
+              <p className="text-muted-foreground text-sm">
+                Vous avez renseigné des informations personnelles. Pour les sauvegarder et ne pas les perdre, créez un compte avec votre email.
+              </p>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium mb-2">📧 Email</label>
+                <Input
+                  type="email"
+                  value={upgradeEmail}
+                  onChange={(e) => setUpgradeEmail(e.target.value)}
+                  placeholder="votre@email.com"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">🔒 Mot de passe</label>
+                <Input
+                  type="password"
+                  value={upgradePassword}
+                  onChange={(e) => setUpgradePassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                />
+                <p className="text-xs text-muted-foreground mt-1">Minimum 6 caractères</p>
+              </div>
+            </div>
+
+            {message && (
+              <div className={`mb-4 p-3 rounded-lg text-sm ${message.includes('✅') ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-800'}`}>
+                {message}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowEmailPrompt(false);
+                  setUpgradeEmail('');
+                  setUpgradePassword('');
+                  setIsEditing(false);
+                }}
+                disabled={upgrading}
+                className="flex-1"
+              >
+                Plus tard
+              </Button>
+              <Button
+                variant="default"
+                onClick={handleUpgradeAccount}
+                disabled={upgrading || !upgradeEmail.trim() || !upgradePassword.trim()}
+                className="flex-1"
+              >
+                {upgrading ? 'Création...' : 'Créer mon compte'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de confirmation suppression */}
       {showDeleteConfirm && (

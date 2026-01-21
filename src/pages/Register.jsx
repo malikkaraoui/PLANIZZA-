@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import {
+  createUserWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+  linkWithCredential,
+  EmailAuthProvider
+} from 'firebase/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
@@ -8,14 +14,19 @@ import { auth, isFirebaseConfigured } from '../lib/firebase';
 import { upsertUserProfile } from '../lib/userProfile';
 import { UserPlus, Chrome } from 'lucide-react';
 import BackButton from '../components/ui/BackButton';
+import { useAuth } from '../app/providers/AuthProvider';
 
 export default function Register() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Détection si l'utilisateur actuel est un compte anonyme
+  const isAnonymous = user?.isAnonymous || false;
 
   const getReturnTo = () => {
     const raw = location?.state?.from;
@@ -78,12 +89,37 @@ export default function Register() {
     setError('');
     setLoading(true);
     try {
-      const cred = await createUserWithEmailAndPassword(auth, email, password);
-      await upsertUserProfile(cred.user);
-      // Rediriger vers mon compte pour compléter le profil
-      navigate(returnTo || '/mon-compte', { replace: true });
+      let finalUser;
+
+      if (isAnonymous && auth.currentUser) {
+        // Upgrade : Lier le compte anonyme avec email/password
+        const credential = EmailAuthProvider.credential(email, password);
+        const userCred = await linkWithCredential(auth.currentUser, credential);
+        finalUser = userCred.user;
+        console.log('[PLANIZZA] Compte anonyme upgradé avec succès !', finalUser.uid);
+      } else {
+        // Création normale d'un compte
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        finalUser = cred.user;
+      }
+
+      await upsertUserProfile(finalUser);
+
+      // Rediriger vers l'orderId si fourni, sinon mon-compte
+      const orderId = location.state?.orderId;
+      if (orderId) {
+        navigate(`/order/${orderId}`, { replace: true });
+      } else {
+        navigate(returnTo || '/mon-compte', { replace: true });
+      }
     } catch (err) {
-      setError(err?.message || 'Inscription impossible');
+      if (err.code === 'auth/credential-already-in-use') {
+        setError('Cet email est déjà utilisé par un autre compte. Veuillez vous connecter.');
+      } else if (err.code === 'auth/email-already-in-use') {
+        setError('Cet email est déjà utilisé. Veuillez vous connecter.');
+      } else {
+        setError(err?.message || 'Inscription impossible');
+      }
     } finally {
       setLoading(false);
     }
@@ -94,16 +130,24 @@ export default function Register() {
       <BackButton className="mb-4" />
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">Créer un compte</CardTitle>
+          <CardTitle className="text-2xl">
+            {isAnonymous ? 'Sauvegarder votre commande' : 'Créer un compte'}
+          </CardTitle>
           <CardDescription>
-            Déjà un compte ?{' '}
-            <Link
-              to="/login"
-              state={returnTo ? { from: returnTo } : undefined}
-              className="font-medium text-primary underline-offset-4 hover:underline"
-            >
-              Se connecter
-            </Link>
+            {isAnonymous ? (
+              'Créez un compte pour ne pas perdre l\'accès à votre commande en cours.'
+            ) : (
+              <>
+                Déjà un compte ?{' '}
+                <Link
+                  to="/login"
+                  state={returnTo ? { from: returnTo } : undefined}
+                  className="font-medium text-primary underline-offset-4 hover:underline"
+                >
+                  Se connecter
+                </Link>
+              </>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
