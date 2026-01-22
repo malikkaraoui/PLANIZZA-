@@ -461,9 +461,28 @@ async function validateAndRecalculateItemPrices(clientItems, truckId) {
 
   // 2. Pour chaque item client, valider le prix
   for (const clientItem of clientItems) {
-    const itemId = clientItem.id;
+    const rawItemId = clientItem.id;
     const clientPrice = Number(clientItem.priceCents || 0);
     const qty = Number(clientItem.qty || 1);
+
+    // Si l'item a un baseItemId (ex: "margherita" pour "margherita_s"), l'utiliser
+    // Sinon, extraire le baseId si l'id contient un underscore (format: baseId_size)
+    let baseItemId = clientItem.baseItemId || null;
+    if (!baseItemId && rawItemId && typeof rawItemId === "string") {
+      const idx = rawItemId.lastIndexOf("_");
+      if (idx > 0) {
+        baseItemId = rawItemId.slice(0, idx);
+      }
+    }
+    const itemId = baseItemId || rawItemId;
+
+    console.log("[PLANIZZA][validateAndRecalculateItemPrices] Processing item:", {
+      rawItemId,
+      baseItemId,
+      itemId,
+      clientPrice,
+      qty,
+    });
 
     // Chercher l'item dans le menu
     let menuItem = null;
@@ -521,18 +540,40 @@ async function validateAndRecalculateItemPrices(clientItems, truckId) {
       // Prix simple
       serverPrice = Number(menuItem.priceCents);
     } else if (menuItem.sizes && typeof menuItem.sizes === "object") {
-      // Prix par taille - on prend le prix de la taille mentionnée dans le nom
-      // ou la première taille disponible si pas d'indication
-      const sizeName = clientItem.name?.toLowerCase();
-      let detectedSize = null;
+      // Prix par taille
+      // 1. Utiliser client.size si fourni (ex: "s", "m", "l")
+      // 2. Sinon détecter depuis le nom (ex: "Margherita S (26cm)")
+      // 3. Fallback: extraire depuis rawItemId (ex: "margherita_s" → "s")
+      let detectedSize = clientItem.size || null;
 
-      if (sizeName?.includes("petite") || sizeName?.includes("small")) {
-        detectedSize = "s";
-      } else if (sizeName?.includes("moyenne") || sizeName?.includes("medium")) {
-        detectedSize = "m";
-      } else if (sizeName?.includes("grande") || sizeName?.includes("large")) {
-        detectedSize = "l";
+      if (!detectedSize && rawItemId && typeof rawItemId === "string") {
+        const idx = rawItemId.lastIndexOf("_");
+        if (idx > 0) {
+          const sizePart = rawItemId.slice(idx + 1).toLowerCase();
+          if (["s", "m", "l"].includes(sizePart)) {
+            detectedSize = sizePart;
+          }
+        }
       }
+
+      if (!detectedSize) {
+        const sizeName = clientItem.name?.toLowerCase() || "";
+        if (sizeName.includes("petite") || sizeName.includes("small") || sizeName.includes(" s ")) {
+          detectedSize = "s";
+        } else if (sizeName.includes("moyenne") || sizeName.includes("medium") || sizeName.includes(" m ")) {
+          detectedSize = "m";
+        } else if (sizeName.includes("grande") || sizeName.includes("large") || sizeName.includes(" l ")) {
+          detectedSize = "l";
+        }
+      }
+
+      console.log("[PLANIZZA][validateAndRecalculateItemPrices] Size detection:", {
+        rawItemId,
+        itemId,
+        clientSize: clientItem.size,
+        detectedSize,
+        availableSizes: Object.keys(menuItem.sizes || {}),
+      });
 
       // Si taille détectée, utiliser son prix
       if (detectedSize && menuItem.sizes[detectedSize]?.priceCents != null) {
