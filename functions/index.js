@@ -4,7 +4,27 @@ const {onRequest, onCall, HttpsError} = require("firebase-functions/v2/https");
 const {defineSecret} = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const stripe = require("stripe");
+const crypto = require("crypto");
 const { rtdbServerTimestamp } = require("./utils/timestamps");
+
+// Hash UID pour les logs (privacy - ne pas exposer les UIDs complets)
+function hashUid(uid) {
+  if (!uid) return "unknown";
+  return crypto.createHash("sha256").update(uid).digest("hex").substring(0, 12);
+}
+
+// Sanitisation adresse de livraison (évite injection si utilisé avec API externe)
+function sanitizeAddress(address) {
+  if (!address || typeof address !== "string") return null;
+  // Trim et limite la longueur
+  let sanitized = address.trim().substring(0, 500);
+  // Supprime les caractères de contrôle (0-31, 127) et < >
+  // eslint-disable-next-line no-control-regex
+  sanitized = sanitized.replace(/[\u0000-\u001F\u007F<>]/g, "");
+  // Normalise les espaces multiples
+  sanitized = sanitized.replace(/\s+/g, " ");
+  return sanitized.length > 0 ? sanitized : null;
+}
 
 // Initialiser Firebase Admin
 admin.initializeApp();
@@ -695,9 +715,7 @@ exports.createCheckoutSession = onRequest(
       const normalizedPickupTime = typeof pickupTime === "string" && /^\d{2}:\d{2}$/.test(pickupTime)
         ? pickupTime
         : null;
-      const normalizedDeliveryAddress = typeof deliveryAddress === "string" && deliveryAddress.trim().length > 0
-        ? deliveryAddress.trim()
-        : null;
+      const normalizedDeliveryAddress = sanitizeAddress(deliveryAddress);
 
       /** @type {string | null} */
       let orderId = typeof providedOrderId === "string" ? providedOrderId : null;
@@ -733,7 +751,7 @@ exports.createCheckoutSession = onRequest(
             console.warn("[PLANIZZA][PRICE_VALIDATION] Warnings détectés:", {
               orderId,
               truckId,
-              userUid: uid,
+              userUid: hashUid(uid),
               warnings,
             });
           }
@@ -780,7 +798,7 @@ exports.createCheckoutSession = onRequest(
         if (warnings.length > 0) {
           console.warn("[PLANIZZA][PRICE_VALIDATION] Warnings détectés:", {
             truckId,
-            userUid: uid,
+            userUid: hashUid(uid),
             warnings,
           });
         }
@@ -1916,6 +1934,39 @@ exports.purgeProcessedWebhooks = functions.pubsub
     });
 
 /**
+ * Purge des données de rate limiting webhook (TTL 1 heure)
+ * Nettoie les entrées expirées pour éviter accumulation
+ */
+exports.purgeWebhookRateLimit = functions.pubsub
+    .schedule("every 30 minutes")
+    .timeZone("Europe/Paris")
+    .onRun(async () => {
+      const oneHourAgo = Date.now() - (60 * 60 * 1000);
+
+      const rateLimitRef = admin.database().ref("webhookRateLimit");
+      const snap = await rateLimitRef
+          .orderByChild("windowStart")
+          .startAt(1)
+          .endAt(oneHourAgo)
+          .limitToFirst(500)
+          .get();
+
+      if (!snap.exists()) return null;
+
+      const updates = {};
+      snap.forEach((child) => {
+        updates[child.key] = null;
+      });
+
+      const count = Object.keys(updates).length;
+      if (count === 0) return null;
+
+      await rateLimitRef.update(updates);
+      console.log(`[PLANIZZA] purgeWebhookRateLimit: ${count} entrée(s) supprimée(s).`);
+      return null;
+    });
+
+/**
  * Auto-expire des commandes (no-show) — Orders v2
  *
  * Condition (instructions_commandes.md §6.1):
@@ -2145,7 +2196,7 @@ exports.cleanupAnonymousUsers = functions.pubsub
           if (ordersSnap.exists()) {
             // L'utilisateur a des commandes, on le garde
             protectedCount++;
-            console.log(`[PLANIZZA] Keeping anonymous user ${uid} (has orders)`);
+            console.log(`[PLANIZZA] Keeping anonymous user ${hashUid(uid)} (has orders)`);
             continue;
           }
 
@@ -2154,7 +2205,7 @@ exports.cleanupAnonymousUsers = functions.pubsub
           deletedCount++;
         } catch (err) {
           errorCount++;
-          console.error(`[PLANIZZA] Error processing user ${user.uid}:`, err);
+          console.error(`[PLANIZZA] Error processing user ${hashUid(user.uid)}:`, err);
         }
       }
 
