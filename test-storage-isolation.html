@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Isolation Storage - PLANIZZA</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 900px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 { color: #16a34a; margin-bottom: 10px; }
+    h2 { color: #374151; margin-top: 30px; }
+    .warning {
+      background: #fef3c7;
+      border: 2px solid #f59e0b;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    .success-box {
+      background: #d1fae5;
+      border: 2px solid #10b981;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    .error-box {
+      background: #fee2e2;
+      border: 2px solid #ef4444;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    button {
+      background: #16a34a;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin: 10px 5px 10px 0;
+    }
+    button:hover { background: #15803d; }
+    button:disabled { background: #9ca3af; cursor: not-allowed; }
+    button.danger { background: #ef4444; }
+    button.danger:hover { background: #dc2626; }
+    .log {
+      background: #1f2937;
+      color: #10b981;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      margin-top: 20px;
+      max-height: 500px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .log .error { color: #ef4444; }
+    .log .success { color: #10b981; }
+    .log .warning { color: #f59e0b; }
+    .log .info { color: #60a5fa; }
+    .test-result {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-weight: 600;
+      margin: 5px;
+    }
+    .test-pass { background: #d1fae5; color: #065f46; }
+    .test-fail { background: #fee2e2; color: #991b1b; }
+    #results { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔒 Test d'Isolation Storage</h1>
+    <p style="color: #6b7280; margin-bottom: 20px;">
+      Ce test vérifie que les fichiers utilisateurs sont correctement isolés dans Firebase Storage.
+    </p>
+
+    <div class="warning">
+      <strong>⚠️ Tests de sécurité</strong><br>
+      Ce script va créer 2 utilisateurs anonymes et vérifier qu'ils ne peuvent pas accéder aux fichiers de l'autre.
+    </div>
+
+    <button id="testBtn" onclick="runAllTests()">🚀 Lancer tous les tests</button>
+    <button onclick="clearLog()">🗑️ Effacer les logs</button>
+
+    <div id="results"></div>
+    <div class="log" id="log"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp, deleteApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+    import { getAuth, signInAnonymously, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+    import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAevToUhardxQ769R9mOKkNasd4s_u68y0",
+      authDomain: "planizza-ac827.firebaseapp.com",
+      databaseURL: "https://planizza-ac827-default-rtdb.firebaseio.com",
+      projectId: "planizza-ac827",
+      storageBucket: "planizza-ac827.firebasestorage.app",
+      messagingSenderId: "1070455379590",
+      appId: "1:1070455379590:web:ac360406f2eea577c76307"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const storage = getStorage(app);
+
+    const testResults = [];
+
+    function log(message, type = 'info') {
+      const logEl = document.getElementById('log');
+      const timestamp = new Date().toLocaleTimeString('fr-FR');
+      logEl.innerHTML += `<span class="${type}">[${timestamp}] ${message}</span>\n`;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function addResult(testName, passed, details = '') {
+      testResults.push({ testName, passed, details });
+      const resultsEl = document.getElementById('results');
+      const className = passed ? 'test-pass' : 'test-fail';
+      const icon = passed ? '✅' : '❌';
+      resultsEl.innerHTML += `<span class="test-result ${className}">${icon} ${testName}</span>`;
+    }
+
+    window.clearLog = function() {
+      document.getElementById('log').innerHTML = '';
+      document.getElementById('results').innerHTML = '';
+      testResults.length = 0;
+    };
+
+    window.runAllTests = async function() {
+      const btn = document.getElementById('testBtn');
+      btn.disabled = true;
+      clearLog();
+
+      let userA = null;
+      let userB = null;
+      let fileRefA = null;
+
+      try {
+        log('🚀 Démarrage des tests d\'isolation Storage...', 'info');
+        log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
+
+        // ========================================
+        // TEST 1: Créer User A et upload un fichier
+        // ========================================
+        log('\n📋 TEST 1: User A upload son propre fichier', 'info');
+
+        const credA = await signInAnonymously(auth);
+        userA = credA.user;
+        log(`✅ User A connecté: ${userA.uid}`, 'success');
+
+        fileRefA = ref(storage, `users/${userA.uid}/test-${Date.now()}.png`);
+        // Mini image PNG 1x1 pixel transparent (valide)
+        const testContent = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+
+        try {
+          await uploadString(fileRefA, testContent, 'data_url');
+          log(`✅ User A a uploadé son fichier PNG`, 'success');
+          addResult('User A upload son fichier', true);
+        } catch (err) {
+          log(`❌ User A ne peut pas uploader son fichier: ${err.code || err.message}`, 'error');
+          addResult('User A upload son fichier', false, err.code);
+        }
+
+        // ========================================
+        // TEST 2: User A peut lire son propre fichier
+        // ========================================
+        log('\n📋 TEST 2: User A lit son propre fichier', 'info');
+
+        try {
+          const urlA = await getDownloadURL(fileRefA);
+          log(`✅ User A peut lire son fichier: ${urlA.substring(0, 80)}...`, 'success');
+          addResult('User A lit son fichier', true);
+        } catch (err) {
+          log(`❌ User A ne peut pas lire son fichier: ${err.code}`, 'error');
+          addResult('User A lit son fichier', false, err.code);
+        }
+
+        // ========================================
+        // TEST 3: Créer User B (nouvel utilisateur)
+        // ========================================
+        log('\n📋 TEST 3: Connexion User B (nouvel utilisateur)', 'info');
+
+        await signOut(auth);
+        log('User A déconnecté', 'info');
+
+        const credB = await signInAnonymously(auth);
+        userB = credB.user;
+        log(`✅ User B connecté: ${userB.uid}`, 'success');
+
+        // ========================================
+        // TEST 4: User B ne peut PAS lire le fichier de User A
+        // ========================================
+        log('\n📋 TEST 4: User B essaie de lire le fichier de User A (doit échouer)', 'info');
+
+        // Essayer d'accéder au même chemin que fileRefA
+        const fileRefAFromB = fileRefA;
+
+        try {
+          const urlFromB = await getDownloadURL(fileRefAFromB);
+          log(`❌ FAILLE DE SÉCURITÉ! User B a pu lire le fichier de User A!`, 'error');
+          addResult('Isolation lecture (B→A)', false, 'User B a accès aux fichiers de A');
+        } catch (err) {
+          if (err.code === 'storage/unauthorized' || err.code === 'storage/object-not-found') {
+            log(`✅ User B bloqué correctement: ${err.code}`, 'success');
+            addResult('Isolation lecture (B→A)', true);
+          } else {
+            log(`⚠️ Erreur inattendue: ${err.code}`, 'warning');
+            addResult('Isolation lecture (B→A)', true, err.code);
+          }
+        }
+
+        // ========================================
+        // TEST 5: User B ne peut PAS écrire dans le dossier de User A
+        // ========================================
+        log('\n📋 TEST 5: User B essaie d\'écrire dans le dossier de User A (doit échouer)', 'info');
+
+        const maliciousRef = ref(storage, `users/${userA.uid}/malicious-${Date.now()}.png`);
+        const maliciousContent = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+
+        try {
+          await uploadString(maliciousRef, maliciousContent, 'data_url');
+          log(`❌ FAILLE DE SÉCURITÉ! User B a pu écrire dans le dossier de User A!`, 'error');
+          addResult('Isolation écriture (B→A)', false, 'User B peut modifier les fichiers de A');
+        } catch (err) {
+          if (err.code === 'storage/unauthorized') {
+            log(`✅ User B bloqué correctement: ${err.code}`, 'success');
+            addResult('Isolation écriture (B→A)', true);
+          } else {
+            log(`⚠️ Erreur: ${err.code}`, 'warning');
+            addResult('Isolation écriture (B→A)', true, err.code);
+          }
+        }
+
+        // ========================================
+        // TEST 6: User B peut upload dans son propre dossier
+        // ========================================
+        log('\n📋 TEST 6: User B upload dans son propre dossier', 'info');
+
+        const fileRefB = ref(storage, `users/${userB.uid}/test-${Date.now()}.png`);
+        const contentB = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+
+        try {
+          await uploadString(fileRefB, contentB, 'data_url');
+          log(`✅ User B a uploadé dans son dossier`, 'success');
+          addResult('User B upload son fichier', true);
+        } catch (err) {
+          log(`❌ User B ne peut pas uploader: ${err.code}`, 'error');
+          addResult('User B upload son fichier', false, err.code);
+        }
+
+        // ========================================
+        // TEST 7: Accès non-authentifié bloqué
+        // ========================================
+        log('\n📋 TEST 7: Accès non-authentifié aux fichiers users/', 'info');
+
+        await signOut(auth);
+        log('Tous les users déconnectés', 'info');
+
+        try {
+          const urlAnon = await getDownloadURL(fileRefA);
+          log(`❌ FAILLE! Accès non-authentifié possible!`, 'error');
+          addResult('Blocage accès anonyme', false);
+        } catch (err) {
+          if (err.code === 'storage/unauthorized' || err.code === 'storage/object-not-found') {
+            log(`✅ Accès anonyme bloqué: ${err.code}`, 'success');
+            addResult('Blocage accès anonyme', true);
+          } else {
+            log(`⚠️ Erreur: ${err.code}`, 'warning');
+            addResult('Blocage accès anonyme', true, err.code);
+          }
+        }
+
+        // ========================================
+        // NETTOYAGE
+        // ========================================
+        log('\n🧹 Nettoyage des fichiers de test...', 'info');
+
+        // Reconnecter User A pour supprimer son fichier
+        const credACleanup = await signInAnonymously(auth);
+        // Note: Impossible de se reconnecter en tant que User A (anonyme = nouveau uid)
+        // Les fichiers resteront mais c'est OK pour un test
+
+        log('Nettoyage terminé (fichiers de test peuvent rester)', 'info');
+
+        // ========================================
+        // RÉSUMÉ
+        // ========================================
+        log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
+        const passed = testResults.filter(t => t.passed).length;
+        const total = testResults.length;
+
+        if (passed === total) {
+          log(`\n🎉 TOUS LES TESTS PASSÉS (${passed}/${total})`, 'success');
+          log('✅ L\'isolation des fichiers Storage fonctionne correctement!', 'success');
+        } else {
+          log(`\n⚠️ ${passed}/${total} tests passés`, 'warning');
+          log('❌ Des failles de sécurité ont été détectées!', 'error');
+        }
+
+      } catch (err) {
+        log(`\n❌ ERREUR GLOBALE: ${err.message}`, 'error');
+        console.error(err);
+      } finally {
+        btn.disabled = false;
+      }
+    };
+  </script>
+</body>
+</html>

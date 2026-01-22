@@ -2,32 +2,80 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Règles par défaut : lecture publique, écriture authentifiée
-    match /{allPaths=**} {
-      allow read: if true; // Lecture publique pour afficher les images
-      allow write: if request.auth != null; // Écriture uniquement si authentifié
-    }
 
-    // Règles spécifiques pour les dossiers d'images
+    // ============================================
+    // RESSOURCES PUBLIQUES (logos, images trucks)
+    // Lecture: publique | Écriture: utilisateurs authentifiés
+    // ============================================
+
     match /logos/{fileName} {
       allow read: if true;
-      allow write: if request.auth != null 
-                   && request.resource.size < 5 * 1024 * 1024 // Max 5MB
+      allow write: if request.auth != null
+                   && request.resource.size < 5 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
     }
 
+    match /trucks/{truckId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // Ancien chemin trucks (rétrocompatibilité)
     match /trucks/{fileName} {
       allow read: if true;
-      allow write: if request.auth != null 
-                   && request.resource.size < 5 * 1024 * 1024 // Max 5MB
+      allow write: if request.auth != null
+                   && request.resource.size < 5 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
     }
 
-    match /uploads/{fileName} {
+    // ============================================
+    // FICHIERS UTILISATEURS (isolés par userId)
+    // ✅ Chaque utilisateur ne peut accéder qu'à SES fichiers
+    // ============================================
+
+    match /users/{userId}/{allPaths=**} {
+      allow read: if request.auth != null
+                  && request.auth.uid == userId;
+      allow write: if request.auth != null
+                   && request.auth.uid == userId
+                   && request.resource.size < 10 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*|application/pdf');
+    }
+
+    // ============================================
+    // PHOTOS DE PROFIL UTILISATEURS
+    // Lecture: publique (affichage) | Écriture: propriétaire
+    // ============================================
+
+    match /profiles/{userId}/{fileName} {
       allow read: if true;
-      allow write: if request.auth != null 
-                   && request.resource.size < 5 * 1024 * 1024 // Max 5MB
+      allow write: if request.auth != null
+                   && request.auth.uid == userId
+                   && request.resource.size < 5 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
+    }
+
+    // ============================================
+    // UPLOADS TEMPORAIRES (avec isolation par userId)
+    // ============================================
+
+    match /uploads/{userId}/{fileName} {
+      allow read: if request.auth != null
+                  && request.auth.uid == userId;
+      allow write: if request.auth != null
+                   && request.auth.uid == userId
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // ============================================
+    // BLOQUER TOUT LE RESTE PAR DÉFAUT
+    // ============================================
+
+    match /{allPaths=**} {
+      allow read, write: if false;
     }
   }
 }
