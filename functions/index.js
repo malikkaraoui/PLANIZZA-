@@ -430,6 +430,143 @@ async function pruneCartArchive(uid, max = 5) {
   }
 }
 
+/**
+ * Valide et recalcule les prix des items contre le menu du truck.
+ * Retourne des items avec les prix validés côté serveur.
+ *
+ * @param {Array} clientItems - Items envoyés par le client avec leurs prix
+ * @param {string} truckId - ID du truck pour récupérer le menu
+ * @returns {Promise<{validatedItems: Array, warnings: Array}>}
+ */
+async function validateAndRecalculateItemPrices(clientItems, truckId) {
+  const warnings = [];
+
+  // 1. Récupérer le menu du truck depuis RTDB
+  const menuRef = admin.database().ref(`public/trucks/${truckId}/menu`);
+  const menuSnap = await menuRef.get();
+
+  if (!menuSnap.exists()) {
+    throw new Error(`Menu introuvable pour le truck ${truckId}`);
+  }
+
+  const menuData = menuSnap.val();
+  const validatedItems = [];
+
+  // 2. Pour chaque item client, valider le prix
+  for (const clientItem of clientItems) {
+    const itemId = clientItem.id;
+    const clientPrice = Number(clientItem.priceCents || 0);
+    const qty = Number(clientItem.qty || 1);
+
+    // Chercher l'item dans le menu
+    let menuItem = null;
+    let serverPrice = null;
+
+    // Le menu peut avoir plusieurs structures:
+    // - Directement sous menuData (catégories)
+    // - Sous menuData.items (structure items)
+    // Essayer d'abord menuData.items si existe
+    if (menuData.items && typeof menuData.items === "object" && menuData.items[itemId]) {
+      menuItem = menuData.items[itemId];
+    } else {
+      // Sinon chercher dans les catégories
+      for (const category of Object.values(menuData || {})) {
+        if (category && typeof category === "object" && category[itemId]) {
+          menuItem = category[itemId];
+          break;
+        }
+      }
+    }
+
+    if (!menuItem) {
+      // Item introuvable dans le menu
+      warnings.push({
+        itemId,
+        itemName: clientItem.name,
+        reason: "item_not_in_menu",
+        message: `Item ${itemId} (${clientItem.name}) introuvable dans le menu`,
+      });
+      // On rejette cet item (sécurité)
+      continue;
+    }
+
+    // Calculer le prix serveur en fonction de la structure du menu
+    // Structure possible 1: item.priceCents (prix unique)
+    // Structure possible 2: item.sizes.{s,m,l}.priceCents (pizzas avec tailles)
+
+    if (menuItem.priceCents != null) {
+      // Prix simple
+      serverPrice = Number(menuItem.priceCents);
+    } else if (menuItem.sizes && typeof menuItem.sizes === "object") {
+      // Prix par taille - on prend le prix de la taille mentionnée dans le nom
+      // ou la première taille disponible si pas d'indication
+      const sizeName = clientItem.name?.toLowerCase();
+      let detectedSize = null;
+
+      if (sizeName?.includes("petite") || sizeName?.includes("small")) {
+        detectedSize = "s";
+      } else if (sizeName?.includes("moyenne") || sizeName?.includes("medium")) {
+        detectedSize = "m";
+      } else if (sizeName?.includes("grande") || sizeName?.includes("large")) {
+        detectedSize = "l";
+      }
+
+      // Si taille détectée, utiliser son prix
+      if (detectedSize && menuItem.sizes[detectedSize]?.priceCents != null) {
+        serverPrice = Number(menuItem.sizes[detectedSize].priceCents);
+      } else {
+        // Sinon, prendre la première taille disponible
+        const firstSize = Object.values(menuItem.sizes).find((s) => s?.priceCents != null);
+        if (firstSize) {
+          serverPrice = Number(firstSize.priceCents);
+        }
+      }
+    }
+
+    if (serverPrice == null || serverPrice === 0) {
+      warnings.push({
+        itemId,
+        itemName: clientItem.name,
+        reason: "invalid_server_price",
+        message: `Prix serveur invalide pour ${itemId}`,
+      });
+      continue;
+    }
+
+    // 3. Comparer prix client vs prix serveur
+    if (clientPrice !== serverPrice) {
+      warnings.push({
+        itemId,
+        itemName: clientItem.name,
+        reason: "price_mismatch",
+        clientPrice,
+        serverPrice,
+        message: `Prix manipulé détecté: client=${clientPrice}¢, serveur=${serverPrice}¢`,
+      });
+
+      // Log pour détection de fraude
+      console.warn("[PLANIZZA][FRAUD_DETECTION]", {
+        truckId,
+        itemId,
+        itemName: clientItem.name,
+        clientPrice,
+        serverPrice,
+        diff: clientPrice - serverPrice,
+      });
+    }
+
+    // 4. Utiliser TOUJOURS le prix serveur (source de vérité)
+    validatedItems.push({
+      id: itemId,
+      name: String(clientItem.name || "Article"),
+      priceCents: serverPrice, // ✅ Prix validé serveur
+      qty,
+    });
+  }
+
+  return { validatedItems, warnings };
+}
+
 exports.createCheckoutSession = onRequest(
     {
       region: "us-central1",
@@ -513,12 +650,26 @@ exports.createCheckoutSession = onRequest(
             return res.status(400).json({error: "items requis"});
           }
 
-          const safeItems = items.map((it) => ({
-            id: it?.id || null,
-            name: String(it?.name || "Article"),
-            priceCents: Number(it?.priceCents || 0),
-            qty: Number(it?.qty || 1),
-          }));
+          // ✅ Validation des prix côté serveur contre le menu
+          const {validatedItems, warnings} = await validateAndRecalculateItemPrices(items, truckId);
+
+          if (warnings.length > 0) {
+            console.warn("[PLANIZZA][PRICE_VALIDATION] Warnings détectés:", {
+              orderId,
+              truckId,
+              userUid: uid,
+              warnings,
+            });
+          }
+
+          if (validatedItems.length === 0) {
+            return res.status(400).json({
+              error: "Aucun article valide dans le panier",
+              warnings,
+            });
+          }
+
+          const safeItems = validatedItems;
 
           const normalizedDeliveryMethod = deliveryMethod === "delivery" ? "delivery" : "pickup";
           const deliveryCost = normalizedDeliveryMethod === "delivery" ? 350 : 0;
@@ -547,12 +698,25 @@ exports.createCheckoutSession = onRequest(
           return res.status(400).json({error: "items requis"});
         }
 
-        const safeItems = items.map((it) => ({
-          id: it?.id || null,
-          name: String(it?.name || "Article"),
-          priceCents: Number(it?.priceCents || 0),
-          qty: Number(it?.qty || 1),
-        }));
+        // ✅ Validation des prix côté serveur contre le menu
+        const {validatedItems, warnings} = await validateAndRecalculateItemPrices(items, truckId);
+
+        if (warnings.length > 0) {
+          console.warn("[PLANIZZA][PRICE_VALIDATION] Warnings détectés:", {
+            truckId,
+            userUid: uid,
+            warnings,
+          });
+        }
+
+        if (validatedItems.length === 0) {
+          return res.status(400).json({
+            error: "Aucun article valide dans le panier",
+            warnings,
+          });
+        }
+
+        const safeItems = validatedItems;
 
         const normalizedDeliveryMethod = deliveryMethod === "delivery" ? "delivery" : "pickup";
         const deliveryCost = normalizedDeliveryMethod === "delivery" ? 350 : 0;
