@@ -77,11 +77,23 @@ const STRIPE_WEBHOOK_SECRET = defineSecret("STRIPE_WEBHOOK_SECRET");
 // URL front utilisée pour success/cancel
 const FRONTEND_URL = process.env.FRONTEND_URL || "https://planizza-ac827.web.app";
 
+// Origines autorisées pour CORS (sécurité)
+const ALLOWED_ORIGINS = [
+  "https://planizza-ac827.web.app",
+  "https://planizza-ac827.firebaseapp.com",
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:3000",
+];
+
 function setCors(req, res) {
-  const origin = req.headers.origin || "*";
-  res.set("Access-Control-Allow-Origin", origin);
+  const origin = req.headers.origin;
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    res.set("Access-Control-Allow-Origin", origin);
+    res.set("Access-Control-Allow-Credentials", "true");
+  }
   res.set("Vary", "Origin");
-  res.set("Access-Control-Allow-Credentials", "true");
   res.set("Access-Control-Allow-Headers", "authorization, content-type");
   res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
 }
@@ -882,8 +894,31 @@ exports.createCheckoutSession = onRequest(
 
         return res.json({sessionId: session.id, url: session.url, orderId});
       } catch (error) {
-        console.error("Erreur lors de la création de la session Stripe:", error);
-        return res.status(500).json({error: "internal"});
+        // Gestion d'erreur structurée - ne pas exposer les détails internes
+        const errorType = error?.type || error?.code || "unknown";
+        const safeMessage = error?.message?.substring(0, 100) || "Unknown error";
+
+        console.error("[PLANIZZA][createCheckoutSession] Erreur:", {
+          type: errorType,
+          message: safeMessage,
+          // Ne pas logger l'objet error complet (peut contenir des données sensibles)
+        });
+
+        // Codes d'erreur spécifiques pour le client
+        if (error?.type === "StripeCardError") {
+          return res.status(400).json({ error: "card_error", code: error.code });
+        }
+        if (error?.type === "StripeInvalidRequestError") {
+          return res.status(400).json({ error: "invalid_request" });
+        }
+        if (error?.type === "StripeAPIError" || error?.type === "StripeConnectionError") {
+          return res.status(503).json({ error: "payment_service_unavailable" });
+        }
+        if (error?.type === "StripeRateLimitError") {
+          return res.status(429).json({ error: "rate_limited" });
+        }
+
+        return res.status(500).json({ error: "internal" });
       }
     },
 );
@@ -1577,6 +1612,52 @@ exports.pizzaioloCreateManualOrder = onRequest(
   }
 );
 
+// Rate limiting pour les échecs de signature webhook
+const WEBHOOK_RATE_LIMIT = {
+  maxFailures: 10, // Max échecs par IP
+  windowMs: 15 * 60 * 1000, // Fenêtre de 15 minutes
+};
+
+async function checkWebhookRateLimit(ip) {
+  if (!ip) return { allowed: true };
+
+  const safeIp = ip.replace(/[.:/]/g, "_"); // Firebase key-safe
+  const ref = admin.database().ref(`webhookRateLimit/${safeIp}`);
+  const snap = await ref.get();
+
+  if (!snap.exists()) return { allowed: true };
+
+  const data = snap.val();
+  const now = Date.now();
+
+  // Reset si fenêtre expirée
+  if (data.windowStart && (now - data.windowStart) > WEBHOOK_RATE_LIMIT.windowMs) {
+    await ref.remove();
+    return { allowed: true };
+  }
+
+  if (data.failures >= WEBHOOK_RATE_LIMIT.maxFailures) {
+    return { allowed: false, failures: data.failures };
+  }
+
+  return { allowed: true };
+}
+
+async function recordWebhookFailure(ip) {
+  if (!ip) return;
+
+  const safeIp = ip.replace(/[.:/]/g, "_");
+  const ref = admin.database().ref(`webhookRateLimit/${safeIp}`);
+
+  await ref.transaction((current) => {
+    const now = Date.now();
+    if (!current || (now - (current.windowStart || 0)) > WEBHOOK_RATE_LIMIT.windowMs) {
+      return { failures: 1, windowStart: now };
+    }
+    return { ...current, failures: (current.failures || 0) + 1 };
+  });
+}
+
 exports.stripeWebhook = onRequest(
     {
       region: "us-central1",
@@ -1591,6 +1672,15 @@ exports.stripeWebhook = onRequest(
         return res.status(405).send("Method Not Allowed");
       }
 
+      // Rate limiting par IP sur les échecs de signature
+      const clientIp = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
+                       req.ip || req.socket?.remoteAddress || "unknown";
+      const rateCheck = await checkWebhookRateLimit(clientIp);
+      if (!rateCheck.allowed) {
+        console.warn("[PLANIZZA] Webhook rate limited", { ip: clientIp, failures: rateCheck.failures });
+        return res.status(429).send("Too many failed attempts");
+      }
+
       // Diagnostic: log basic request meta (sans body)
       console.log("[PLANIZZA][stripeWebhook] incoming request", {
         contentType: req.headers["content-type"],
@@ -1601,6 +1691,7 @@ exports.stripeWebhook = onRequest(
       const sig = req.headers["stripe-signature"];
       if (!sig || typeof sig !== "string") {
         console.warn("[PLANIZZA] Missing Stripe-Signature header");
+        await recordWebhookFailure(clientIp);
         return res.status(400).send("Missing Stripe-Signature header");
       }
 
@@ -1613,16 +1704,45 @@ exports.stripeWebhook = onRequest(
       try {
         event = stripeClient.webhooks.constructEvent(req.rawBody, sig, webhookSecret);
       } catch (err) {
-        console.error("[PLANIZZA] Webhook signature verification failed:", err);
-        return res.status(400).send(`Webhook Error: ${err.message}`);
+        // Log limité - ne pas exposer les détails de signature
+        console.error("[PLANIZZA] Webhook signature verification failed:", {
+          errorType: err?.type || "unknown",
+          // Ne pas logger err.message complet (peut contenir des infos de timing)
+        });
+        // Enregistrer l'échec pour le rate limiting
+        await recordWebhookFailure(clientIp);
+        // Message générique au client - ne pas révéler pourquoi la signature a échoué
+        return res.status(400).send("Webhook signature verification failed");
       }
 
       console.log("[PLANIZZA][stripeWebhook] event reçu", {type: event.type, id: event.id});
+
+      // Idempotence: vérifier si cet event a déjà été traité
+      const eventId = event.id;
+      const processedRef = admin.database().ref(`stripeWebhooksProcessed/${eventId}`);
+      const alreadyProcessed = await processedRef.get();
+      if (alreadyProcessed.exists()) {
+        console.log("[PLANIZZA][stripeWebhook] Event déjà traité, skip", { eventId });
+        return res.json({ received: true, type: event.type, cached: true });
+      }
 
       if (event.type === "checkout.session.completed") {
         const session = event.data.object;
         const orderId = session?.metadata?.orderId;
         const userUid = session?.metadata?.userUid || null;
+
+        // Validation des metadata
+        if (!orderId || typeof orderId !== "string" || orderId.length > 128) {
+          console.warn("[PLANIZZA][stripeWebhook] orderId invalide ou manquant", { orderId });
+          return res.status(400).json({ error: "invalid_order_id" });
+        }
+
+        // Marquer l'event comme traité AVANT le processing (at-most-once)
+        await processedRef.set({
+          processedAt: admin.database.ServerValue.TIMESTAMP,
+          eventType: event.type,
+          orderId,
+        });
 
         if (orderId) {
           const orderRef = admin.database().ref(`orders/${orderId}`);
@@ -1759,6 +1879,39 @@ exports.purgeExpiredCarts = functions.pubsub
 
       await admin.database().ref().update(updates);
       console.log(`[PLANIZZA] purgeExpiredCarts: ${keys.length} panier(s) supprimé(s).`);
+      return null;
+    });
+
+/**
+ * Purge des events webhook Stripe traités (TTL 7 jours)
+ * Évite que la table stripeWebhooksProcessed grossisse indéfiniment
+ */
+exports.purgeProcessedWebhooks = functions.pubsub
+    .schedule("every 24 hours")
+    .timeZone("Europe/Paris")
+    .onRun(async () => {
+      const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+
+      const webhooksRef = admin.database().ref("stripeWebhooksProcessed");
+      const snap = await webhooksRef
+          .orderByChild("processedAt")
+          .startAt(1)
+          .endAt(sevenDaysAgo)
+          .limitToFirst(500)
+          .get();
+
+      if (!snap.exists()) return null;
+
+      const updates = {};
+      snap.forEach((child) => {
+        updates[child.key] = null;
+      });
+
+      const count = Object.keys(updates).length;
+      if (count === 0) return null;
+
+      await webhooksRef.update(updates);
+      console.log(`[PLANIZZA] purgeProcessedWebhooks: ${count} event(s) supprimé(s).`);
       return null;
     });
 
