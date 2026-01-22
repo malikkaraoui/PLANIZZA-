@@ -167,6 +167,32 @@ function sortCanon(a, b) {
   return ac - bc;
 }
 
+function getLocalDate(ms) {
+  if (!Number.isFinite(ms)) return null;
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function getDateLabel(dateStr, nowMs) {
+  const now = new Date(nowMs);
+  const todayStr = getLocalDate(nowMs);
+  
+  if (dateStr === todayStr) return "Aujourd'hui";
+  
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = getLocalDate(yesterday.getTime());
+  if (dateStr === yesterdayStr) return 'Hier';
+  
+  const weekAgo = new Date(now);
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  const weekAgoStr = getLocalDate(weekAgo.getTime());
+  
+  if (dateStr >= weekAgoStr) return 'Cette semaine';
+  
+  return 'Plus ancien';
+}
+
 function actionsFor(orderV2, legacy) {
   const isPaid = orderV2.paymentStatus === 'PAID';
   const isManual = legacy?.payment?.provider === 'manual';
@@ -219,16 +245,16 @@ function actionsFor(orderV2, legacy) {
 
 function TimeSection({ title, rows, emptyText }) {
   return (
-    <section className="rounded-3xl border border-white/10 bg-black/20 p-3">
-      <div className="flex items-center justify-between gap-3 px-2 py-1">
-        <div className="text-sm font-semibold text-white/90">{title}</div>
-        <Badge className="bg-white/10 text-white/80">{rows.length}</Badge>
+    <section className="rounded-2xl md:rounded-3xl border border-white/10 bg-black/20 p-2 md:p-3">
+      <div className="flex items-center justify-between gap-2 md:gap-3 px-1 md:px-2 py-1">
+        <div className="text-xs md:text-sm font-semibold text-white/90">{title}</div>
+        <Badge className="bg-white/10 text-white/80 text-[10px] md:text-xs">{rows.length}</Badge>
       </div>
       <div className="mt-2">
         {rows.length === 0 ? (
-          <div className="px-2 py-3 text-xs text-white/50">{emptyText}</div>
+          <div className="px-2 py-3 text-[10px] md:text-xs text-white/50">{emptyText}</div>
         ) : (
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 md:gap-1">
             {rows.map((row) => row.render())}
           </div>
         )}
@@ -237,12 +263,12 @@ function TimeSection({ title, rows, emptyText }) {
   );
 }
 
-function OrderRow({ row, nowMs, busy, onAction }) {
+function OrderRow({ row, nowMs, busy, onAction, isHistory = false, onClick }) {
   const { legacy, v2 } = row;
 
   const promisedMs = typeof v2.promisedAtMs === 'number' ? v2.promisedAtMs : safeParseMs(v2.promisedAt);
   const promisedHm = formatHmFromMs(promisedMs);
-  const timer = getTimerLabel(v2.promisedAt, nowMs);
+  const timer = isHistory ? '' : getTimerLabel(v2.promisedAt, nowMs);
 
   const customer = legacy?.customerName || v2.customer?.name || 'Client';
   const itemsCount = Array.isArray(legacy?.items)
@@ -263,10 +289,69 @@ function OrderRow({ row, nowMs, busy, onAction }) {
   const actionList = actionsFor(v2, legacy);
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 px-2 py-2">
-      <div className="grid grid-cols-[64px_88px_86px_76px_92px_1fr_86px_auto] items-center gap-2 text-[12px]">
+    <div 
+      className={`rounded-2xl border border-white/10 bg-white/5 p-3 ${
+        isHistory ? 'cursor-pointer transition-colors hover:bg-white/10' : ''
+      }`}
+      onClick={isHistory && onClick ? () => onClick(row) : undefined}
+    >
+      {/* Layout Mobile */}
+      <div className="block md:hidden space-y-3">
+        {/* En-tête */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-white truncate">{customer}</div>
+            <div className="text-xs text-white/60 mt-0.5">{promisedHm} {!isHistory && `• ${timer}`}</div>
+          </div>
+          <div>
+            <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-semibold ${payClass}`}>
+              {paymentText}
+            </span>
+          </div>
+        </div>
+        
+        {/* Infos */}
+        <div className="flex items-center gap-3 text-xs">
+          <div className="rounded-lg bg-white/10 px-2 py-1 text-white/80">
+            {kitchenStatusLabel(v2.kitchenStatus)}
+          </div>
+          <div className="text-white/60">
+            {fulfillmentLabel(v2.fulfillment)}
+          </div>
+          <div className="text-white/60">
+            {itemsCount} article{itemsCount > 1 ? 's' : ''}
+          </div>
+        </div>
+        
+        {/* Actions */}
+        {actionList.length > 0 && !isHistory && (
+          <div className="flex flex-wrap gap-2">
+            {actionList.map((a) => (
+              <Button
+                key={a.key}
+                size="sm"
+                variant={a.key === 'cancel' ? 'ghost' : 'secondary'}
+                className={`flex-1 min-w-25 h-9 rounded-xl text-xs ${
+                  a.key === 'cancel' ? 'text-white/70 hover:text-white' : ''
+                }`}
+                disabled={busy || Boolean(a.disabled)}
+                title={a.title}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAction(a);
+                }}
+              >
+                {a.label}
+              </Button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Layout Desktop */}
+      <div className="hidden md:grid md:grid-cols-[64px_88px_86px_76px_92px_1fr_86px_auto] items-center gap-2 text-[12px]">
         <div className="font-mono text-white/90">{promisedHm}</div>
-        <div className="font-mono text-white/80">{timer}</div>
+        <div className="font-mono text-white/80">{isHistory ? '—' : timer}</div>
         <div className="font-mono text-white/90">{kitchenStatusLabel(v2.kitchenStatus)}</div>
         <div>
           <span className={`inline-flex rounded-full px-2 py-0.5 font-mono text-[11px] ${payClass}`}>{paymentText}</span>
@@ -283,7 +368,10 @@ function OrderRow({ row, nowMs, busy, onAction }) {
               className={a.key === 'cancel' ? 'h-7 rounded-xl text-white/70 hover:text-white' : 'h-7 rounded-xl'}
               disabled={busy || Boolean(a.disabled)}
               title={a.title}
-              onClick={() => onAction(a)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onAction(a);
+              }}
             >
               {a.label}
             </Button>
@@ -303,6 +391,7 @@ export default function OrdersPageTimeDriven() {
   const [q, setQ] = useState('');
   const [mutating, setMutating] = useState(false);
   const [message, setMessage] = useState('');
+  const [detailOrder, setDetailOrder] = useState(null);
   useAutoDismissMessage(message, setMessage, { delayMs: 5000, dismissErrors: false });
 
   const rows = useMemo(() => {
@@ -336,6 +425,56 @@ export default function OrdersPageTimeDriven() {
 
   const active = useMemo(() => rows.filter((r) => !['DONE', 'CANCELED', 'EXPIRED'].includes(r.v2.kitchenStatus)), [rows]);
   const history = useMemo(() => rows.filter((r) => ['DONE', 'CANCELED', 'EXPIRED'].includes(r.v2.kitchenStatus)), [rows]);
+
+  const historyByDate = useMemo(() => {
+    const groups = {};
+    
+    for (const row of history) {
+      // Utiliser updatedAtMs (quand terminée) ou createdAtMs comme fallback
+      const ts = row.v2.updatedAtMs || row.v2.createdAtMs || safeParseMs(row.v2.createdAt);
+      const dateStr = getLocalDate(ts);
+      if (!dateStr) continue;
+      
+      if (!groups[dateStr]) {
+        groups[dateStr] = [];
+      }
+      groups[dateStr].push(row);
+    }
+    
+    // Trier les commandes au sein de chaque groupe (plus récentes en premier)
+    for (const dateStr in groups) {
+      groups[dateStr].sort((a, b) => {
+        const aTs = a.v2.updatedAtMs || a.v2.createdAtMs || safeParseMs(a.v2.createdAt);
+        const bTs = b.v2.updatedAtMs || b.v2.createdAtMs || safeParseMs(b.v2.createdAt);
+        return bTs - aTs; // Plus récentes en premier
+      });
+    }
+    
+    // Organiser par catégories
+    const today = [];
+    const yesterday = [];
+    const thisWeek = [];
+    const older = [];
+    
+    const sortedDates = Object.keys(groups).sort().reverse(); // Dates les plus récentes en premier
+    
+    for (const dateStr of sortedDates) {
+      const label = getDateLabel(dateStr, nowMs);
+      const items = groups[dateStr];
+      
+      if (label === "Aujourd'hui") {
+        today.push(...items);
+      } else if (label === 'Hier') {
+        yesterday.push(...items);
+      } else if (label === 'Cette semaine') {
+        thisWeek.push(...items);
+      } else {
+        older.push(...items);
+      }
+    }
+    
+    return { today, yesterday, thisWeek, older };
+  }, [history, nowMs]);
 
   const buckets = useMemo(() => {
     const late = [];
@@ -451,20 +590,23 @@ export default function OrdersPageTimeDriven() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-6">      <BackButton className="mb-4" />      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div className="mx-auto w-full max-w-6xl px-3 md:px-4 py-4 md:py-6">
+      <BackButton className="mb-3 md:mb-4" />
+      
+      <div className="mb-3 md:mb-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-lg font-bold text-white">File d’attente (Temps)</div>
-          <div className="mt-1 text-xs text-white/60">
-            maintenant: {formatHmFromMs(nowMs)} <span className="text-white/40">(tri global : promesse ↑)</span>
+          <div className="text-base md:text-lg font-bold text-white">File d'attente (Temps)</div>
+          <div className="mt-1 text-[10px] md:text-xs text-white/60">
+            maintenant: {formatHmFromMs(nowMs)} <span className="hidden md:inline text-white/40">(tri global : promesse ↑)</span>
           </div>
         </div>
 
-        <div className="flex min-w-56 items-center gap-2">
+        <div className="flex items-center gap-2 w-full md:w-auto md:min-w-56">
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Rechercher…"
-            className="h-9 rounded-xl"
+            className="h-9 rounded-xl text-sm"
           />
         </div>
       </div>
@@ -521,7 +663,7 @@ export default function OrdersPageTimeDriven() {
         />
 
         <TimeSection
-          title={`🔴 RETARD`}
+          title={`🔴 EN RETARD`}
           rows={buckets.late.map((row) => ({
             render: () => (
               <OrderRow
@@ -537,23 +679,98 @@ export default function OrdersPageTimeDriven() {
         />
       </div>
 
-      <details className="mt-6 rounded-3xl border border-white/10 bg-black/20 p-3">
-        <summary className="cursor-pointer select-none px-2 py-1 text-sm font-semibold text-white/90">
+      <details className="mt-4 md:mt-6 rounded-2xl md:rounded-3xl border border-white/10 bg-black/20 p-2 md:p-3">
+        <summary className="cursor-pointer select-none px-2 py-1.5 md:py-1 text-xs md:text-sm font-semibold text-white/90">
           Historique (DONE / CANCELED / EXPIRED) <span className="text-white/60">[{history.length}]</span>
         </summary>
-        <div className="mt-3 flex flex-col gap-1">
-          {history
-            .slice()
-            .sort((a, b) => sortCanon(a.v2, b.v2))
-            .map((row) => (
-              <OrderRow
-                key={row.legacy.id}
-                row={row}
-                nowMs={nowMs}
-                busy={busy}
-                onAction={(a) => runAction(row, a)}
-              />
-            ))}
+        <div className="mt-2 md:mt-3 space-y-2 md:space-y-3">
+          {historyByDate.today.length > 0 && (
+            <details open className="rounded-xl md:rounded-2xl border border-emerald-500/20 bg-emerald-950/20">
+              <summary className="cursor-pointer select-none px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-semibold text-emerald-400 hover:text-emerald-300">
+                📅 Aujourd'hui ({historyByDate.today.length})
+              </summary>
+              <div className="flex flex-col gap-1 px-1 md:px-2 pb-2 pt-1">
+                {historyByDate.today.map((row) => (
+                  <OrderRow
+                    key={row.legacy.id}
+                    row={row}
+                    nowMs={nowMs}
+                    busy={busy}
+                    onAction={(a) => runAction(row, a)}
+                    isHistory
+                    onClick={setDetailOrder}
+                  />
+                ))}
+              </div>
+            </details>
+          )}
+          
+          {historyByDate.yesterday.length > 0 && (
+            <details className="rounded-xl md:rounded-2xl border border-blue-500/20 bg-blue-950/20">
+              <summary className="cursor-pointer select-none px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-semibold text-blue-400 hover:text-blue-300">
+                📅 Hier ({historyByDate.yesterday.length})
+              </summary>
+              <div className="flex flex-col gap-1 px-1 md:px-2 pb-2 pt-1">
+                {historyByDate.yesterday.map((row) => (
+                  <OrderRow
+                    key={row.legacy.id}
+                    row={row}
+                    nowMs={nowMs}
+                    busy={busy}
+                    onAction={(a) => runAction(row, a)}
+                    isHistory
+                    onClick={setDetailOrder}
+                  />
+                ))}
+              </div>
+            </details>
+          )}
+          
+          {historyByDate.thisWeek.length > 0 && (
+            <details className="rounded-xl md:rounded-2xl border border-purple-500/20 bg-purple-950/20">
+              <summary className="cursor-pointer select-none px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-semibold text-purple-400 hover:text-purple-300">
+                📅 Cette semaine ({historyByDate.thisWeek.length})
+              </summary>
+              <div className="flex flex-col gap-1 px-1 md:px-2 pb-2 pt-1">
+                {historyByDate.thisWeek.map((row) => (
+                  <OrderRow
+                    key={row.legacy.id}
+                    row={row}
+                    nowMs={nowMs}
+                    busy={busy}
+                    onAction={(a) => runAction(row, a)}
+                    isHistory
+                    onClick={setDetailOrder}
+                  />
+                ))}
+              </div>
+            </details>
+          )}
+          
+          {historyByDate.older.length > 0 && (
+            <details className="rounded-xl md:rounded-2xl border border-white/10 bg-white/5">
+              <summary className="cursor-pointer select-none px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-semibold text-white/50 hover:text-white/70">
+                📅 Plus ancien ({historyByDate.older.length})
+              </summary>
+              <div className="flex flex-col gap-1 px-1 md:px-2 pb-2 pt-1">
+                {historyByDate.older.map((row) => (
+                  <OrderRow
+                    key={row.legacy.id}
+                    row={row}
+                    nowMs={nowMs}
+                    busy={busy}
+                    onAction={(a) => runAction(row, a)}
+                    isHistory
+                    onClick={setDetailOrder}
+                  />
+                ))}
+              </div>
+            </details>
+          )}
+          
+          {history.length === 0 && (
+            <div className="px-2 py-3 text-[10px] md:text-xs text-white/50">Aucune commande dans l'historique.</div>
+          )}
         </div>
       </details>
 
@@ -562,6 +779,116 @@ export default function OrdersPageTimeDriven() {
           Voir /pro/commandes-v2
         </Link>
       </div>
+
+      {detailOrder && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2 md:p-4"
+          onClick={() => setDetailOrder(null)}
+        >
+          <div 
+            className="relative w-full max-w-2xl max-h-[85vh] md:max-h-[80vh] overflow-y-auto rounded-2xl md:rounded-3xl border border-white/20 bg-linear-to-br from-gray-900 to-black p-4 md:p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="absolute top-3 right-3 md:top-4 md:right-4 flex h-9 w-9 md:h-8 md:w-8 items-center justify-center rounded-full bg-white/10 text-white/70 hover:bg-white/20 hover:text-white text-lg"
+              onClick={() => setDetailOrder(null)}
+            >
+              ✕
+            </button>
+
+            <div className="space-y-3 md:space-y-4">
+              <div>
+                <div className="text-[10px] md:text-xs text-white/50">Commande</div>
+                <div className="text-lg md:text-xl font-bold text-white">#{detailOrder.legacy.id}</div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+                <div>
+                  <div className="text-[10px] md:text-xs text-white/50">Client</div>
+                  <div className="text-sm md:text-base text-white">{detailOrder.legacy.customerName || detailOrder.v2.customer?.name || 'Client'}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] md:text-xs text-white/50">Statut</div>
+                  <div className="text-sm md:text-base text-white">{kitchenStatusLabel(detailOrder.v2.kitchenStatus)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] md:text-xs text-white/50">Paiement</div>
+                  <div className="text-sm md:text-base text-white">{paymentStatusLabel(detailOrder.v2.paymentStatus)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] md:text-xs text-white/50">Type</div>
+                  <div className="text-sm md:text-base text-white">{fulfillmentLabel(detailOrder.v2.fulfillment)}</div>
+                </div>
+              </div>
+
+              {detailOrder.legacy.deliveryAddress && (
+                <div>
+                  <div className="text-[10px] md:text-xs text-white/50">Adresse de livraison</div>
+                  <div className="text-sm md:text-base text-white">{detailOrder.legacy.deliveryAddress}</div>
+                </div>
+              )}
+
+              <div>
+                <div className="mb-2 text-[10px] md:text-xs text-white/50">Articles</div>
+                <div className="space-y-2">
+                  {(detailOrder.legacy.items || detailOrder.v2.items || []).map((item, idx) => (
+                    <div key={idx} className="flex justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                      <div className="flex-1 min-w-0 mr-2">
+                        <div className="text-xs md:text-sm text-white truncate">{item.name}</div>
+                        {item.description && (
+                          <div className="text-[10px] md:text-xs text-white/50 truncate">{item.description}</div>
+                        )}
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-xs md:text-sm text-white">×{item.qty || 1}</div>
+                        <div className="text-[10px] md:text-xs text-white/50">{((item.priceCents || 0) / 100).toFixed(2)}€</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border-t border-white/10 pt-3 md:pt-4">
+                <div className="flex justify-between text-base md:text-lg font-bold">
+                  <div className="text-white/70">Total</div>
+                  <div className="text-white">
+                    {((detailOrder.legacy.items || detailOrder.v2.items || []).reduce(
+                      (sum, it) => sum + (it.priceCents || 0) * (it.qty || 1),
+                      0
+                    ) / 100).toFixed(2)}€
+                  </div>
+                </div>
+              </div>
+
+              {detailOrder.v2.timestamps && Object.keys(detailOrder.v2.timestamps).length > 0 && (
+                <div>
+                  <div className="mb-2 text-[10px] md:text-xs text-white/50">Chronologie</div>
+                  <div className="space-y-1 text-[10px] md:text-xs">
+                    {detailOrder.v2.timestamps.acceptedAt && (
+                      <div className="text-white/70">Acceptée: {new Date(detailOrder.v2.timestamps.acceptedAt).toLocaleString('fr-FR')}</div>
+                    )}
+                    {detailOrder.v2.timestamps.startedAt && (
+                      <div className="text-white/70">Démarrée: {new Date(detailOrder.v2.timestamps.startedAt).toLocaleString('fr-FR')}</div>
+                    )}
+                    {detailOrder.v2.timestamps.readyAt && (
+                      <div className="text-white/70">Prête: {new Date(detailOrder.v2.timestamps.readyAt).toLocaleString('fr-FR')}</div>
+                    )}
+                    {detailOrder.v2.timestamps.handedOffAt && (
+                      <div className="text-white/70">Remise: {new Date(detailOrder.v2.timestamps.handedOffAt).toLocaleString('fr-FR')}</div>
+                    )}
+                    {detailOrder.v2.timestamps.completedAt && (
+                      <div className="text-white/70">Terminée: {new Date(detailOrder.v2.timestamps.completedAt).toLocaleString('fr-FR')}</div>
+                    )}
+                    {detailOrder.v2.timestamps.canceledAt && (
+                      <div className="text-white/70">Annulée: {new Date(detailOrder.v2.timestamps.canceledAt).toLocaleString('fr-FR')}</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
