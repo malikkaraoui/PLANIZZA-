@@ -452,6 +452,13 @@ async function validateAndRecalculateItemPrices(clientItems, truckId) {
   const menuData = menuSnap.val();
   const validatedItems = [];
 
+  console.log("[PLANIZZA][validateAndRecalculateItemPrices] Menu structure:", {
+    truckId,
+    hasMenuData: Boolean(menuData),
+    menuKeys: menuData ? Object.keys(menuData).slice(0, 5) : [],
+    hasItems: Boolean(menuData?.items),
+  });
+
   // 2. Pour chaque item client, valider le prix
   for (const clientItem of clientItems) {
     const itemId = clientItem.id;
@@ -463,17 +470,33 @@ async function validateAndRecalculateItemPrices(clientItems, truckId) {
     let serverPrice = null;
 
     // Le menu peut avoir plusieurs structures:
-    // - Directement sous menuData (catégories)
-    // - Sous menuData.items (structure items)
-    // Essayer d'abord menuData.items si existe
-    if (menuData.items && typeof menuData.items === "object" && menuData.items[itemId]) {
+    // 1. public/trucks/{truckId}/menu/{itemId} (ancien format catégories)
+    // 2. public/trucks/{truckId}/menu/items/{itemId} (nouveau format)
+
+    // Nouveau format: menu/items/{itemId}
+    if (menuData && menuData.items && typeof menuData.items === "object") {
       menuItem = menuData.items[itemId];
-    } else {
-      // Sinon chercher dans les catégories
-      for (const category of Object.values(menuData || {})) {
-        if (category && typeof category === "object" && category[itemId]) {
-          menuItem = category[itemId];
-          break;
+      console.log("[PLANIZZA][validateAndRecalculateItemPrices] Checking items format:", {
+        itemId,
+        found: Boolean(menuItem),
+      });
+    }
+
+    // Ancien format: menu/{itemId} ou menu/catégories/{itemId}
+    if (!menuItem && menuData && typeof menuData === "object") {
+      // D'abord chercher directement sous menu
+      if (menuData[itemId] && typeof menuData[itemId] === "object") {
+        menuItem = menuData[itemId];
+        console.log("[PLANIZZA][validateAndRecalculateItemPrices] Found in direct format:", itemId);
+      } else {
+        // Sinon chercher dans les catégories
+        for (const [key, category] of Object.entries(menuData)) {
+          if (key === "items") continue; // Skip items car déjà vérifié
+          if (category && typeof category === "object" && category[itemId]) {
+            menuItem = category[itemId];
+            console.log("[PLANIZZA][validateAndRecalculateItemPrices] Found in category:", key, itemId);
+            break;
+          }
         }
       }
     }
