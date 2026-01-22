@@ -761,7 +761,10 @@ exports.createCheckoutSession = onRequest(
       );
 
       // Utiliser l'origine de la requête pour les redirections (support localhost + production)
-      const frontendOrigin = req.headers.origin || FRONTEND_URL;
+      // Valider que l'origin a un schéma valide (https:// ou http://)
+      const rawOrigin = req.headers.origin;
+      const hasValidScheme = rawOrigin && /^https?:\/\//.test(rawOrigin);
+      const frontendOrigin = hasValidScheme ? rawOrigin : FRONTEND_URL;
       const successUrl =
       `${frontendOrigin}/checkout/success?orderId=${orderId}&session_id={CHECKOUT_SESSION_ID}`;
       const cancelUrl = `${frontendOrigin}/panier?orderId=${orderId}`;
