@@ -2440,9 +2440,7 @@ exports.stripeConnectWebhook = onRequest(
     // Gérer v2.core.account.updated (thin event) ou account.updated (legacy)
     if (event.type === "v2.core.account.updated" || event.type === "account.updated") {
       let accountId;
-      let chargesEnabled;
-      let payoutsEnabled;
-      let detailsSubmitted;
+      let account;
 
       if (event.type === "v2.core.account.updated") {
         // Format v2 "thin event" - on doit récupérer les détails via l'API
@@ -2453,12 +2451,9 @@ exports.stripeConnectWebhook = onRequest(
           return res.status(400).json({ error: "missing_account_id" });
         }
 
-        // Récupérer les détails du compte via l'API Stripe
+        // Récupérer les détails complets du compte via l'API Stripe
         try {
-          const account = await stripeClient.accounts.retrieve(accountId);
-          chargesEnabled = account.charges_enabled;
-          payoutsEnabled = account.payouts_enabled;
-          detailsSubmitted = account.details_submitted;
+          account = await stripeClient.accounts.retrieve(accountId);
         } catch (apiErr) {
           console.error("[PLANIZZA][stripeConnectWebhook] Erreur API retrieve:", {
             accountId,
@@ -2468,39 +2463,97 @@ exports.stripeConnectWebhook = onRequest(
         }
       } else {
         // Format legacy v1 - données incluses dans l'event
-        const account = event.data.object;
+        account = event.data.object;
         accountId = account.id;
-        chargesEnabled = account.charges_enabled;
-        payoutsEnabled = account.payouts_enabled;
-        detailsSubmitted = account.details_submitted;
+      }
+
+      // Extraire les informations importantes
+      const chargesEnabled = account.charges_enabled;
+      const payoutsEnabled = account.payouts_enabled;
+      const detailsSubmitted = account.details_submitted;
+      const requirements = account.requirements || {};
+      const currentlyDue = requirements.currently_due || [];
+      const eventuallyDue = requirements.eventually_due || [];
+      const pastDue = requirements.past_due || [];
+      const disabledReason = requirements.disabled_reason || null;
+
+      // Déterminer le statut du compte
+      let stripeStatus;
+      if (chargesEnabled && payoutsEnabled) {
+        stripeStatus = "active";
+      } else if (pastDue.length > 0) {
+        stripeStatus = "restricted";
+      } else if (currentlyDue.length > 0) {
+        stripeStatus = "action_required";
+      } else if (detailsSubmitted) {
+        stripeStatus = "pending_verification";
+      } else {
+        stripeStatus = "pending";
       }
 
       console.log("[PLANIZZA][stripeConnectWebhook] account.updated:", {
         accountId,
+        stripeStatus,
         chargesEnabled,
         payoutsEnabled,
         detailsSubmitted,
+        currentlyDue: currentlyDue.length,
+        pastDue: pastDue.length,
       });
 
-      // Si l'onboarding est complet (charges + payouts activés)
-      if (chargesEnabled && payoutsEnabled) {
-        // Trouver le pizzaiolo avec ce stripeAccountId
+      // Trouver le pizzaiolo avec ce stripeAccountId
+      const pizzaiolosRef = admin.database().ref("pizzaiolos");
+      const snap = await pizzaiolosRef.orderByChild("stripeAccountId").equalTo(accountId).get();
+
+      if (snap.exists()) {
+        const updates = {};
+        snap.forEach((child) => {
+          updates[`${child.key}/stripeStatus`] = stripeStatus;
+          updates[`${child.key}/stripeChargesEnabled`] = chargesEnabled;
+          updates[`${child.key}/stripePayoutsEnabled`] = payoutsEnabled;
+          updates[`${child.key}/stripeDetailsSubmitted`] = detailsSubmitted;
+          updates[`${child.key}/stripeOnboardingComplete`] = stripeStatus === "active";
+          updates[`${child.key}/stripeRequirements`] = {
+            currentlyDue,
+            eventuallyDue,
+            pastDue,
+            disabledReason,
+          };
+          updates[`${child.key}/stripeLastUpdated`] = admin.database.ServerValue.TIMESTAMP;
+
+          // Marquer la date de complétion si c'est la première fois qu'il devient actif
+          if (stripeStatus === "active") {
+            updates[`${child.key}/stripeOnboardingCompletedAt`] = admin.database.ServerValue.TIMESTAMP;
+          }
+        });
+
+        await pizzaiolosRef.update(updates);
+        console.log(`[PLANIZZA][stripeConnectWebhook] Statut mis à jour: ${accountId} → ${stripeStatus}`);
+      } else {
+        console.warn(`[PLANIZZA][stripeConnectWebhook] Aucun pizzaiolo trouvé pour ${accountId}`);
+      }
+    }
+
+    // Gérer la déauthorisation (le pizzaiolo révoque l'accès)
+    if (event.type === "account.application.deauthorized") {
+      const accountId = event.account || event.data?.object?.id;
+
+      if (accountId) {
         const pizzaiolosRef = admin.database().ref("pizzaiolos");
         const snap = await pizzaiolosRef.orderByChild("stripeAccountId").equalTo(accountId).get();
 
         if (snap.exists()) {
           const updates = {};
           snap.forEach((child) => {
-            updates[`${child.key}/stripeOnboardingComplete`] = true;
-            updates[`${child.key}/stripeChargesEnabled`] = chargesEnabled;
-            updates[`${child.key}/stripePayoutsEnabled`] = payoutsEnabled;
-            updates[`${child.key}/stripeOnboardingCompletedAt`] = admin.database.ServerValue.TIMESTAMP;
+            updates[`${child.key}/stripeStatus`] = "deauthorized";
+            updates[`${child.key}/stripeChargesEnabled`] = false;
+            updates[`${child.key}/stripePayoutsEnabled`] = false;
+            updates[`${child.key}/stripeOnboardingComplete`] = false;
+            updates[`${child.key}/stripeDeauthorizedAt`] = admin.database.ServerValue.TIMESTAMP;
           });
 
           await pizzaiolosRef.update(updates);
-          console.log(`[PLANIZZA][stripeConnectWebhook] Onboarding complet pour ${accountId}`);
-        } else {
-          console.warn(`[PLANIZZA][stripeConnectWebhook] Aucun pizzaiolo trouvé pour ${accountId}`);
+          console.log(`[PLANIZZA][stripeConnectWebhook] Compte déauthorisé: ${accountId}`);
         }
       }
     }
