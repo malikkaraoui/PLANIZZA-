@@ -93,6 +93,7 @@ function v2ShouldAutoExpire(orderV2, nowMs) {
 // Secrets Stripe (Firebase Secrets Manager)
 const STRIPE_SECRET_KEY = defineSecret("STRIPE_SECRET_KEY");
 const STRIPE_WEBHOOK_SECRET = defineSecret("STRIPE_WEBHOOK_SECRET");
+const STRIPE_CONNECT_WEBHOOK_SECRET = defineSecret("STRIPE_CONNECT_WEBHOOK_SECRET");
 
 // URL front utilisée pour success/cancel
 const FRONTEND_URL = process.env.FRONTEND_URL || "https://planizza-ac827.web.app";
@@ -864,7 +865,34 @@ exports.createCheckoutSession = onRequest(
       const cancelUrl = `${frontendOrigin}/panier?orderId=${orderId}`;
 
       try {
-        const session = await stripeClient.checkout.sessions.create({
+        // ========== STRIPE CONNECT ==========
+        // Récupérer le stripeAccountId du pizzaiolo pour le transfert
+        let connectedAccountId = null;
+        const truckIdForConnect = order.truckId;
+
+        if (truckIdForConnect) {
+          // 1. Récupérer l'ownerUid du truck
+          const truckSnap = await admin.database().ref(`trucks/${truckIdForConnect}/ownerUid`).get();
+          const ownerUid = truckSnap.val();
+
+          if (ownerUid) {
+            // 2. Récupérer le stripeAccountId du pizzaiolo
+            const pizzaioloSnap = await admin.database().ref(`pizzaiolos/${ownerUid}`).get();
+            const pizzaioloData = pizzaioloSnap.val();
+
+            if (pizzaioloData?.stripeAccountId && pizzaioloData?.stripeOnboardingComplete) {
+              connectedAccountId = pizzaioloData.stripeAccountId;
+              console.log(`[PLANIZZA][createCheckoutSession] Connect activé pour truck ${truckIdForConnect}`);
+            }
+          }
+        }
+
+        // Calculer les frais de plateforme (10% commission)
+        const applicationFeeAmount = connectedAccountId
+          ? Math.round(totalCentsServer * 0.10)
+          : null;
+
+        const sessionParams = {
           mode: "payment",
           payment_method_types: ["card"],
           metadata: {
@@ -875,7 +903,20 @@ exports.createCheckoutSession = onRequest(
           success_url: successUrl,
           cancel_url: cancelUrl,
           customer_email: order.email || undefined,
-        });
+        };
+
+        // Ajouter les paramètres Connect si le pizzaiolo a un compte configuré
+        if (connectedAccountId && applicationFeeAmount) {
+          sessionParams.payment_intent_data = {
+            application_fee_amount: applicationFeeAmount,
+            transfer_data: {
+              destination: connectedAccountId,
+            },
+          };
+          console.log(`[PLANIZZA][createCheckoutSession] Commission: ${applicationFeeAmount}c sur ${totalCentsServer}c`);
+        }
+
+        const session = await stripeClient.checkout.sessions.create(sessionParams);
 
         // ✅ NE PAS changer le status en "pending" ici
         // La commande reste "created" jusqu'à confirmation du webhook
@@ -2216,3 +2257,254 @@ exports.cleanupAnonymousUsers = functions.pubsub
       return null;
     }
   });
+
+// ========================================
+// STRIPE CONNECT - Onboarding Pizzaiolos
+// ========================================
+
+/**
+ * Crée un compte Stripe Connect Express pour un pizzaiolo.
+ * Stocke le stripeAccountId dans RTDB pizzaiolos/{uid}/stripeAccountId
+ */
+exports.createConnectedAccount = onCall(
+  {
+    region: "us-central1",
+    secrets: [STRIPE_SECRET_KEY],
+  },
+  async (request) => {
+    // Vérifier l'authentification
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Vous devez être connecté");
+    }
+
+    const uid = request.auth.uid;
+    const email = request.data?.email;
+
+    if (!email || typeof email !== "string") {
+      throw new HttpsError("invalid-argument", "Email requis");
+    }
+
+    // Vérifier que le user est bien un pizzaiolo (a un truckId)
+    const pizzaioloRef = admin.database().ref(`pizzaiolos/${uid}`);
+    const pizzaioloSnap = await pizzaioloRef.get();
+
+    if (!pizzaioloSnap.exists() || !pizzaioloSnap.val()?.truckId) {
+      throw new HttpsError("permission-denied", "Vous n'êtes pas enregistré comme pizzaiolo");
+    }
+
+    // Vérifier si un compte Stripe existe déjà
+    const existingAccountId = pizzaioloSnap.val()?.stripeAccountId;
+    if (existingAccountId) {
+      throw new HttpsError("already-exists", "Un compte Stripe est déjà associé");
+    }
+
+    const stripeSecret = (STRIPE_SECRET_KEY.value() || "").trim();
+    const stripeClient = stripe(stripeSecret);
+
+    try {
+      // Créer le compte Express
+      const account = await stripeClient.accounts.create({
+        type: "express",
+        country: "FR",
+        email: email,
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true },
+        },
+        business_profile: {
+          url: "https://planizza-ac827.web.app",
+          mcc: "5812", // Restaurants/Eating Places
+        },
+      });
+
+      // Stocker dans RTDB
+      await pizzaioloRef.update({
+        stripeAccountId: account.id,
+        stripeOnboardingComplete: false,
+        stripeAccountCreatedAt: admin.database.ServerValue.TIMESTAMP,
+      });
+
+      console.log(`[PLANIZZA][createConnectedAccount] Compte créé: ${hashUid(uid)} -> ${account.id}`);
+
+      return {
+        accountId: account.id,
+      };
+    } catch (error) {
+      console.error("[PLANIZZA][createConnectedAccount] Erreur Stripe:", {
+        uid: hashUid(uid),
+        type: error?.type,
+        message: error?.message?.substring(0, 100),
+      });
+      throw new HttpsError("internal", "Erreur lors de la création du compte Stripe");
+    }
+  }
+);
+
+/**
+ * Génère un lien d'onboarding Stripe pour un pizzaiolo.
+ * Le pizzaiolo doit déjà avoir un stripeAccountId.
+ */
+exports.createOnboardingLink = onCall(
+  {
+    region: "us-central1",
+    secrets: [STRIPE_SECRET_KEY],
+  },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Vous devez être connecté");
+    }
+
+    const uid = request.auth.uid;
+
+    // Récupérer le stripeAccountId du pizzaiolo
+    const pizzaioloRef = admin.database().ref(`pizzaiolos/${uid}`);
+    const pizzaioloSnap = await pizzaioloRef.get();
+
+    if (!pizzaioloSnap.exists()) {
+      throw new HttpsError("not-found", "Profil pizzaiolo introuvable");
+    }
+
+    const accountId = pizzaioloSnap.val()?.stripeAccountId;
+    if (!accountId) {
+      throw new HttpsError("failed-precondition", "Aucun compte Stripe associé. Créez d'abord un compte.");
+    }
+
+    const stripeSecret = (STRIPE_SECRET_KEY.value() || "").trim();
+    const stripeClient = stripe(stripeSecret);
+
+    try {
+      const accountLink = await stripeClient.accountLinks.create({
+        account: accountId,
+        refresh_url: `${FRONTEND_URL}/pro/onboarding?refresh=true`,
+        return_url: `${FRONTEND_URL}/pro/onboarding?complete=true`,
+        type: "account_onboarding",
+      });
+
+      console.log(`[PLANIZZA][createOnboardingLink] Lien créé pour ${hashUid(uid)}`);
+
+      return {
+        url: accountLink.url,
+      };
+    } catch (error) {
+      console.error("[PLANIZZA][createOnboardingLink] Erreur Stripe:", {
+        uid: hashUid(uid),
+        type: error?.type,
+        message: error?.message?.substring(0, 100),
+      });
+      throw new HttpsError("internal", "Erreur lors de la création du lien d'onboarding");
+    }
+  }
+);
+
+/**
+ * Webhook Stripe Connect - écoute les événements liés aux comptes connectés
+ * Supporte les événements v2 (thin events) comme v2.core.account.updated
+ */
+exports.stripeConnectWebhook = onRequest(
+  {
+    region: "us-central1",
+    secrets: [STRIPE_SECRET_KEY, STRIPE_CONNECT_WEBHOOK_SECRET],
+  },
+  async (req, res) => {
+    const stripeSecret = (STRIPE_SECRET_KEY.value() || "").trim();
+    const connectWebhookSecret = (STRIPE_CONNECT_WEBHOOK_SECRET.value() || "").trim();
+    const stripeClient = stripe(stripeSecret);
+
+    if (req.method !== "POST") {
+      return res.status(405).send("Method Not Allowed");
+    }
+
+    const sig = req.headers["stripe-signature"];
+    if (!sig || typeof sig !== "string") {
+      console.warn("[PLANIZZA][stripeConnectWebhook] Missing Stripe-Signature header");
+      return res.status(400).send("Missing Stripe-Signature header");
+    }
+
+    if (!req.rawBody || !req.rawBody.length) {
+      console.error("[PLANIZZA][stripeConnectWebhook] rawBody manquant");
+      return res.status(400).send("Missing raw body");
+    }
+
+    let event;
+    try {
+      event = stripeClient.webhooks.constructEvent(req.rawBody, sig, connectWebhookSecret);
+    } catch (err) {
+      console.error("[PLANIZZA][stripeConnectWebhook] Signature verification failed:", {
+        errorType: err?.type || "unknown",
+      });
+      return res.status(400).send("Webhook signature verification failed");
+    }
+
+    console.log("[PLANIZZA][stripeConnectWebhook] Event reçu:", { type: event.type, id: event.id });
+
+    // Gérer v2.core.account.updated (thin event) ou account.updated (legacy)
+    if (event.type === "v2.core.account.updated" || event.type === "account.updated") {
+      let accountId;
+      let chargesEnabled;
+      let payoutsEnabled;
+      let detailsSubmitted;
+
+      if (event.type === "v2.core.account.updated") {
+        // Format v2 "thin event" - on doit récupérer les détails via l'API
+        accountId = event.data?.id || event.related_object?.id;
+
+        if (!accountId) {
+          console.warn("[PLANIZZA][stripeConnectWebhook] v2 event sans account ID");
+          return res.status(400).json({ error: "missing_account_id" });
+        }
+
+        // Récupérer les détails du compte via l'API Stripe
+        try {
+          const account = await stripeClient.accounts.retrieve(accountId);
+          chargesEnabled = account.charges_enabled;
+          payoutsEnabled = account.payouts_enabled;
+          detailsSubmitted = account.details_submitted;
+        } catch (apiErr) {
+          console.error("[PLANIZZA][stripeConnectWebhook] Erreur API retrieve:", {
+            accountId,
+            error: apiErr?.message?.substring(0, 100),
+          });
+          return res.status(500).json({ error: "api_error" });
+        }
+      } else {
+        // Format legacy v1 - données incluses dans l'event
+        const account = event.data.object;
+        accountId = account.id;
+        chargesEnabled = account.charges_enabled;
+        payoutsEnabled = account.payouts_enabled;
+        detailsSubmitted = account.details_submitted;
+      }
+
+      console.log("[PLANIZZA][stripeConnectWebhook] account.updated:", {
+        accountId,
+        chargesEnabled,
+        payoutsEnabled,
+        detailsSubmitted,
+      });
+
+      // Si l'onboarding est complet (charges + payouts activés)
+      if (chargesEnabled && payoutsEnabled) {
+        // Trouver le pizzaiolo avec ce stripeAccountId
+        const pizzaiolosRef = admin.database().ref("pizzaiolos");
+        const snap = await pizzaiolosRef.orderByChild("stripeAccountId").equalTo(accountId).get();
+
+        if (snap.exists()) {
+          const updates = {};
+          snap.forEach((child) => {
+            updates[`${child.key}/stripeOnboardingComplete`] = true;
+            updates[`${child.key}/stripeChargesEnabled`] = chargesEnabled;
+            updates[`${child.key}/stripePayoutsEnabled`] = payoutsEnabled;
+            updates[`${child.key}/stripeOnboardingCompletedAt`] = admin.database.ServerValue.TIMESTAMP;
+          });
+
+          await pizzaiolosRef.update(updates);
+          console.log(`[PLANIZZA][stripeConnectWebhook] Onboarding complet pour ${accountId}`);
+        } else {
+          console.warn(`[PLANIZZA][stripeConnectWebhook] Aucun pizzaiolo trouvé pour ${accountId}`);
+        }
+      }
+    }
+
+    return res.json({ received: true, type: event.type });
+  }
+);

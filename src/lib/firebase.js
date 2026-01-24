@@ -58,4 +58,7 @@ if (!isFirebaseConfigured) {
 // Analytics en lazy-load (optionnel)
 // export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
 
+// DEBUG - à supprimer après test
+if (typeof window !== 'undefined') window.__functions = functions;
+
 export default app;
