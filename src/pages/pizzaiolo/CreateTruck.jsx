@@ -5,6 +5,8 @@ import { useAuth } from '../../app/providers/AuthProvider';
 import { db } from '../../lib/firebase';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import PhoneInput from '../../components/ui/PhoneInput';
+import { usePhoneInput } from '../../hooks/usePhoneInput';
 import { generateUniqueTruckSlug } from '../../features/trucks/utils/truckSlug';
 import LocationPicker from '../../components/ui/LocationPicker';
 import ImageUploader from '../../components/ui/ImageUploader';
@@ -30,8 +32,18 @@ export default function CreateTruck() {
   const [nafCode, setNafCode] = useState('');
   const [managerFirstName, setManagerFirstName] = useState('');
   const [managerLastName, setManagerLastName] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
   const [siretValid, setSiretValid] = useState(null); // null | 'incomplete' | 'checking' | 'valid' | 'invalid' | 'name_mismatch'
+
+  // Téléphone (hook réutilisable avec formatage)
+  const {
+    phoneNumber,
+    setPhoneNumber,
+    getFullPhoneNumber,
+    getDigitsOnly,
+  } = usePhoneInput();
+
+  // Email professionnel (pour Stripe Connect)
+  const [professionalEmail, setProfessionalEmail] = useState('');
 
   // Étape 2: Informations du camion
   const [truckName, setTruckName] = useState('');
@@ -273,7 +285,8 @@ export default function CreateTruck() {
                        companyName.trim().length >= 2 &&
                        managerFirstName.trim().length >= 2 &&
                        managerLastName.trim().length >= 2 &&
-                       phoneNumber.replace(/\D/g, '').length >= 10;
+                       getDigitsOnly().length === 10 &&
+                       professionalEmail.includes('@');
 
   const canGoToStep3 = truckName.trim().length >= 2 &&
                        truckDescription.trim().length >= 10 &&
@@ -329,7 +342,8 @@ export default function CreateTruck() {
           companyName: companyName.trim(),
           managerFirstName: managerFirstName.trim(),
           managerLastName: managerLastName.trim(),
-          phoneNumber: phoneNumber.replace(/\D/g, '')
+          phoneNumber: getFullPhoneNumber(),
+          professionalEmail: professionalEmail.trim().toLowerCase(),
         },
         menu: {
           items: {} // Menu vide, sera rempli depuis le dashboard
@@ -344,10 +358,11 @@ export default function CreateTruck() {
       // Créer le camion
       await set(truckRef, truckData);
 
-      // Lier le camion au pizzaiolo
+      // Lier le camion au pizzaiolo (avec email pour Stripe Connect)
       const pizzaioloRef = ref(db, `pizzaiolos/${user.uid}`);
       await set(pizzaioloRef, {
         truckId,
+        professionalEmail: professionalEmail.trim().toLowerCase(),
         createdAt: Date.now()
       });
 
@@ -514,13 +529,27 @@ export default function CreateTruck() {
             <label className="block text-sm font-semibold text-gray-900">
               Téléphone *
             </label>
-            <Input
-              type="tel"
+            <PhoneInput
               value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-              placeholder="06 12 34 56 78"
+              onChange={setPhoneNumber}
               className="mt-2"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-900">
+              Email professionnel *
+            </label>
+            <Input
+              type="email"
+              value={professionalEmail}
+              onChange={(e) => setProfessionalEmail(e.target.value)}
+              placeholder="contact@votreentreprise.fr"
+              className="mt-2"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Utilisé pour configurer les paiements Stripe Connect
+            </p>
           </div>
 
           <Button

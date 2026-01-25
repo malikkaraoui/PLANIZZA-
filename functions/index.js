@@ -2283,11 +2283,6 @@ exports.createConnectedAccount = onCall(
     }
 
     const uid = request.auth.uid;
-    const email = request.data?.email;
-
-    if (!email || typeof email !== "string") {
-      throw new HttpsError("invalid-argument", "Email requis");
-    }
 
     // Vérifier que le user est bien un pizzaiolo (a un truckId)
     const pizzaioloRef = admin.database().ref(`pizzaiolos/${uid}`);
@@ -2297,8 +2292,16 @@ exports.createConnectedAccount = onCall(
       throw new HttpsError("permission-denied", "Vous n'êtes pas enregistré comme pizzaiolo");
     }
 
+    const pizzaioloData = pizzaioloSnap.val();
+
     // Vérifier si un compte Stripe existe déjà
-    const existingAccountId = pizzaioloSnap.val()?.stripeAccountId;
+    const existingAccountId = pizzaioloData?.stripeAccountId;
+
+    // Récupérer l'email professionnel du profil (renseigné lors de la création du camion)
+    const email = pizzaioloData?.professionalEmail;
+    if (!email || typeof email !== "string") {
+      throw new HttpsError("failed-precondition", "Email professionnel manquant. Veuillez compléter votre profil.");
+    }
     if (existingAccountId) {
       throw new HttpsError("already-exists", "Un compte Stripe est déjà associé");
     }

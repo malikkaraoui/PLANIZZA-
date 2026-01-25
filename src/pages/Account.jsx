@@ -10,12 +10,15 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import Card from '../components/ui/Card';
 import BackButton from '../components/ui/BackButton';
+import PhoneInput from '../components/ui/PhoneInput';
+import AddressInput from '../components/ui/AddressInput';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { auth, db, storage, isFirebaseConfigured } from '../lib/firebase';
 import { useCart } from '../features/cart/hooks/useCart.jsx';
 import { useLoyaltyPoints } from '../features/users/hooks/useLoyaltyPoints';
 import LoyaltyProgressBar from '../components/loyalty/LoyaltyProgressBar';
 import { useAutoDismissMessage } from '../hooks/useAutoDismissMessage';
+import { usePhoneInput } from '../hooks/usePhoneInput';
 
 export default function Account() {
   const { isAuthenticated, user, loading, refreshUser } = useAuth();
@@ -31,16 +34,23 @@ export default function Account() {
   const [isEditing, setIsEditing] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [phonePrefix, setPhonePrefix] = useState('+33');
-  
+
+  // Téléphone (hook réutilisable)
+  const {
+    phoneNumber,
+    phonePrefix,
+    setPhoneNumber,
+    getFullPhoneNumber,
+    parseFullNumber,
+  } = usePhoneInput();
+
   // Adresse décomposée
   const [streetNumber, setStreetNumber] = useState('');
   const [street, setStreet] = useState('');
   const [postalCode, setPostalCode] = useState('');
   const [city, setCity] = useState('');
-  const [country, setCountry] = useState('France');
-  
+  const country = 'France'; // Fixe pour la France
+
   // Préférence livraison
   const [wantsDelivery, setWantsDelivery] = useState(false);
   const [savingDeliveryPref, setSavingDeliveryPref] = useState(false);
@@ -83,28 +93,17 @@ export default function Account() {
           setFirstName(nameParts[0] || '');
           setLastName(nameParts.slice(1).join(' ') || '');
           
+          // Charger le téléphone via le hook
           const fullPhone = data.phoneNumber || '';
-          
-          // Extraire l'indicatif et le numéro
-          if (fullPhone.startsWith('+')) {
-            const match = fullPhone.match(/^(\+\d{1,3})\s*(.*)$/);
-            if (match) {
-              setPhonePrefix(match[1]);
-              setPhoneNumber(match[2]);
-            } else {
-              setPhoneNumber(fullPhone);
-            }
-          } else {
-            setPhoneNumber(fullPhone);
-          }
-          
+          parseFullNumber(fullPhone);
+
           // Charger l'adresse décomposée
           const addr = data.address || {};
           setStreetNumber(addr.streetNumber || '');
           setStreet(addr.street || '');
           setPostalCode(addr.postalCode || '');
           setCity(addr.city || '');
-          setCountry(addr.country || 'France');
+          // country est fixe à "France"
           
           // Charger préférence livraison
           setWantsDelivery(data.preferences?.wantsDelivery || false);
@@ -179,9 +178,7 @@ export default function Account() {
     setMessage('');
 
     try {
-      const fullPhoneNumber = phoneNumber.trim()
-        ? `${phonePrefix} ${phoneNumber.trim()}`
-        : '';
+      const fullPhoneNumber = getFullPhoneNumber();
 
       const displayName = `${firstName.trim()} ${lastName.trim()}`.trim();
 
@@ -632,81 +629,24 @@ export default function Account() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">📱 Numéro de téléphone</label>
-              <div className="flex gap-2">
-                <select 
-                  value={phonePrefix}
-                  onChange={(e) => setPhonePrefix(e.target.value)}
-                  className="w-24 rounded-md border border-gray-300 px-2 py-2 text-sm bg-white"
-                >
-                  <option value="+33">🇫🇷 +33</option>
-                  <option value="+32">🇧🇪 +32</option>
-                  <option value="+41">🇨🇭 +41</option>
-                  <option value="+1">🇺🇸 +1</option>
-                  <option value="+44">🇬🇧 +44</option>
-                  <option value="+49">🇩🇪 +49</option>
-                  <option value="+34">🇪🇸 +34</option>
-                  <option value="+39">🇮🇹 +39</option>
-                </select>
-                <Input
-                  type="tel"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="6 12 34 56 78"
-                  className="flex-1"
-                />
-              </div>
+              <PhoneInput
+                value={phoneNumber}
+                onChange={setPhoneNumber}
+              />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">📍 Adresse</label>
-              <div className="space-y-3">
-                <div className="grid grid-cols-3 gap-3">
-                  <Input
-                    type="text"
-                    value={streetNumber}
-                    onChange={(e) => setStreetNumber(e.target.value)}
-                    placeholder="N°"
-                    className="col-span-1"
-                  />
-                  <Input
-                    type="text"
-                    value={street}
-                    onChange={(e) => setStreet(e.target.value)}
-                    placeholder="Nom de rue"
-                    className="col-span-2"
-                  />
-                </div>
-                
-                <div className="grid grid-cols-3 gap-3">
-                  <Input
-                    type="text"
-                    value={postalCode}
-                    onChange={(e) => setPostalCode(e.target.value)}
-                    placeholder="Code postal"
-                    className="col-span-1"
-                  />
-                  <Input
-                    type="text"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    placeholder="Ville"
-                    className="col-span-2"
-                  />
-                </div>
-
-                <select
-                  value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white"
-                >
-                  <option value="France">🇫🇷 France</option>
-                  <option value="Belgique">🇧🇪 Belgique</option>
-                  <option value="Suisse">🇨🇭 Suisse</option>
-                  <option value="Luxembourg">🇱🇺 Luxembourg</option>
-                  <option value="Canada">🇨🇦 Canada</option>
-                  <option value="États-Unis">🇺🇸 États-Unis</option>
-                </select>
-              </div>
+              <AddressInput
+                streetNumber={streetNumber}
+                street={street}
+                postalCode={postalCode}
+                city={city}
+                onStreetNumberChange={setStreetNumber}
+                onStreetChange={setStreet}
+                onPostalCodeChange={setPostalCode}
+                onCityChange={setCity}
+              />
             </div>
 
             {/* Préférence de livraison */}
