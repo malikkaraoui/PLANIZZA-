@@ -25,6 +25,7 @@ import {
   DialogTitle,
 } from '../../components/ui/dialog';
 import BackButton from '../../components/ui/BackButton';
+import StripeConnectStatus from '../../components/pizzaiolo/StripeConnectStatus';
 
 const DEFAULT_OPENING_HOURS = {
   monday: { enabled: true, open: '11:00', close: '22:00' },
@@ -489,6 +490,11 @@ export default function PizzaioloProfile() {
             </div>
           </Link>
         </div>
+      )}
+
+      {/* Section Stripe Connect - Paiements */}
+      {truckId && (
+        <StripeConnectStatus userId={user?.uid} />
       )}
 
       {!truckId ? (

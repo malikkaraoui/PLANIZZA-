@@ -98,6 +98,11 @@ const STRIPE_CONNECT_WEBHOOK_SECRET = defineSecret("STRIPE_CONNECT_WEBHOOK_SECRE
 // URL front utilisée pour success/cancel
 const FRONTEND_URL = process.env.FRONTEND_URL || "https://planizza-ac827.web.app";
 
+// Commission plateforme PLANIZZA (en pourcentage)
+// Pour changer: modifier cette valeur et redéployer
+// 10 = 10%, 0 = offre de lancement sans commission
+const PLATFORM_FEE_PERCENT = parseInt(process.env.PLATFORM_FEE_PERCENT || "10", 10);
+
 // Origines autorisées pour CORS (sécurité)
 const ALLOWED_ORIGINS = [
   "https://planizza-ac827.web.app",
@@ -887,9 +892,9 @@ exports.createCheckoutSession = onRequest(
           }
         }
 
-        // Calculer les frais de plateforme (10% commission)
-        const applicationFeeAmount = connectedAccountId
-          ? Math.round(totalCentsServer * 0.10)
+        // Calculer les frais de plateforme (commission configurable)
+        const applicationFeeAmount = connectedAccountId && PLATFORM_FEE_PERCENT > 0
+          ? Math.round(totalCentsServer * (PLATFORM_FEE_PERCENT / 100))
           : null;
 
         const sessionParams = {
@@ -913,7 +918,7 @@ exports.createCheckoutSession = onRequest(
               destination: connectedAccountId,
             },
           };
-          console.log(`[PLANIZZA][createCheckoutSession] Commission: ${applicationFeeAmount}c sur ${totalCentsServer}c`);
+          console.log(`[PLANIZZA][createCheckoutSession] Commission ${PLATFORM_FEE_PERCENT}%: ${applicationFeeAmount}c sur ${totalCentsServer}c`);
         }
 
         const session = await stripeClient.checkout.sessions.create(sessionParams);
