@@ -2293,6 +2293,7 @@ exports.createConnectedAccount = onCall(
     }
 
     const pizzaioloData = pizzaioloSnap.val();
+    const truckId = pizzaioloData.truckId;
 
     // Vérifier si un compte Stripe existe déjà
     const existingAccountId = pizzaioloData?.stripeAccountId;
@@ -2304,6 +2305,16 @@ exports.createConnectedAccount = onCall(
     }
     if (existingAccountId) {
       throw new HttpsError("already-exists", "Un compte Stripe est déjà associé");
+    }
+
+    // Récupérer le slug du truck pour l'URL Stripe
+    const truckSnap = await admin.database().ref(`trucks/${truckId}`).get();
+    let businessUrl = `${FRONTEND_URL}`;
+    if (truckSnap.exists()) {
+      const truckData = truckSnap.val();
+      // Utiliser le slug du truck s'il existe, sinon le truckId
+      const slug = truckData.slug || truckId;
+      businessUrl = `${FRONTEND_URL}/${slug}`;
     }
 
     const stripeSecret = (STRIPE_SECRET_KEY.value() || "").trim();
@@ -2320,7 +2331,7 @@ exports.createConnectedAccount = onCall(
           transfers: { requested: true },
         },
         business_profile: {
-          url: "https://planizza-ac827.web.app",
+          url: businessUrl,
           mcc: "5812", // Restaurants/Eating Places
         },
       });

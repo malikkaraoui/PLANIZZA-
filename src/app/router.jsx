@@ -23,6 +23,7 @@ const PizzaioloStats = lazy(() => import('../pages/pizzaiolo/Stats'));
 const PizzaioloLive = lazy(() => import('../pages/pizzaiolo/Live'));
 const PizzaioloStart = lazy(() => import('../pages/pizzaiolo/Start'));
 const CreateTruck = lazy(() => import('../pages/pizzaiolo/CreateTruck'));
+const StripeOnboarding = lazy(() => import('../pages/pizzaiolo/StripeOnboarding'));
 const E2ETransitionContract = lazy(() => import('../pages/E2ETransitionContract'));
 
 import RootLayout from '../components/layout/RootLayout';
@@ -90,11 +91,21 @@ export const router = createBrowserRouter([
       { path: 'pizzaiolo/start', element: wrap(<PizzaioloStart />) },
 
       // Création de camion (privé pizzaiolo)
-      { 
-        path: 'pro/creer-camion', 
+      {
+        path: 'pro/creer-camion',
         element: (
           <ProtectedRoute requirePizzaiolo={true}>
             {wrap(<CreateTruck />)}
+          </ProtectedRoute>
+        )
+      },
+
+      // Stripe Connect onboarding return page
+      {
+        path: 'pro/onboarding',
+        element: (
+          <ProtectedRoute requirePizzaiolo={true}>
+            {wrap(<StripeOnboarding />)}
           </ProtectedRoute>
         )
       },
