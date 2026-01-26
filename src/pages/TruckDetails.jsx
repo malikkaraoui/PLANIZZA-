@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { MapPin, Pizza, X } from 'lucide-react';
+import { MapPin, Pizza, X, Star, MessageCircle } from 'lucide-react';
 import TruckHeader from '../features/trucks/TruckHeader';
 import { useTruck } from '../features/trucks/hooks/useTruck';
+import { useReviews } from '../features/trucks/hooks/useReviews';
 import { useMenu } from '../features/menu/hooks/useMenu';
 import { useIngredients } from '../features/menu/hooks/useIngredients';
 import MenuItemCard from '../features/menu/MenuItemCard';
@@ -23,6 +24,7 @@ export default function TruckDetails() {
   const { items: menuItems, loading: loadingMenu } = useMenu(truck?.id);
   const { ingredients } = useIngredients(truck?.id);
   const { addItem, items: cartItems } = useCart();
+  const { reviews } = useReviews(truck?.id, 5);
   const [zoomedImage, setZoomedImage] = useState(null);
   const [showMap, setShowMap] = useState(false);
   const [openItemKey, setOpenItemKey] = useState(null);
@@ -265,7 +267,22 @@ export default function TruckDetails() {
                 </div>
                 <div className="space-y-1">
                   <span className="text-[10px] font-black text-muted-foreground/50 uppercase tracking-widest">Note Globale</span>
-                  <p className="font-black text-sm">⭐️ {truck.ratingAvg?.toFixed(1) || 'N/A'}</p>
+                  {reviews.length > 0 ? (
+                    <button
+                      onClick={() => document.getElementById('reviews-section')?.scrollIntoView({ behavior: 'smooth' })}
+                      className="font-black text-sm hover:text-primary transition-colors cursor-pointer flex items-center gap-1"
+                    >
+                      <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+                      {truck.ratingAvg ? truck.ratingAvg.toFixed(1) : 'N/A'}
+                      {truck.ratingCount > 0 && (
+                        <span className="text-muted-foreground/60 font-medium ml-1 hover:text-primary/60">({truck.ratingCount})</span>
+                      )}
+                    </button>
+                  ) : (
+                    <p className="font-black text-sm">
+                      <Star className="h-4 w-4 text-muted-foreground/30 inline" /> N/A
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -356,6 +373,66 @@ export default function TruckDetails() {
                 </div>
               )}
             </div>
+
+            {/* Section Avis clients */}
+            {reviews.length > 0 && (
+              <section id="reviews-section" className="glass-premium glass-glossy p-6 sm:p-8 rounded-[40px] shadow-2xl border-white/20">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="h-7 w-1.5 bg-amber-500/30 rounded-full" />
+                    <h2 className="text-sm font-black tracking-widest uppercase">Avis clients</h2>
+                    <span className="text-xs font-bold text-muted-foreground/60">({truck.ratingCount || reviews.length})</span>
+                  </div>
+                  {truck.ratingAvg > 0 && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10">
+                      <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+                      <span className="font-black text-sm">{truck.ratingAvg.toFixed(1)}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  {reviews.map((review) => (
+                    <div
+                      key={review.id}
+                      className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-white/20 transition-colors"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`h-3.5 w-3.5 ${
+                                star <= review.score
+                                  ? 'text-amber-500 fill-amber-500'
+                                  : 'text-muted-foreground/20'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-[10px] font-medium text-muted-foreground/50">
+                          {review.submittedAt
+                            ? new Date(review.submittedAt).toLocaleDateString('fr-FR', {
+                                day: 'numeric',
+                                month: 'short',
+                              })
+                            : ''}
+                        </span>
+                      </div>
+                      {review.comment && (
+                        <p className="text-sm text-muted-foreground/80 font-medium leading-relaxed">
+                          "{review.comment}"
+                        </p>
+                      )}
+                      {!review.comment && (
+                        <p className="text-xs text-muted-foreground/40 italic">Aucun commentaire</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
             {/* Menu Section */}
             <section className="space-y-12">
               <div className="flex items-center gap-4 px-2">
