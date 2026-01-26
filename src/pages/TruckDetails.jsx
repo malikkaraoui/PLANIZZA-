@@ -8,7 +8,6 @@ import { useIngredients } from '../features/menu/hooks/useIngredients';
 import MenuItemCard from '../features/menu/MenuItemCard';
 import MenuPizzaTile from '../features/menu/MenuPizzaTile';
 import CartSidebar from '../features/cart/CartSidebar';
-import CartIndicator from '../features/cart/CartIndicator';
 import { useCart } from '../features/cart/hooks/useCart.jsx';
 import { ROUTES } from '../app/routes';
 import { Button } from '../components/ui/Button';
@@ -500,9 +499,6 @@ export default function TruckDetails() {
 
       {/* Mobile Sticky Cart Bar */}
       <StickyCartBar />
-
-      {/* Indicateur de panier sur mobile/tablet (quand pas d'articles) */}
-      {cartItems.length === 0 && <CartIndicator />}
     </div>
   );
 }
