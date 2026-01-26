@@ -32,6 +32,11 @@ function normalizeTruck(id, val) {
       ? safe.badges
       : [];
 
+  // Extraire les notes UX depuis rating (calculé par Cloud Function)
+  const ratingData = safe.rating || {};
+  const ratingAvg = typeof ratingData.average === 'number' ? ratingData.average : (safe.ratingAvg || 0);
+  const ratingCount = typeof ratingData.count === 'number' ? ratingData.count : (safe.ratingCount || 0);
+
   return {
     ...safe,
     // IMPORTANT: on force l'id = clé RTDB (ne pas laisser un éventuel safe.id = null écraser).
@@ -47,6 +52,8 @@ function normalizeTruck(id, val) {
         : [],
     estimatedPrepMin: safe.estimatedPrepMin || 15,
     capacity: safe.capacity || { minPerPizza: 10, pizzaPerHour: 30 },
+    ratingAvg,
+    ratingCount,
   };
 }
 

@@ -189,6 +189,11 @@ export function useTrucks(options = {}) {
             })
         : [];
 
+      // Extraire les notes UX depuis rating (calculé par Cloud Function)
+      const ratingData = val.rating || {};
+      const ratingAvg = typeof ratingData.average === 'number' ? ratingData.average : (val.ratingAvg || 0);
+      const ratingCount = typeof ratingData.count === 'number' ? ratingData.count : (val.ratingCount || 0);
+
       return {
         ...val,
         // IMPORTANT: on force l'id = clé RTDB (ne pas laisser un éventuel val.id = null écraser).
@@ -201,6 +206,8 @@ export function useTrucks(options = {}) {
         estimatedPrepMin: val.estimatedPrepMin || 15,
         capacity: val.capacity || { minPerPizza: 10, pizzaPerHour: 30 },
         distanceKm: val.distanceKm,
+        ratingAvg,
+        ratingCount,
       };
     };
 

@@ -10,7 +10,7 @@ const defaultOptions = {
   autoClose: 4000,
   hideProgressBar: false,
   closeOnClick: true,
-  pauseOnHover: true,
+  pauseOnHover: false,
   draggable: true,
 };
 
@@ -20,17 +20,33 @@ const defaultOptions = {
 
 export const notify = {
   // --- Commandes ---
-  orderStatusChanged: (status, truckName) => {
+  orderStatusChanged: (status, truckName, orderId, navigate) => {
     const messages = {
-      pending: `Commande envoyée à ${truckName}`,
-      confirmed: `${truckName} a confirmé votre commande !`,
-      preparing: `${truckName} prépare votre pizza...`,
-      ready: `Votre commande est prête ! Rendez-vous chez ${truckName}`,
-      completed: `Bon appétit ! Merci d'avoir commandé chez ${truckName}`,
+      created: `Commande confirmée chez ${truckName}`,
+      received: `📋 ${truckName} a reçu votre commande`,
+      accepted: `👨‍🍳 ${truckName} prépare votre pizza...`,
+      delivered: `Votre commande est prête !`,
       cancelled: `Commande annulée`,
     };
-    const type = status === 'cancelled' ? 'error' : status === 'ready' ? 'success' : 'info';
-    toast[type](messages[status] || `Statut: ${status}`, defaultOptions);
+    const type = status === 'cancelled' ? 'error' : status === 'delivered' ? 'success' : 'info';
+
+    // Empêche les doublons (ex: double event / double listener) en réutilisant le même toastId.
+    // Format stable: une notification par (commande, statut).
+    const toastId = orderId ? `order-status:${orderId}:${status}` : undefined;
+
+    let shownId;
+    shownId = toast[type](messages[status] || `Statut: ${status}`, {
+      ...defaultOptions,
+      toastId,
+      autoClose: 2000,
+      onClick: () => {
+        if (shownId) toast.dismiss(shownId);
+        if (toastId) toast.dismiss(toastId);
+        if (navigate && orderId) {
+          navigate(`/order/${orderId}`);
+        }
+      },
+    });
   },
 
   // --- Avis ---
@@ -38,7 +54,6 @@ export const notify = {
     toast.info(`Vous avez aimé ${truckName} ? Laissez un avis !`, {
       ...defaultOptions,
       autoClose: 6000,
-      icon: '⭐',
     });
   },
 
@@ -48,15 +63,14 @@ export const notify = {
 
   // --- Favoris ---
   favoriteAdded: (truckName) => {
-    toast.success(`${truckName} ajouté aux favoris`, {
+    toast.success(`❤️ ${truckName} ajouté à vos favoris`, {
       ...defaultOptions,
       autoClose: 2500,
-      icon: '❤️',
     });
   },
 
   favoriteRemoved: (truckName) => {
-    toast.info(`${truckName} retiré des favoris`, {
+    toast.info(`${truckName} retiré de vos favoris`, {
       ...defaultOptions,
       autoClose: 2500,
     });
@@ -64,48 +78,43 @@ export const notify = {
 
   // --- Camions ---
   truckNearbyOpening: (truckName) => {
-    toast.info(`${truckName} ouvre près de chez vous !`, {
+    toast.info(`🍕 ${truckName} ouvre près de chez vous !`, {
       ...defaultOptions,
       autoClose: 8000,
-      icon: '🍕',
     });
   },
 
   truckClosingSoon: (truckName, minutes = 30) => {
-    toast.warning(`${truckName} ferme dans ${minutes} min ! Vite, commandez !`, {
+    toast.warning(`⏰ ${truckName} ferme dans ${minutes} min ! Vite, commandez !`, {
       ...defaultOptions,
       autoClose: 6000,
-      icon: '⏰',
     });
   },
 
   truckPaused: (truckName) => {
-    toast.warning(`${truckName} est en pause. Votre commande pourrait être retardée.`, {
+    toast.warning(`☕ ${truckName} est en pause. Votre commande pourrait être retardée.`, {
       ...defaultOptions,
-      icon: '☕',
     });
   },
 
   truckHoursChanged: (truckName) => {
-    toast.info(`${truckName} a modifié ses horaires d'ouverture`, {
+    toast.info(`🕐 ${truckName} a modifié ses horaires d'ouverture`, {
       ...defaultOptions,
-      icon: '🕐',
     });
   },
 
   truckNewProduct: (truckName, productName) => {
-    toast.info(`Nouveau chez ${truckName} : ${productName} !`, {
+    toast.info(`🆕 Nouveau chez ${truckName} : ${productName} !`, {
       ...defaultOptions,
       autoClose: 5000,
-      icon: '🆕',
     });
   },
 
   // --- Panier ---
   cartModified: (reason) => {
-    toast.warning(reason || 'Votre panier a été modifié', {
+    toast.warning(`🛒 ${reason || 'Votre panier a été modifié'}`, {
       ...defaultOptions,
-      icon: '🛒',
+      autoClose: 2000,
     });
   },
 
@@ -113,6 +122,7 @@ export const notify = {
     toast.success(`${itemName} ajouté au panier`, {
       ...defaultOptions,
       autoClose: 2000,
+      pauseOnHover: false,
     });
   },
 
@@ -125,27 +135,24 @@ export const notify = {
   },
 
   refundProcessed: (amount) => {
-    toast.success(`Remboursement de ${amount}€ effectué`, {
+    toast.success(`💰 Remboursement de ${amount}€ effectué`, {
       ...defaultOptions,
-      icon: '💰',
     });
   },
 
   // --- Profil ---
   profileIncomplete: (missingFields) => {
     const fields = Array.isArray(missingFields) ? missingFields.join(', ') : missingFields;
-    toast.info(`Complétez votre profil : ${fields}`, {
+    toast.info(`👤 Complétez votre profil : ${fields}`, {
       ...defaultOptions,
       autoClose: 6000,
-      icon: '👤',
     });
   },
 
   addressMissing: () => {
-    toast.info('Renseignez votre adresse pour gagner du temps lors de vos commandes', {
+    toast.info('📍 Renseignez votre adresse pour gagner du temps lors de vos commandes', {
       ...defaultOptions,
       autoClose: 6000,
-      icon: '📍',
     });
   },
 };
@@ -156,11 +163,15 @@ export const notify = {
 
 export const notifyPizzaiolo = {
   // --- Commandes ---
-  newOrder: (customerName, total) => {
-    toast.success(`Nouvelle commande de ${customerName} (${total}€)`, {
+  newOrder: (customerName, total, orderId, navigate) => {
+    toast.success(`🔔 Nouvelle commande de ${customerName} (${total}€)`, {
       ...defaultOptions,
       autoClose: 8000,
-      icon: '🔔',
+      onClick: () => {
+        if (navigate) {
+          navigate('/pizzaiolo/orders');
+        }
+      },
     });
   },
 
@@ -178,9 +189,8 @@ export const notifyPizzaiolo = {
 
   // --- Favoris ---
   newFavorite: () => {
-    toast.success('Un client a ajouté votre camion en favoris !', {
+    toast.success('❤️ Un client a ajouté votre camion en favoris !', {
       ...defaultOptions,
-      icon: '❤️',
     });
   },
 

@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../app/providers/AuthProvider';
 import { usePizzaioloTruckId } from '../../features/pizzaiolo/hooks/usePizzaioloTruckId';
+import { usePizzaioloReviewNotifications } from '../../features/pizzaiolo/hooks/usePizzaioloNotifications';
 import { devLog } from '../../lib/devLog';
 
 export default function PizzaioloDashboard() {
@@ -10,6 +11,9 @@ export default function PizzaioloDashboard() {
   const location = useLocation();
 
   const { truckId, loading, error } = usePizzaioloTruckId(user?.uid);
+
+  // Activer les notifications de nouveaux avis pour le pizzaiolo
+  usePizzaioloReviewNotifications(truckId);
 
   useEffect(() => {
     devLog('[PizzaioloDashboard]', {

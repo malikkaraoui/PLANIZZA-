@@ -45,7 +45,11 @@
       ".read": "auth != null && ((query.orderByChild == 'truckId' && query.equalTo != null && (query.equalTo == root.child('pizzaiolos').child(auth.uid).child('truckId').val() || root.child('trucks').child(query.equalTo).child('ownerUid').val() == auth.uid)) || (query.orderByChild == 'userUid' && query.equalTo == auth.uid) || (query.orderByChild == 'uid' && query.equalTo == auth.uid))",
       "$orderId": {
         ".read": "auth != null && (data.child('uid').val() === auth.uid || data.child('userUid').val() === auth.uid || root.child('pizzaiolos').child(auth.uid).child('truckId').val() === data.child('truckId').val() || root.child('trucks').child(data.child('truckId').val()).child('ownerUid').val() === auth.uid)",
-        ".write": false
+        ".write": false,
+        "uxRating": {
+          ".write": "auth != null && (data.parent().child('uid').val() === auth.uid || data.parent().child('userUid').val() === auth.uid) && !data.exists()",
+          ".validate": "newData.hasChildren(['score', 'submittedAt']) && newData.child('score').isNumber() && newData.child('score').val() >= 1 && newData.child('score').val() <= 5"
+        }
       },
       ".indexOn": ["uid", "userUid", "truckId", "status", "v2/kitchenStatus", "v2/promisedAtMs"]
     },

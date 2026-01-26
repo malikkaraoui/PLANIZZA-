@@ -2580,3 +2580,69 @@ exports.stripeConnectWebhook = onRequest(
     return res.json({ received: true, type: event.type });
   }
 );
+
+/**
+ * Trigger (v1): Met à jour la note moyenne d'un truck quand une nouvelle note UX est soumise.
+ * Stocke dans public/trucks/{truckId}/rating: { average, count }
+ * Stocke aussi l'avis dans public/trucks/{truckId}/reviews/{orderId}
+ */
+exports.onUxRatingCreated = functions
+  .region("us-central1")
+  .database.ref("/orders/{orderId}/uxRating")
+  .onCreate(async (snapshot, context) => {
+    const orderId = context.params.orderId;
+    const ratingData = snapshot.val();
+
+    if (!ratingData || typeof ratingData.score !== "number") {
+      console.log(`[onUxRatingCreated] Score invalide pour order ${orderId}`);
+      return null;
+    }
+
+    const newScore = ratingData.score;
+
+    // Récupérer le truckId de la commande
+    const orderSnap = await admin.database().ref(`orders/${orderId}/truckId`).get();
+    if (!orderSnap.exists()) {
+      console.log(`[onUxRatingCreated] Pas de truckId pour order ${orderId}`);
+      return null;
+    }
+
+    const truckId = orderSnap.val();
+    const ratingRef = admin.database().ref(`public/trucks/${truckId}/rating`);
+    const reviewRef = admin.database().ref(`public/trucks/${truckId}/reviews/${orderId}`);
+
+    // Sauvegarder l'avis (score + commentaire) publiquement
+    const reviewData = {
+      score: newScore,
+      comment: ratingData.comment || null,
+      submittedAt: ratingData.submittedAt || Date.now(),
+    };
+    await reviewRef.set(reviewData);
+
+    // Transaction pour mettre à jour la moyenne
+    await ratingRef.transaction((current) => {
+      if (!current) {
+        // Première note
+        return {
+          average: newScore,
+          count: 1,
+          updatedAt: Date.now(),
+        };
+      }
+
+      // Calculer la nouvelle moyenne
+      const oldCount = current.count || 0;
+      const oldAverage = current.average || 0;
+      const newCount = oldCount + 1;
+      const newAverage = ((oldAverage * oldCount) + newScore) / newCount;
+
+      return {
+        average: Math.round(newAverage * 10) / 10, // Arrondi à 1 décimale
+        count: newCount,
+        updatedAt: Date.now(),
+      };
+    });
+
+    console.log(`[onUxRatingCreated] Note ${newScore} ajoutée pour truck ${truckId}`);
+    return null;
+  });

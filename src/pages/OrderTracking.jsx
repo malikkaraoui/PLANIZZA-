@@ -24,37 +24,12 @@ export default function OrderTracking() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const prevStatusRef = useRef(null);
 
   // États pour la notation UX
   const [uxRating, setUxRating] = useState(0);
   const [uxComment, setUxComment] = useState('');
   const [submittingRating, setSubmittingRating] = useState(false);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
-
-  // Notifier les changements de statut
-  useEffect(() => {
-    if (!order?.status) return;
-
-    const currentStatus = order.status;
-    const prevStatus = prevStatusRef.current;
-
-    // Ne pas notifier au premier chargement
-    if (prevStatus && prevStatus !== currentStatus) {
-      const truckName = order.truckName || 'Le pizzaiolo';
-      const statusMessages = {
-        received: `${truckName} a reçu votre commande`,
-        accepted: `${truckName} prépare votre pizza...`,
-        delivered: `Votre commande est prête !`,
-      };
-
-      if (statusMessages[currentStatus]) {
-        notify.orderStatusChanged(currentStatus, truckName);
-      }
-    }
-
-    prevStatusRef.current = currentStatus;
-  }, [order?.status, order?.truckName]);
 
   // Soumettre la notation UX
   const handleSubmitRating = async () => {

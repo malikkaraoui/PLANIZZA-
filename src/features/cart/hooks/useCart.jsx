@@ -484,15 +484,18 @@ export function CartProvider({ children }) {
 
   const addItem = useCallback((item, options = {}) => {
     const itemName = item.name || 'Article';
+    const nextTruckId = options.truckId ?? truckIdRef.current ?? null;
+
+    // Vérifier si on change de camion avant le setItems
+    const isNewTruck = truckIdRef.current && nextTruckId && truckIdRef.current !== nextTruckId;
+    if (isNewTruck) {
+      notify.cartModified('Nouveau panier créé (camion différent)');
+    }
 
     setItems((prev) => {
-      const nextTruckId = options.truckId ?? truckIdRef.current ?? null;
-
       // MVP: 1 panier = 1 camion. Si l'utilisateur ajoute depuis un autre camion, on redémarre un nouveau panier.
-      if (truckIdRef.current && nextTruckId && truckIdRef.current !== nextTruckId) {
-        notify.cartModified('Nouveau panier créé (camion différent)');
+      if (isNewTruck) {
         setTruckId(nextTruckId);
-        notify.itemAddedToCart(itemName);
         return [{ ...item, qty: 1 }];
       }
 
@@ -502,12 +505,13 @@ export function CartProvider({ children }) {
 
       const existing = prev.find((p) => p.id === item.id);
       if (existing) {
-        notify.itemAddedToCart(itemName);
         return prev.map((p) => (p.id === item.id ? { ...p, qty: p.qty + 1 } : p));
       }
-      notify.itemAddedToCart(itemName);
       return [...prev, { ...item, qty: 1 }];
     });
+
+    // Notification unique après le setItems
+    notify.itemAddedToCart(itemName);
   }, []);
 
   const removeItem = useCallback((itemId) => {

@@ -4,6 +4,13 @@ import Footer from './Footer';
 import PausedTruckWatcher from '../../features/cart/PausedTruckWatcher';
 import ErrorBoundary from '../ErrorBoundary';
 import RouteDebug from '../../app/RouteDebug';
+import { useOrderStatusNotifications } from '../../features/orders/hooks/useOrderStatusNotifications';
+
+// Composant qui active les notifications globales de commandes
+function OrderNotificationsListener() {
+  useOrderStatusNotifications();
+  return null;
+}
 
 export default function RootLayout() {
   return (
@@ -16,6 +23,7 @@ export default function RootLayout() {
       </main>
       <Footer />
       <PausedTruckWatcher />
+      <OrderNotificationsListener />
       <RouteDebug />
       <ScrollRestoration getKey={(location) => `${location.pathname}${location.search}`} />
     </div>

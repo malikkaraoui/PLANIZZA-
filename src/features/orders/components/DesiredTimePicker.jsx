@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Clock } from 'lucide-react';
 import { Input } from '../../../components/ui/Input';
 import { getTodayOpeningHours } from '../../../lib/openingHours';
@@ -23,9 +23,7 @@ export default function DesiredTimePicker({
   onErrorChange,
   helperText,
 }) {
-  const [touched, setTouched] = useState(false);
-
-  const { minDate, minTime, totalMinutes } = useMemo(() => {
+  const { minTime, totalMinutes } = useMemo(() => {
     return getMinDesiredTime({
       now: new Date(),
       pizzaCount,
@@ -47,28 +45,34 @@ export default function DesiredTimePicker({
     return minTime;
   }, [minTime, todayOpening]);
 
+  // Valider à chaque changement de valeur (pas seulement au blur)
   const validationError = useMemo(() => {
-    if (!touched) return '';
     if (!value || !TIME_RE.test(value)) return '';
+    // Recalculer minDate avec l'heure actuelle pour avoir une validation fraîche
+    const now = new Date();
+    const freshMinData = getMinDesiredTime({
+      now,
+      pizzaCount,
+      deliveryMethod,
+      baseLeadMinutes,
+      perPizzaMinutes,
+      deliveryExtraMinutes,
+    });
     const { error: nextError } = validateDesiredTime({
       value,
-      now: new Date(),
-      minDate,
+      now,
+      minDate: freshMinData.minDate,
       openingHours,
       getTodayOpeningHours,
     });
     return nextError || '';
-  }, [touched, value, minDate, openingHours]);
+  }, [value, pizzaCount, deliveryMethod, baseLeadMinutes, perPizzaMinutes, deliveryExtraMinutes, openingHours]);
 
   useEffect(() => {
     if (typeof onErrorChange === 'function') {
       onErrorChange(validationError);
     }
   }, [validationError, onErrorChange]);
-
-  const handleBlur = () => {
-    setTouched(true);
-  };
 
   return (
     <div>
@@ -81,12 +85,10 @@ export default function DesiredTimePicker({
         value={value}
         onChange={(event) => {
           const newTime = event.target.value;
-          setTouched(false);
           if (typeof onChange === 'function') {
             onChange(newTime);
           }
         }}
-        onBlur={handleBlur}
         min={inputMin}
         className="rounded-xl"
       />

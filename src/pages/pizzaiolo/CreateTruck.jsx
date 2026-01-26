@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ref, set, push, get } from 'firebase/database';
 import { useAuth } from '../../app/providers/AuthProvider';
@@ -16,6 +16,21 @@ import BackButton from '../../components/ui/BackButton';
 export default function CreateTruck() {
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  // Vérifier si le pizzaiolo a déjà un camion
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const checkExistingTruck = async () => {
+      const pizzaioloSnap = await get(ref(db, `pizzaiolos/${user.uid}/truckId`));
+      if (pizzaioloSnap.exists() && pizzaioloSnap.val()) {
+        // Rediriger vers le profil du camion existant
+        navigate(ROUTES.pizzaioloProfile, { replace: true });
+      }
+    };
+
+    checkExistingTruck();
+  }, [user?.uid, navigate]);
 
   // Récupérer le nom de l'utilisateur connecté
   const userDisplayName = user?.displayName || '';
