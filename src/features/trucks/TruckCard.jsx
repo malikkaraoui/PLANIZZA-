@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
+import { FavoriteButton } from '../../components/ui/FavoriteButton';
 import { ROUTES } from '../../app/routes';
 import { isCurrentlyOpen, getOpeningStatusText } from '../../lib/openingHours';
 
@@ -59,6 +60,11 @@ export default function TruckCard({ truck }) {
         {/* Overlay gradient & Reflection */}
         <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500" />
         <div className="absolute inset-0 bg-linear-to-tr from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+
+        {/* Favorite Button */}
+        <div className="absolute top-4 left-4 z-10">
+          <FavoriteButton truckId={truck.id} truckName={truck.name} size="sm" />
+        </div>
 
         {/* Status Badge */}
         <div className="absolute top-4 right-4">

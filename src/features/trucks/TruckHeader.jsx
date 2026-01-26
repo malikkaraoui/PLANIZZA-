@@ -1,6 +1,7 @@
-import { MapPin, Clock, Heart, Star, Pause } from 'lucide-react';
+import { MapPin, Clock, Star, Pause } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
+import { FavoriteButton } from '../../components/ui/FavoriteButton';
 import { isCurrentlyOpen, getOpeningStatusText } from '../../lib/openingHours';
 
 function initials(name = '') {
@@ -97,9 +98,9 @@ export default function TruckHeader({ truck }) {
                       )}
                     </div>
                   )}
-                  <div className="flex items-center gap-2 font-bold text-white/70">
-                    <Heart className="h-4 w-4 text-rose-300" />
-                    <span className="whitespace-nowrap">Coup de cœur local</span>
+                  <div className="flex items-center gap-2">
+                    <FavoriteButton truckId={truck.id} truckName={truck.name} size="sm" />
+                    <span className="font-bold text-white/70 whitespace-nowrap">Favoris</span>
                   </div>
                   {etaMin != null && (
                     <div className="flex items-center gap-2 font-black text-white/70">

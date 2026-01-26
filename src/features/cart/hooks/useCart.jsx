@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, useCal
 import { get, onValue, ref, remove, serverTimestamp, set } from 'firebase/database';
 import { db, isFirebaseConfigured } from '../../../lib/firebase';
 import { useAuth } from '../../../app/providers/AuthProvider';
+import { notify } from '../../../lib/notifications';
 
 const CartContext = createContext(null);
 
@@ -482,13 +483,16 @@ export function CartProvider({ children }) {
   }, [truckId, items]);
 
   const addItem = useCallback((item, options = {}) => {
+    const itemName = item.name || 'Article';
+
     setItems((prev) => {
       const nextTruckId = options.truckId ?? truckIdRef.current ?? null;
 
       // MVP: 1 panier = 1 camion. Si l'utilisateur ajoute depuis un autre camion, on redémarre un nouveau panier.
       if (truckIdRef.current && nextTruckId && truckIdRef.current !== nextTruckId) {
-        console.warn('[PLANIZZA] Panier multi-camions détecté, on redémarre un nouveau panier.');
+        notify.cartModified('Nouveau panier créé (camion différent)');
         setTruckId(nextTruckId);
+        notify.itemAddedToCart(itemName);
         return [{ ...item, qty: 1 }];
       }
 
@@ -498,8 +502,10 @@ export function CartProvider({ children }) {
 
       const existing = prev.find((p) => p.id === item.id);
       if (existing) {
+        notify.itemAddedToCart(itemName);
         return prev.map((p) => (p.id === item.id ? { ...p, qty: p.qty + 1 } : p));
       }
+      notify.itemAddedToCart(itemName);
       return [...prev, { ...item, qty: 1 }];
     });
   }, []);

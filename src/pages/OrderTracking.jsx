@@ -1,11 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ref, onValue } from 'firebase/database';
-import { Bike, Store } from 'lucide-react';
+import { ref, onValue, update } from 'firebase/database';
+import { Bike, Store, Send, CheckCircle } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { useAuth } from '../app/providers/AuthProvider';
 import { formatCartItemName } from '../features/cart/utils/formatCartItemName';
 import BackButton from '../components/ui/BackButton';
+import StarRating from '../components/ui/StarRating';
+import { Button } from '../components/ui/Button';
+import { notify } from '../lib/notifications';
 
 const STEPS = [
   { key: 'created', label: 'Confirmée', icon: '✅' },
@@ -21,6 +24,60 @@ export default function OrderTracking() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const prevStatusRef = useRef(null);
+
+  // États pour la notation UX
+  const [uxRating, setUxRating] = useState(0);
+  const [uxComment, setUxComment] = useState('');
+  const [submittingRating, setSubmittingRating] = useState(false);
+  const [ratingSubmitted, setRatingSubmitted] = useState(false);
+
+  // Notifier les changements de statut
+  useEffect(() => {
+    if (!order?.status) return;
+
+    const currentStatus = order.status;
+    const prevStatus = prevStatusRef.current;
+
+    // Ne pas notifier au premier chargement
+    if (prevStatus && prevStatus !== currentStatus) {
+      const truckName = order.truckName || 'Le pizzaiolo';
+      const statusMessages = {
+        received: `${truckName} a reçu votre commande`,
+        accepted: `${truckName} prépare votre pizza...`,
+        delivered: `Votre commande est prête !`,
+      };
+
+      if (statusMessages[currentStatus]) {
+        notify.orderStatusChanged(currentStatus, truckName);
+      }
+    }
+
+    prevStatusRef.current = currentStatus;
+  }, [order?.status, order?.truckName]);
+
+  // Soumettre la notation UX
+  const handleSubmitRating = async () => {
+    if (!orderId || uxRating === 0) return;
+
+    setSubmittingRating(true);
+    try {
+      await update(ref(db, `orders/${orderId}`), {
+        uxRating: {
+          score: uxRating,
+          comment: uxComment.trim() || null,
+          submittedAt: Date.now(),
+          userId: user?.uid || null,
+        },
+      });
+      setRatingSubmitted(true);
+      notify.reviewSubmitted();
+    } catch (err) {
+      console.error('[OrderTracking] Erreur soumission notation:', err);
+    } finally {
+      setSubmittingRating(false);
+    }
+  };
 
   useEffect(() => {
     if (!orderId) {
@@ -52,6 +109,11 @@ export default function OrderTracking() {
           } else {
             setOrder(data);
             setError(null);
+            // Si une notation existe déjà, marquer comme soumise
+            if (data.uxRating) {
+              setRatingSubmitted(true);
+              setUxRating(data.uxRating.score || 0);
+            }
           }
         }
         setLoading(false);
@@ -353,8 +415,64 @@ export default function OrderTracking() {
           </div>
         </div>
 
+        {/* Section notation UX - visible dès la prise en charge */}
+        {(currentStatus === 'accepted' || currentStatus === 'delivered') && (
+          <div className="mt-6 bg-white border border-gray-200 shadow-sm rounded-2xl p-5">
+            {(ratingSubmitted || order.uxRating) ? (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="h-5 w-5 text-emerald-600" />
+                  <span className="text-sm font-medium text-gray-700">Merci pour votre avis !</span>
+                </div>
+                <StarRating value={order.uxRating?.score || uxRating} readonly size="sm" />
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-4">
+                  <p className="text-sm font-medium text-gray-700">
+                    Votre expérience ?
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <StarRating value={uxRating} onChange={setUxRating} size="sm" />
+                    {uxRating > 0 && (
+                      <span className="text-sm">
+                        {uxRating === 1 && '😞'}
+                        {uxRating === 2 && '😕'}
+                        {uxRating === 3 && '😊'}
+                        {uxRating === 4 && '😄'}
+                        {uxRating === 5 && '🤩'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {uxRating > 0 && (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={uxComment}
+                      onChange={(e) => setUxComment(e.target.value.slice(0, 100))}
+                      placeholder="Un commentaire ? (100 car. max)"
+                      maxLength={100}
+                      className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                    />
+                    <Button
+                      onClick={handleSubmitRating}
+                      disabled={submittingRating}
+                      size="sm"
+                      className="px-4"
+                    >
+                      {submittingRating ? '...' : <Send className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Détails articles */}
-        <div className="mt-8 bg-white border border-gray-200 shadow-sm rounded-2xl p-8">
+        <div className="mt-6 bg-white border border-gray-200 shadow-sm rounded-2xl p-8">
           <h3 className="text-xl font-bold text-gray-900 mb-6">Détails de la commande</h3>
           <div className="space-y-4">
             {order.items?.map((item, idx) => (
