@@ -488,7 +488,7 @@ export default function Account() {
             <div>
               <p className="text-sm font-semibold text-gray-900">�📱 Téléphone</p>
               <p className="text-gray-700 mt-1">
-                {phonePrefix && phoneNumber ? `${phonePrefix} ${phoneNumber}` : 'Non renseigné'}
+                {phoneNumber ? `+33 ${phoneNumber}` : 'Non renseigné'}
               </p>
             </div>
 
