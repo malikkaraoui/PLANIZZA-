@@ -5,8 +5,7 @@ import { useAuth } from '../../app/providers/AuthProvider';
 import { db } from '../../lib/firebase';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
-import PhoneInput from '../../components/ui/PhoneInput';
-import { usePhoneInput } from '../../hooks/usePhoneInput';
+import PhoneInputWithPrefix from '../../components/ui/PhoneInputWithPrefix';
 import { generateUniqueTruckSlug } from '../../features/trucks/utils/truckSlug';
 import LocationPicker from '../../components/ui/LocationPicker';
 import ImageUploader from '../../components/ui/ImageUploader';
@@ -49,13 +48,8 @@ export default function CreateTruck() {
   const [managerLastName, setManagerLastName] = useState('');
   const [siretValid, setSiretValid] = useState(null); // null | 'incomplete' | 'checking' | 'valid' | 'invalid' | 'name_mismatch'
 
-  // Téléphone (hook réutilisable avec formatage)
-  const {
-    phoneNumber,
-    setPhoneNumber,
-    getFullPhoneNumber,
-    getDigitsOnly,
-  } = usePhoneInput();
+  // Téléphone
+  const [phoneNumber, setPhoneNumber] = useState('');
 
   // Email professionnel (pour Stripe Connect)
   const [professionalEmail, setProfessionalEmail] = useState('');
@@ -357,7 +351,7 @@ export default function CreateTruck() {
           companyName: companyName.trim(),
           managerFirstName: managerFirstName.trim(),
           managerLastName: managerLastName.trim(),
-          phoneNumber: getFullPhoneNumber(),
+          phoneNumber: phoneNumber ? `+33${phoneNumber.replace(/\s/g, '')}` : '',
           professionalEmail: professionalEmail.trim().toLowerCase(),
         },
         menu: {
@@ -544,9 +538,10 @@ export default function CreateTruck() {
             <label className="block text-sm font-semibold text-gray-900">
               Téléphone *
             </label>
-            <PhoneInput
+            <PhoneInputWithPrefix
               value={phoneNumber}
               onChange={setPhoneNumber}
+              placeholder="6 51 21 47 82"
               className="mt-2"
             />
           </div>

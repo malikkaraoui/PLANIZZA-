@@ -302,7 +302,7 @@ export default function Dashboard() {
           </div>
         </div>
         <h1 className="text-5xl font-black tracking-tighter text-premium-gradient">
-          Salut, {user?.displayName?.split(' ')[0] || 'Chef'} ! 👋
+          Salut, {user?.displayName?.split(' ')[0] || 'toi'} ! 👋
         </h1>
         <p className="text-muted-foreground font-medium text-lg">
           Bienvenue sur votre tableau de bord personnel
@@ -822,33 +822,7 @@ export default function Dashboard() {
             </Link>
           </div>
         </section>
-      ) : (
-        // CTA Devenir Pizzaiolo
-        <section>
-          <Card className="glass-premium glass-glossy border-orange-500/20 p-12 rounded-[32px] text-center">
-            <div className="max-w-2xl mx-auto space-y-6">
-              <div className="inline-flex p-6 rounded-3xl bg-orange-500/10">
-                <ChefHat className="h-16 w-16 text-orange-500" />
-              </div>
-              <h3 className="text-3xl font-black tracking-tight">
-                Vous êtes Pizzaiolo ?
-              </h3>
-              <p className="text-muted-foreground font-medium text-lg">
-                Rejoignez PLANIZZA et développez votre activité avec notre plateforme
-              </p>
-              <Button
-                asChild
-                size="lg"
-                className="rounded-2xl px-10 h-14 font-black bg-orange-500 hover:bg-orange-600 text-white"
-              >
-                <Link to={ROUTES.becomePartner}>
-                  Devenir Partenaire
-                </Link>
-              </Button>
-            </div>
-          </Card>
-        </section>
-      )}
+      ) : null}
 
       {/* Bouton Déconnexion */}
       <div className="flex justify-center pt-8">

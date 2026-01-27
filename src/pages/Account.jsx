@@ -10,7 +10,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import Card from '../components/ui/Card';
 import BackButton from '../components/ui/BackButton';
-import PhoneInput from '../components/ui/PhoneInput';
+import PhoneInputWithPrefix from '../components/ui/PhoneInputWithPrefix';
 import AddressInput from '../components/ui/AddressInput';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { auth, db, storage, isFirebaseConfigured } from '../lib/firebase';
@@ -18,7 +18,6 @@ import { useCart } from '../features/cart/hooks/useCart.jsx';
 import { useLoyaltyPoints } from '../features/users/hooks/useLoyaltyPoints';
 import LoyaltyProgressBar from '../components/loyalty/LoyaltyProgressBar';
 import { useAutoDismissMessage } from '../hooks/useAutoDismissMessage';
-import { usePhoneInput } from '../hooks/usePhoneInput';
 
 export default function Account() {
   const { isAuthenticated, user, loading, refreshUser } = useAuth();
@@ -34,15 +33,7 @@ export default function Account() {
   const [isEditing, setIsEditing] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-
-  // Téléphone (hook réutilisable)
-  const {
-    phoneNumber,
-    phonePrefix,
-    setPhoneNumber,
-    getFullPhoneNumber,
-    parseFullNumber,
-  } = usePhoneInput();
+  const [phoneNumber, setPhoneNumber] = useState('');
 
   // Adresse décomposée
   const [streetNumber, setStreetNumber] = useState('');
@@ -93,9 +84,14 @@ export default function Account() {
           setFirstName(nameParts[0] || '');
           setLastName(nameParts.slice(1).join(' ') || '');
           
-          // Charger le téléphone via le hook
+          // Charger le téléphone (format +336... ou +337...)
           const fullPhone = data.phoneNumber || '';
-          parseFullNumber(fullPhone);
+          if (fullPhone.startsWith('+33')) {
+            const digits = fullPhone.slice(3); // Enlever +33
+            setPhoneNumber(digits);
+          } else {
+            setPhoneNumber('');
+          }
 
           // Charger l'adresse décomposée
           const addr = data.address || {};
@@ -178,7 +174,7 @@ export default function Account() {
     setMessage('');
 
     try {
-      const fullPhoneNumber = getFullPhoneNumber();
+      const fullPhoneNumber = phoneNumber ? `+33${phoneNumber.replace(/\s/g, '')}` : '';
 
       const displayName = `${firstName.trim()} ${lastName.trim()}`.trim();
 
@@ -629,9 +625,10 @@ export default function Account() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">📱 Numéro de téléphone</label>
-              <PhoneInput
+              <PhoneInputWithPrefix
                 value={phoneNumber}
                 onChange={setPhoneNumber}
+                placeholder="6 51 21 47 82"
               />
             </div>
 
