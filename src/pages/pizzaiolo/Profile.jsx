@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ref, get, set, push, update, remove } from 'firebase/database';
 import { ref as storageRef, deleteObject } from 'firebase/storage';
-import { Pause, Play, Pizza, Edit2, ArrowLeft, Trash2, Radio, ListOrdered, Utensils, TrendingUp, X } from 'lucide-react';
+import { Pause, Play, Pizza, Edit2, ArrowLeft, Trash2, Radio, ListOrdered, Utensils, TrendingUp, X, Heart, Clock, Zap, MapPin, Image as ImageIcon, Download } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import Card from '../../components/ui/Card';
 import { useAuth } from '../../app/providers/AuthProvider';
@@ -26,6 +26,7 @@ import {
 } from '../../components/ui/dialog';
 import BackButton from '../../components/ui/BackButton';
 import StripeConnectStatus from '../../components/pizzaiolo/StripeConnectStatus';
+import { useTruckFavoritesCount } from '../../features/trucks/hooks/useTruckFavoritesCount';
 
 const DEFAULT_OPENING_HOURS = {
   monday: { enabled: true, open: '11:00', close: '22:00' },
@@ -84,10 +85,93 @@ export default function PizzaioloProfile() {
   const [isPaused, setIsPaused] = useState(false);
   const { togglePause, isUpdating: isPauseUpdating } = useTruckPause(truckId);
   const { count: activeOrdersCount } = useActiveOrdersCount(truckId);
+  const { count: favoritesCount } = useTruckFavoritesCount(truckId);
   
   // Dialog de confirmation de suppression
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Ref pour le QR code
+  const qrCodeRef = useRef(null);
+
+  // Fonction pour exporter le QR code avec logo pizza
+  const exportQRCode = async () => {
+    if (!qrCodeRef.current) return;
+
+    try {
+      const svg = qrCodeRef.current.querySelector('svg');
+      if (!svg) return;
+
+      // Créer un canvas pour dessiner le QR code + logo
+      const canvas = document.createElement('canvas');
+      const size = 800; // Taille haute résolution pour l'impression
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      // Fond blanc
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, size, size);
+
+      // Convertir le SVG en image
+      const svgData = new XMLSerializer().serializeToString(svg);
+      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+
+      const img = new Image();
+      img.onload = () => {
+        // Dessiner le QR code
+        ctx.drawImage(img, 0, 0, size, size);
+
+        // Ajouter un cercle blanc au centre pour le logo
+        const centerX = size / 2;
+        const centerY = size / 2;
+        const logoSize = size * 0.25; // Logo prend 25% du QR code
+
+        // Cercle blanc avec bordure
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, logoSize / 2 + 10, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // Bordure orange
+        ctx.strokeStyle = '#FF8A4C';
+        ctx.lineWidth = 8;
+        ctx.stroke();
+
+        // Dessiner l'emoji pizza au centre
+        ctx.font = `${logoSize}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🍕', centerX, centerY);
+
+        // Ajouter le nom du camion en bas
+        ctx.fillStyle = '#1F2937';
+        ctx.font = 'bold 32px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(truckName || 'Mon Camion', centerX, size - 40);
+
+        // Télécharger l'image
+        canvas.toBlob((blob) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `qrcode-${truckSlug || truckId}.png`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 'image/png');
+
+        URL.revokeObjectURL(url);
+      };
+
+      img.src = url;
+    } catch (err) {
+      console.error('Erreur export QR code:', err);
+      alert('❌ Erreur lors de l\'export du QR code');
+    }
+  };
 
   // Fonction toggle pause
   const handleTogglePause = async () => {
@@ -421,6 +505,11 @@ export default function PizzaioloProfile() {
       {/* Bouton retour */}
       <BackButton />
 
+      {/* Section Stripe Connect en priorité */}
+      {truckId && (
+        <StripeConnectStatus userId={user?.uid} />
+      )}
+
       {/* Navigation rapide */}
       {truckId && (
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -492,11 +581,6 @@ export default function PizzaioloProfile() {
         </div>
       )}
 
-      {/* Section Stripe Connect - Paiements */}
-      {truckId && (
-        <StripeConnectStatus userId={user?.uid} />
-      )}
-
       {!truckId ? (
         <Card className="glass-premium glass-glossy border-white/20 p-12 rounded-[32px] text-center">
           <div className="inline-flex p-6 rounded-3xl bg-orange-500/10 mb-6">
@@ -509,151 +593,279 @@ export default function PizzaioloProfile() {
           </Button>
         </Card>
       ) : !isEditing ? (
-        // MODE VISUALISATION
-        <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-[32px]">
-          <div className="flex items-start justify-between mb-8">
-            <div className="flex items-center gap-4">
-              <div className="p-4 rounded-2xl bg-orange-500/10">
-                <Pizza className="h-8 w-8 text-orange-500" />
-              </div>
-              <div>
-                <h2 className="text-3xl font-black tracking-tight">Mon Camion</h2>
-                <p className="mt-1 text-muted-foreground font-medium">Votre vitrine professionnelle</p>
-              </div>
-              {isPaused && (
-                <Badge variant="secondary" className="mt-1 rounded-full">
-                  <Pause className="h-3 w-3 mr-1" />
-                  En pause
-                </Badge>
-              )}
-            </div>
-            <div className="flex gap-3">
-              <Button
-                onClick={handleTogglePause}
-                disabled={isPauseUpdating}
-                size="sm"
-                variant={isPaused ? "default" : "outline"}
-                className={isPaused ? "bg-emerald-500 hover:bg-emerald-600 rounded-2xl font-bold" : "rounded-2xl font-bold"}
-              >
-                {isPauseUpdating ? (
-                  '...'
-                ) : isPaused ? (
-                  <>
-                    <Play className="h-4 w-4 mr-2" />
-                    Relancer
-                  </>
-                ) : (
-                  <>
-                    <Pause className="h-4 w-4 mr-2" />
-                    Pause
-                  </>
-                )}
-              </Button>
-              <Button onClick={() => setIsEditing(true)} variant="outline" className="rounded-2xl font-bold">
-                <Edit2 className="h-4 w-4 mr-2" />
-                Modifier
-              </Button>
-            </div>
-          </div>
-
-          {/* QR Code Section */}
-          {(truckSlug || truckId) && (
-            <div className="mt-6 p-6 glass-premium rounded-3xl border border-white/20">
-              <div className="text-center">
-                <p className="text-sm font-bold mb-4">📱 QR Code - Accès direct à votre camion</p>
-                <div className="inline-block p-4 bg-white rounded-2xl shadow-xl">
-                  <QRCode
-                    value={`${window.location.origin}${ROUTES.truck(truckSlug || truckId)}`}
-                    size={200}
-                    level="H"
-                  />
-                </div>
-                <p className="mt-4 text-xs text-muted-foreground font-medium">
-                  Scannez ce code pour accéder à votre page publique
-                </p>
-                <p className="mt-2 text-xs text-muted-foreground font-bold break-all">
-                  {window.location.origin}{ROUTES.truck(truckSlug || truckId)}
-                </p>
-                {!truckSlug && (
-                  <p className="mt-3 text-xs text-orange-500 font-medium">
-                    💡 Modifiez et sauvegardez votre profil pour obtenir une URL optimisée
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Photos */}
-          {(logoUrl || photoUrl) && (
-            <div className="grid gap-6 mb-8">
-              {photoUrl && (
-                <div>
-                  <p className="text-sm font-bold mb-3">📸 Photo principale</p>
-                  <img
-                    src={photoUrl}
-                    alt={truckName}
-                    className="w-full h-64 object-cover rounded-3xl border border-white/20 shadow-xl"
-                  />
-                </div>
-              )}
-              {logoUrl && (
-                <div>
-                  <p className="text-sm font-bold mb-3">🎨 Logo</p>
+        // MODE VISUALISATION - DASHBOARD MODERNE
+        <div className="space-y-6">
+          {/* Header avec actions rapides */}
+          <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px]">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                {logoUrl && (
                   <img
                     src={logoUrl}
-                    alt={`Logo ${truckName}`}
-                    className="w-32 h-32 object-contain rounded-2xl border border-white/20 bg-white/5 p-3 shadow-lg"
+                    alt={truckName}
+                    className="w-16 h-16 object-contain rounded-2xl border border-white/20 bg-white/5 p-2"
                   />
+                )}
+                <div>
+                  <h2 className="text-2xl font-black tracking-tight">{truckName || 'Mon Camion'}</h2>
+                  <p className="text-sm text-muted-foreground font-medium">{location?.address || 'Emplacement non défini'}</p>
                 </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Button
+                  onClick={handleTogglePause}
+                  disabled={isPauseUpdating}
+                  size="sm"
+                  variant={isPaused ? "default" : "outline"}
+                  className={isPaused ? "bg-emerald-500 hover:bg-emerald-600 rounded-2xl font-bold" : "rounded-2xl font-bold"}
+                >
+                  {isPauseUpdating ? '...' : isPaused ? (
+                    <><Play className="h-4 w-4 mr-2" />Relancer</>
+                  ) : (
+                    <><Pause className="h-4 w-4 mr-2" />Pause</>
+                  )}
+                </Button>
+                <Button onClick={() => setIsEditing(true)} variant="outline" className="rounded-2xl font-bold">
+                  <Edit2 className="h-4 w-4 mr-2" />Modifier
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+          {/* Stats Cards */}
+          <div className="grid md:grid-cols-3 gap-4">
+            {/* Favoris */}
+            <Card className="glass-premium glass-glossy border-white/20 p-5 rounded-[20px]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground font-medium mb-1">Favoris</p>
+                  <p className="text-3xl font-black">{favoritesCount || 0}</p>
+                </div>
+                <div className="p-3 rounded-2xl bg-orange-500/10">
+                  <Heart className="h-6 w-6 text-orange-500" />
+                </div>
+              </div>
+            </Card>
+
+            {/* Commandes actives */}
+            <Card className="glass-premium glass-glossy border-white/20 p-5 rounded-[20px]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground font-medium mb-1">Commandes actives</p>
+                  <p className="text-3xl font-black">{activeOrdersCount || 0}</p>
+                </div>
+                <div className="p-3 rounded-2xl bg-blue-500/10">
+                  <Pizza className="h-6 w-6 text-blue-500" />
+                </div>
+              </div>
+            </Card>
+
+            {/* Cadence */}
+            <Card className="glass-premium glass-glossy border-white/20 p-5 rounded-[20px]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground font-medium mb-1">Cadence</p>
+                  <p className="text-3xl font-black">{pizzaPerHour}<span className="text-lg text-muted-foreground">/h</span></p>
+                </div>
+                <div className="p-3 rounded-2xl bg-purple-500/10">
+                  <Zap className="h-6 w-6 text-purple-500" />
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Grid principale - 2 colonnes */}
+          <div className="grid lg:grid-cols-3 gap-6">
+            {/* Colonne gauche - Infos principales (2/3) */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Informations générales */}
+              <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px]">
+                <h3 className="text-lg font-black mb-4">Informations générales</h3>
+                <div className="space-y-4">
+                  {truckDescription && (
+                    <div>
+                      <p className="text-sm font-bold text-muted-foreground mb-1">Description</p>
+                      <p className="text-sm font-medium">{truckDescription}</p>
+                    </div>
+                  )}
+                  
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-bold text-muted-foreground mb-1">Type de four</p>
+                      <p className="text-sm font-medium">🔥 {ovenType}</p>
+                      {ovenType === 'Gaz' && (
+                        <p className="text-xs text-orange-500 mt-1">⚠️ Vérifications annuelles requises</p>
+                      )}
+                    </div>
+                    
+                    {isPaused && (
+                      <div>
+                        <p className="text-sm font-bold text-muted-foreground mb-1">Statut</p>
+                        <Badge variant="secondary" className="rounded-full">
+                          <Pause className="h-3 w-3 mr-1" />
+                          En pause
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Badges */}
+                  {Object.values(badges).some(v => v) && (
+                    <div>
+                      <p className="text-sm font-bold text-muted-foreground mb-2">Badges</p>
+                      <div className="flex flex-wrap gap-2">
+                        {badges.bio && <span className="px-3 py-1 bg-emerald-500/10 text-emerald-600 rounded-full text-xs font-bold border border-emerald-500/20">🌱 Bio</span>}
+                        {badges.terroir && <span className="px-3 py-1 bg-amber-500/10 text-amber-600 rounded-full text-xs font-bold border border-amber-500/20">🌾 Terroir</span>}
+                        {badges.sansGluten && <span className="px-3 py-1 bg-blue-500/10 text-blue-600 rounded-full text-xs font-bold border border-blue-500/20">🚫🌾 Sans gluten</span>}
+                        {badges.halal && <span className="px-3 py-1 bg-purple-500/10 text-purple-600 rounded-full text-xs font-bold border border-purple-500/20">☪️ Halal</span>}
+                        {badges.kasher && <span className="px-3 py-1 bg-indigo-500/10 text-indigo-600 rounded-full text-xs font-bold border border-indigo-500/20">✡️ Kasher</span>}
+                        {badges.sucre && <span className="px-3 py-1 bg-pink-500/10 text-pink-600 rounded-full text-xs font-bold border border-pink-500/20">🍰 Sucré</span>}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Card>
+
+              {/* Horaires d'ouverture compact */}
+              {openingHours && (
+                <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px]">
+                  <h3 className="text-lg font-black mb-4 flex items-center gap-2">
+                    <Clock className="h-5 w-5" />
+                    Horaires d'ouverture
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {Object.entries(openingHours).map(([day, hours]) => {
+                      const dayLabels = {
+                        monday: 'Lun',
+                        tuesday: 'Mar',
+                        wednesday: 'Mer',
+                        thursday: 'Jeu',
+                        friday: 'Ven',
+                        saturday: 'Sam',
+                        sunday: 'Dim'
+                      };
+                      return (
+                        <div key={day} className={`flex items-center justify-between p-3 rounded-xl ${hours.enabled ? 'bg-emerald-500/5 border border-emerald-500/20' : 'bg-white/5 border border-white/10'}`}>
+                          <span className="text-sm font-bold">{dayLabels[day]}</span>
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {hours.enabled ? `${hours.open} - ${hours.close}` : 'Fermé'}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Card>
+              )}
+
+              {/* Livraison compacte */}
+              <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px]">
+                <h3 className="text-lg font-black mb-4">🚴 Plateformes de livraison</h3>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => toggleDelivery('deliveroo')}
+                    className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl transition-all text-sm font-bold ${
+                      deliveryOptions.deliveroo
+                        ? 'bg-teal-500 text-white'
+                        : 'bg-white/5 border border-white/10 hover:border-teal-500/30'
+                    }`}
+                  >
+                    {deliveryOptions.deliveroo ? '✓' : '✕'} Deliveroo
+                  </button>
+                  <button
+                    onClick={() => toggleDelivery('uber')}
+                    className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl transition-all text-sm font-bold ${
+                      deliveryOptions.uber
+                        ? 'bg-gray-700 text-white'
+                        : 'bg-white/5 border border-white/10 hover:border-gray-500/30'
+                    }`}
+                  >
+                    {deliveryOptions.uber ? '✓' : '✕'} Uber Eats
+                  </button>
+                </div>
+              </Card>
+
+              {/* Photos compactes */}
+              {(logoUrl || photoUrl) && (
+                <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px]">
+                  <h3 className="text-lg font-black mb-4 flex items-center gap-2">
+                    <ImageIcon className="h-5 w-5" />
+                    Visuels
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    {photoUrl && (
+                      <div>
+                        <p className="text-xs font-bold text-muted-foreground mb-2">Photo principale</p>
+                        <img
+                          src={photoUrl}
+                          alt={truckName}
+                          className="w-full h-32 object-cover rounded-2xl border border-white/20"
+                        />
+                      </div>
+                    )}
+                    {logoUrl && (
+                      <div>
+                        <p className="text-xs font-bold text-muted-foreground mb-2">Logo</p>
+                        <img
+                          src={logoUrl}
+                          alt={`Logo ${truckName}`}
+                          className="w-full h-32 object-contain rounded-2xl border border-white/20 bg-white/5 p-3"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </Card>
               )}
             </div>
-          )}
 
-          {/* Informations */}
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-2xl font-black tracking-tight">{truckName || 'Sans nom'}</h3>
-              {truckDescription && (
-                <p className="mt-2 text-muted-foreground font-medium">{truckDescription}</p>
-              )}
-            </div>
-
-            {/* Type de four */}
-            {ovenType && (
-              <div>
-                <p className="text-sm font-bold mb-2">🔥 Type de four</p>
-                <p className="text-sm text-muted-foreground font-medium">{ovenType}</p>
-                
-                {/* Alerte pour les installations au gaz */}
-                {ovenType === 'Gaz' && (
-                  <div className="mt-3 p-4 rounded-xl bg-orange-500/10 border border-orange-500/30">
-                    <div className="flex items-start gap-3">
-                      <span className="text-2xl">⚠️</span>
-                      <div className="flex-1">
-                        <p className="text-sm font-bold text-orange-500 mb-1">Rappel de sécurité</p>
-                        <p className="text-xs text-muted-foreground font-medium">
-                          Contrôles réguliers : faites vérifier vos installations au moins une fois par an pour garantir leur bon fonctionnement et leur conformité.
-                        </p>
+            {/* Colonne droite - Carte et QR Code (1/3) */}
+            <div className="space-y-6">
+              {/* QR Code compact */}
+              {(truckSlug || truckId) && (
+                <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px]">
+                  <h3 className="text-lg font-black mb-4 text-center">📱 QR Code</h3>
+                  
+                  <div className="flex justify-center mb-4" ref={qrCodeRef}>
+                    <div className="relative p-3 bg-white rounded-2xl">
+                      <QRCode
+                        value={`${window.location.origin}${ROUTES.truck(truckSlug || truckId)}`}
+                        size={160}
+                        level="H"
+                      />
+                      {/* Logo pizza au centre */}
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-full p-2 border-4 border-orange-500 shadow-lg">
+                        <span className="text-4xl leading-none block">🍕</span>
                       </div>
                     </div>
                   </div>
-                )}
-              </div>
-            )}
 
-            {/* Emplacement */}
-            {location?.address && (
-              <div>
-                <p className="text-sm font-bold mb-3">📍 Emplacement</p>
-                <p className="text-sm text-muted-foreground font-medium mb-3">{location.address}</p>
-                {location.lat && location.lng && (
-                  <div className="mt-4 rounded-2xl overflow-hidden border border-white/20 shadow-xl">
-                    <div className="bg-white/5 p-3 backdrop-blur-sm">
-                      <p className="text-xs font-bold text-muted-foreground mb-1">📍 Carte de localisation</p>
-                      <p className="text-xs text-muted-foreground font-medium">
-                        Coordonnées: {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
-                      </p>
-                    </div>
+                  <Button
+                    onClick={exportQRCode}
+                    variant="outline"
+                    className="w-full rounded-2xl font-bold mb-3 border-orange-500/30 hover:bg-orange-500/10"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Télécharger pour imprimer
+                  </Button>
+
+                  <p className="text-xs text-muted-foreground font-medium text-center break-all">
+                    {window.location.origin}{ROUTES.truck(truckSlug || truckId)}
+                  </p>
+                  {!truckSlug && (
+                    <p className="mt-3 text-xs text-orange-500 font-medium text-center">
+                      💡 Modifiez votre profil pour une URL optimisée
+                    </p>
+                  )}
+                </Card>
+              )}
+
+              {/* Carte */}
+              {location?.address && location?.lat && location?.lng && (
+                <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px]">
+                  <h3 className="text-lg font-black mb-4 flex items-center gap-2">
+                    <MapPin className="h-5 w-5" />
+                    Localisation
+                  </h3>
+                  <div className="rounded-2xl overflow-hidden border border-white/20">
                     <iframe
                       width="100%"
                       height="200"
@@ -663,109 +875,14 @@ export default function PizzaioloProfile() {
                       allowFullScreen
                     ></iframe>
                   </div>
-                )}
-              </div>
-            )}
-
-            {/* Badges */}
-            {Object.values(badges).some(v => v) && (
-              <div>
-                <p className="text-sm font-semibold text-gray-900 mb-2">🏷️ Badges</p>
-                <div className="flex flex-wrap gap-2">
-                  {badges.bio && <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">🌱 Bio</span>}
-                  {badges.terroir && <span className="px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-sm">🌾 Terroir</span>}
-                  {badges.sansGluten && <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">🚫🌾 Sans gluten</span>}
-                  {badges.halal && <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">☪️ Halal</span>}
-                  {badges.kasher && <span className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm">✡️ Kasher</span>}
-                  {badges.sucre && <span className="px-3 py-1 bg-pink-100 text-pink-800 rounded-full text-sm">🍰 Sucré</span>}
-                </div>
-              </div>
-            )}
-
-            {/* Livraison */}
-            <div>
-              <p className="text-sm font-semibold text-gray-900 mb-3">🚴 Options de livraison</p>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => toggleDelivery('deliveroo')}
-                  className={`group relative overflow-hidden rounded-[24px] p-5 transition-all duration-300 ${
-                    deliveryOptions.deliveroo
-                      ? 'bg-teal-500 text-white shadow-xl shadow-teal-500/30'
-                      : 'glass-premium border-white/20 hover:border-teal-500/30 hover:scale-[1.01]'
-                  }`}
-                >
-                  <div className="flex flex-col items-center gap-3 text-center">
-                    <div className="font-black text-base tracking-tight">Deliveroo</div>
-                    <div className={`text-xs font-bold px-3 py-1 rounded-full ${
-                      deliveryOptions.deliveroo 
-                        ? 'bg-white/20 text-white' 
-                        : 'bg-red-500/10 text-red-600'
-                    }`}>
-                      {deliveryOptions.deliveroo ? '✓ Activé' : '✕ Désactivé'}
-                    </div>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => toggleDelivery('uber')}
-                  className={`group relative overflow-hidden rounded-[24px] p-5 transition-all duration-300 ${
-                    deliveryOptions.uber
-                      ? 'bg-gray-700 text-white shadow-xl shadow-gray-700/30'
-                      : 'glass-premium border-white/20 hover:border-gray-500/30 hover:scale-[1.01]'
-                  }`}
-                >
-                  <div className="flex flex-col items-center gap-3 text-center">
-                    <div className="font-black text-base tracking-tight">Uber Eats</div>
-                    <div className={`text-xs font-bold px-3 py-1 rounded-full ${
-                      deliveryOptions.uber 
-                        ? 'bg-white/20 text-white' 
-                        : 'bg-red-500/10 text-red-600'
-                    }`}>
-                      {deliveryOptions.uber ? '✓ Activé' : '✕ Désactivé'}
-                    </div>
-                  </div>
-                </button>
-              </div>
+                  <p className="text-xs text-muted-foreground font-medium mt-3">
+                    {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
+                  </p>
+                </Card>
+              )}
             </div>
-
-            {/* Horaires */}
-            {openingHours && (
-              <div>
-                <p className="text-sm font-semibold text-gray-900 mb-2">🕐 Horaires d'ouverture</p>
-                <div className="space-y-1 text-sm">
-                  {Object.entries(openingHours).map(([day, hours]) => {
-                    const dayLabels = {
-                      monday: 'Lundi',
-                      tuesday: 'Mardi',
-                      wednesday: 'Mercredi',
-                      thursday: 'Jeudi',
-                      friday: 'Vendredi',
-                      saturday: 'Samedi',
-                      sunday: 'Dimanche'
-                    };
-                    return hours.enabled ? (
-                      <p key={day} className="text-gray-700">
-                        <span className="font-medium">{dayLabels[day]}:</span> {hours.open} - {hours.close}
-                      </p>
-                    ) : (
-                      <p key={day} className="text-gray-400">
-                        <span className="font-medium">{dayLabels[day]}:</span> Fermé
-                      </p>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Cadence */}
-            {pizzaPerHour && (
-              <div>
-                <p className="text-sm font-semibold text-gray-900 mb-1">⚡ Cadence de travail</p>
-                <p className="text-sm text-gray-700">{pizzaPerHour} pizzas/heure</p>
-              </div>
-            )}
           </div>
-        </Card>
+        </div>
       ) : (
         // MODE ÉDITION
         <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-[32px]">

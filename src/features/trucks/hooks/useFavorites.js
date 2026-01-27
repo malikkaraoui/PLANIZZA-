@@ -51,21 +51,27 @@ export function useFavorites() {
       }
 
       const favRef = ref(db, `users/${user.uid}/favorites/${truckId}`);
+      const truckFavRef = ref(db, `public/trucks/${truckId}/favorites/${user.uid}`);
       const isCurrentlyFavorite = isFavorite(truckId);
 
       try {
         if (isCurrentlyFavorite) {
+          // Retirer des favoris
           await remove(favRef);
+          await remove(truckFavRef);
           notify.favoriteRemoved(truckName || 'Ce camion');
         } else {
-          await set(favRef, {
+          // Ajouter aux favoris
+          const favoriteData = {
             addedAt: serverTimestamp(),
             truckId,
+          };
+          await set(favRef, favoriteData);
+          await set(truckFavRef, {
+            userId: user.uid,
+            addedAt: serverTimestamp(),
           });
           notify.favoriteAdded(truckName || 'Ce camion');
-
-          // Notifier le pizzaiolo qu'il a un nouveau favori
-          // (à implémenter côté Cloud Functions si besoin)
         }
         return true;
       } catch (error) {

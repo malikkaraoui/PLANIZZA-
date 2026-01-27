@@ -365,9 +365,11 @@ function v2MapKitchenStatusToV1Status(kitchenStatus) {
       // QUEUED = Acceptée (en file d'attente) → Client voit "Reçue"
       return "received";
     case "PREPPING":
-    case "READY":
-      // PREPPING et READY = En cours de préparation → Client voit "En préparation"
+      // PREPPING = En cours de préparation → Client voit "En préparation"
       return "accepted";
+    case "READY":
+      // READY = Pizza prête → Client voit "Prête !"
+      return "delivered";
     case "HANDOFF":
     case "DONE":
       // HANDOFF et DONE = Terminée → Client voit "Prête !"

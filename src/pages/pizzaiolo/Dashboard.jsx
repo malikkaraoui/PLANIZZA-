@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../app/providers/AuthProvider';
 import { usePizzaioloTruckId } from '../../features/pizzaiolo/hooks/usePizzaioloTruckId';
-import { usePizzaioloReviewNotifications } from '../../features/pizzaiolo/hooks/usePizzaioloNotifications';
+import { usePizzaioloOrderNotifications, usePizzaioloReviewNotifications, usePizzaioloFavoriteNotifications } from '../../features/pizzaiolo/hooks/usePizzaioloNotifications';
 import { devLog } from '../../lib/devLog';
 
 export default function PizzaioloDashboard() {
@@ -14,6 +14,10 @@ export default function PizzaioloDashboard() {
 
   // Activer les notifications de nouveaux avis pour le pizzaiolo
   usePizzaioloReviewNotifications(truckId);
+  // Activer les notifications de nouvelles commandes pour le pizzaiolo
+  usePizzaioloOrderNotifications(truckId);
+  // Activer les notifications de nouveaux favoris pour le pizzaiolo
+  usePizzaioloFavoriteNotifications(truckId);
 
   useEffect(() => {
     devLog('[PizzaioloDashboard]', {

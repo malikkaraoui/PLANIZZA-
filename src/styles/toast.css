@@ -38,25 +38,25 @@
     0 4px 12px rgba(0, 0, 0, 0.3) !important;
 }
 
-/* Toast Success - Accent émeraude */
+/* Toast Success - Orange pizza */
 .Toastify__toast--success {
-  background: rgba(5, 46, 22, 0.9) !important;
-  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+  background: rgba(65, 30, 10, 0.9) !important;
+  border: 1px solid rgba(255, 138, 76, 0.3) !important;
   box-shadow: 
-    0 0 0 1px rgba(16, 185, 129, 0.1) inset,
+    0 0 0 1px rgba(255, 138, 76, 0.1) inset,
     0 8px 32px rgba(0, 0, 0, 0.4),
-    0 0 20px rgba(16, 185, 129, 0.15) !important;
+    0 0 20px rgba(255, 138, 76, 0.15) !important;
 }
 
 .Toastify__toast--success:hover {
   box-shadow: 
-    0 0 0 1px rgba(16, 185, 129, 0.1) inset,
+    0 0 0 1px rgba(255, 138, 76, 0.1) inset,
     0 12px 40px rgba(0, 0, 0, 0.5),
-    0 0 24px rgba(16, 185, 129, 0.2) !important;
+    0 0 24px rgba(255, 138, 76, 0.2) !important;
 }
 
 .Toastify__toast--success .Toastify__toast-icon {
-  color: #10b981 !important;
+  color: #ff8a4c !important;
 }
 
 /* Toast Error - Rouge */
