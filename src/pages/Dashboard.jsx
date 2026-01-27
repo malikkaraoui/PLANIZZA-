@@ -18,12 +18,12 @@ import { useCart } from '../features/cart/hooks/useCart.jsx';
 import { useTruckPause } from '../features/trucks/hooks/useTruckPause';
 import { useActiveOrdersCount } from '../features/orders/hooks/useActiveOrdersCount';
 import LoyaltyProgressBar from '../components/loyalty/LoyaltyProgressBar';
-import AddressAutocomplete from '../components/ui/AddressAutocomplete';
 import { usePizzaioloTruckId } from '../features/pizzaiolo/hooks/usePizzaioloTruckId';
 import { useAutoDismissMessage } from '../hooks/useAutoDismissMessage';
+import AddressAutocomplete from '../components/ui/AddressAutocomplete';
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { orders, loading: _ordersLoading } = useMyOrders();
   const { flushToStorage } = useCart();
@@ -38,17 +38,21 @@ export default function Dashboard() {
 
   const isPizzaiolo = Boolean(truckId);
 
-  // Rediriger les pizzaiolos vers leur dashboard pro
+  // Rediriger les pizzaiolos vers leur dashboard pro SEULEMENT si confirmé pizzaiolo
   useEffect(() => {
-    if (isPizzaiolo && !_loadingTruckId) {
+    if (!isAuthenticated || _loadingTruckId) return;
+    
+    if (isPizzaiolo && truckId) {
+      console.log('[Dashboard] Utilisateur est pizzaiolo, redirection vers /pro/truck');
       navigate('/pro/truck', { replace: true });
     }
-  }, [isPizzaiolo, _loadingTruckId, navigate]);
+  }, [isPizzaiolo, truckId, _loadingTruckId, isAuthenticated, navigate]);
 
   const { togglePause, isUpdating: isPauseUpdating } = useTruckPause(truckId);
   const { count: activeOrdersCount } = useActiveOrdersCount(truckId);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [signingOut, setSigningOut] = useState(false);
+  const [savingDeliveryPref, setSavingDeliveryPref] = useState(false);
   
   // Adresse
   const [address, setAddress] = useState({
@@ -59,10 +63,8 @@ export default function Dashboard() {
     country: 'France'
   });
   const [wantsDelivery, setWantsDelivery] = useState(false);
-  const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [savingAddress, setSavingAddress] = useState(false);
   const [addressMessage, setAddressMessage] = useState('');
-  const [savingDeliveryPref, setSavingDeliveryPref] = useState(false);
   
   // Carte de fidélité
   const { points, currentTier, nextTier, progress, maxTierReached, loading: loyaltyLoading } = useLoyaltyPoints(user?.uid);
@@ -231,7 +233,6 @@ export default function Dashboard() {
       });
 
       setAddressMessage('✅ Adresse sauvegardée avec succès !');
-      setIsEditingAddress(false);
     } catch (err) {
       console.error('[PLANIZZA] Erreur sauvegarde adresse:', err);
       setAddressMessage('❌ Erreur lors de la sauvegarde.');
@@ -275,6 +276,26 @@ export default function Dashboard() {
   const recentOrders = orders.slice(0, 3);
   const totalOrders = orders.length;
   const completedOrders = orders.filter(o => o.status === 'ready' || o.status === 'completed').length;
+
+  // Vérifier si le profil est incomplet
+  const [userData, setUserData] = useState(null);
+  useEffect(() => {
+    if (!user?.uid) return;
+    const loadData = async () => {
+      try {
+        const userRef = ref(db, `users/${user.uid}`);
+        const snap = await get(userRef);
+        if (snap.exists()) {
+          setUserData(snap.val());
+        }
+      } catch (err) {
+        console.error('[Dashboard] Erreur chargement userData:', err);
+      }
+    };
+    loadData();
+  }, [user?.uid]);
+
+  const isProfileIncomplete = !userData?.firstName || !userData?.lastName || !userData?.phoneNumber;
 
   return (
     <div className="relative isolate mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 space-y-10">
@@ -320,9 +341,9 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Quick Actions - Grille 3 colonnes */}
+      {/* Quick Actions - Grille 2 colonnes */}
       <section>
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
           {/* Mes Commandes */}
           <Link to={ROUTES.myOrders} className="group">
             <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[28px] hover:scale-[1.02] hover:shadow-2xl transition-all duration-300 h-full">
@@ -345,25 +366,14 @@ export default function Dashboard() {
             </Card>
           </Link>
 
-          {/* Explorer */}
-          <Link to={ROUTES.explore} className="group">
-            <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[28px] hover:scale-[1.02] hover:shadow-2xl transition-all duration-300 h-full">
-              <div className="flex items-start justify-between mb-4">
-                <div className="p-3 rounded-2xl bg-orange-500/10 group-hover:bg-orange-500/20 transition-colors">
-                  <Pizza className="h-7 w-7 text-orange-500" />
-                </div>
-                <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
-              </div>
-              <h3 className="text-xl font-black tracking-tight mb-2">Explorer</h3>
-              <p className="text-sm text-muted-foreground">
-                Découvre les camions près de toi
-              </p>
-            </Card>
-          </Link>
-
           {/* Mon Profil */}
           <Link to="/mon-compte" className="group">
-            <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[28px] hover:scale-[1.02] hover:shadow-2xl transition-all duration-300 h-full">
+            <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[28px] hover:scale-[1.02] hover:shadow-2xl transition-all duration-300 h-full relative">
+              {isProfileIncomplete && (
+                <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 border-2 border-white shadow-lg flex items-center justify-center animate-pulse">
+                  <span className="text-xs font-bold text-white">!</span>
+                </div>
+              )}
               <div className="flex items-start justify-between mb-4">
                 <div className="p-3 rounded-2xl bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors">
                   <UserCircle className="h-7 w-7 text-purple-500" />
@@ -374,6 +384,12 @@ export default function Dashboard() {
               <p className="text-sm text-muted-foreground">
                 Gérer mes informations
               </p>
+              {/* Badge notification si infos manquantes */}
+              {(!phoneNumber || !address.street || !address.city) && (
+                <div className="absolute -top-2 -right-2 h-6 w-6 bg-red-500 rounded-full flex items-center justify-center shadow-lg animate-pulse">
+                  <span className="text-white text-xs font-bold">!</span>
+                </div>
+              )}
             </Card>
           </Link>
         </div>
@@ -392,215 +408,107 @@ export default function Dashboard() {
                 <p className="text-sm text-muted-foreground mt-1">Comment récupérer mes pizzas</p>
               </div>
             </div>
-            {!isEditingAddress && (
-              <Button onClick={() => setIsEditingAddress(true)} variant="outline" size="sm" className="rounded-2xl">
-                <Edit2 className="h-4 w-4 mr-2" />
-                Modifier
-              </Button>
-            )}
           </div>
 
-          {!isEditingAddress ? (
-            <div className="space-y-6">
-              {/* Adresse */}
-              <div>
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Adresse de livraison</p>
-                <div className="text-gray-900">
-                  {address.streetNumber || address.street || address.postalCode || address.city ? (
-                    <div className="space-y-0.5">
-                      {address.streetNumber && address.street && <p className="font-semibold text-lg">{address.streetNumber} {address.street}</p>}
-                      {!address.streetNumber && address.street && <p className="font-semibold text-lg">{address.street}</p>}
-                      {(address.postalCode || address.city) && (
-                        <p className="text-muted-foreground">{address.postalCode} {address.city}</p>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground italic">Aucune adresse renseignée</p>
-                  )}
-                </div>
-              </div>
+          <form onSubmit={handleSaveAddress} className="space-y-6">
+            {/* Adresse - Saisie directe */}
+            <div>
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Adresse de livraison</p>
               
-              {/* Mode de récupération */}
-              <div>
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Mode de récupération préféré</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Retrait au camion */}
-                  <button
-                    onClick={() => handleToggleDeliveryPreference(false)}
-                    disabled={savingDeliveryPref}
-                    className={`group relative overflow-hidden rounded-[24px] p-5 transition-all duration-300 ${
-                      !wantsDelivery
-                        ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-[1.02]'
-                        : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
-                    } ${savingDeliveryPref ? 'cursor-wait opacity-50' : 'cursor-pointer'}`}
-                  >
-                    <div className="flex flex-col items-center gap-3 text-center">
-                      <div className={`p-3 rounded-xl transition-all ${
+              <AddressAutocomplete 
+                address={address}
+                onAddressChange={setAddress}
+              />
+            </div>
+            
+            {/* Mode de récupération */}
+            <div>
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Mode de récupération préféré</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Retrait au camion */}
+                <button
+                  type="button"
+                  onClick={() => setWantsDelivery(false)}
+                  className={`group relative overflow-hidden rounded-[24px] p-5 transition-all duration-300 ${
+                    !wantsDelivery
+                      ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-[1.02]'
+                      : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
+                  }`}
+                >
+                  <div className="flex flex-col items-center gap-3 text-center">
+                    <div className={`p-3 rounded-xl transition-all ${
+                      !wantsDelivery 
+                        ? 'bg-white/20' 
+                        : 'bg-primary/10 group-hover:bg-primary/20'
+                    }`}>
+                      <Store className="h-7 w-7" />
+                    </div>
+                    <div>
+                      <div className="font-black text-lg tracking-tight">Retrait au camion</div>
+                      <div className={`text-sm mt-1 ${
                         !wantsDelivery 
-                          ? 'bg-white/20' 
-                          : 'bg-primary/10 group-hover:bg-primary/20'
+                          ? 'text-white/90' 
+                          : 'text-muted-foreground'
                       }`}>
-                        <Store className="h-7 w-7" />
+                        Gratuit • 15-20 min
                       </div>
-                      <div>
-                        <div className="font-black text-lg tracking-tight">Retrait au camion</div>
-                        <div className={`text-sm mt-1 ${
-                          !wantsDelivery 
-                            ? 'text-white/90' 
-                            : 'text-muted-foreground'
-                        }`}>
-                          Gratuit • 15-20 min
-                        </div>
-                      </div>
-                      {!wantsDelivery && (
-                        <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-lg">
-                          <div className="w-3 h-3 rounded-full bg-primary" />
-                        </div>
-                      )}
                     </div>
-                  </button>
+                    {!wantsDelivery && (
+                      <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-lg">
+                        <div className="w-3 h-3 rounded-full bg-primary" />
+                      </div>
+                    )}
+                  </div>
+                </button>
 
-                  {/* Livraison à domicile */}
-                  <button
-                    onClick={() => handleToggleDeliveryPreference(true)}
-                    disabled={savingDeliveryPref}
-                    className={`group relative overflow-hidden rounded-[24px] p-5 transition-all duration-300 ${
-                      wantsDelivery
-                        ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-[1.02]'
-                        : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
-                    } ${savingDeliveryPref ? 'cursor-wait opacity-50' : 'cursor-pointer'}`}
-                  >
-                    <div className="flex flex-col items-center gap-3 text-center">
-                      <div className={`p-3 rounded-xl transition-all ${
-                        wantsDelivery 
-                          ? 'bg-white/20' 
-                          : 'bg-primary/10 group-hover:bg-primary/20'
-                      }`}>
-                        <Bike className="h-7 w-7" />
-                      </div>
-                      <div>
-                        <div className="font-black text-lg tracking-tight">Livraison à domicile</div>
-                        <div className={`text-sm mt-1 ${
-                          wantsDelivery 
-                            ? 'text-white/90' 
-                            : 'text-muted-foreground'
-                        }`}>
-                          + 3,50€ • 30-40 min
-                        </div>
-                      </div>
-                      {wantsDelivery && (
-                        <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-lg">
-                          <div className="w-3 h-3 rounded-full bg-primary" />
-                        </div>
-                      )}
+                {/* Livraison à domicile */}
+                <button
+                  type="button"
+                  onClick={() => setWantsDelivery(true)}
+                  className={`group relative overflow-hidden rounded-[24px] p-5 transition-all duration-300 ${
+                    wantsDelivery
+                      ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-[1.02]'
+                      : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
+                  }`}
+                >
+                  <div className="flex flex-col items-center gap-3 text-center">
+                    <div className={`p-3 rounded-xl transition-all ${
+                      wantsDelivery 
+                        ? 'bg-white/20' 
+                        : 'bg-primary/10 group-hover:bg-primary/20'
+                    }`}>
+                      <Bike className="h-7 w-7" />
                     </div>
-                  </button>
-                </div>
+                    <div>
+                      <div className="font-black text-lg tracking-tight">Livraison à domicile</div>
+                      <div className={`text-sm mt-1 ${
+                        wantsDelivery 
+                          ? 'text-white/90' 
+                          : 'text-muted-foreground'
+                      }`}>
+                        + 3,50€ • 30-40 min
+                      </div>
+                    </div>
+                    {wantsDelivery && (
+                      <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-lg">
+                        <div className="w-3 h-3 rounded-full bg-primary" />
+                      </div>
+                    )}
+                  </div>
+                </button>
               </div>
             </div>
-          ) : (
-            <form onSubmit={handleSaveAddress} className="space-y-6">
-              <div>
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Adresse de livraison</p>
-                <AddressAutocomplete 
-                  address={address}
-                  onAddressChange={setAddress}
-                />
+
+            {addressMessage && (
+              <div className={`p-4 rounded-2xl text-sm font-medium ${addressMessage.includes('✅') ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-800'}`}>
+                {addressMessage}
               </div>
+            )}
 
-              <div>
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Mode de récupération préféré</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Retrait au camion */}
-                  <button
-                    type="button"
-                    onClick={() => setWantsDelivery(false)}
-                    className={`group relative overflow-hidden rounded-[24px] p-5 transition-all duration-300 ${
-                      !wantsDelivery
-                        ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-[1.02]'
-                        : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
-                    }`}
-                  >
-                    <div className="flex flex-col items-center gap-3 text-center">
-                      <div className={`p-3 rounded-xl transition-all ${
-                        !wantsDelivery 
-                          ? 'bg-white/20' 
-                          : 'bg-primary/10 group-hover:bg-primary/20'
-                      }`}>
-                        <Store className="h-7 w-7" />
-                      </div>
-                      <div>
-                        <div className="font-black text-lg tracking-tight">Retrait au camion</div>
-                        <div className={`text-sm mt-1 ${
-                          !wantsDelivery 
-                            ? 'text-white/90' 
-                            : 'text-muted-foreground'
-                        }`}>
-                          Gratuit • 15-20 min
-                        </div>
-                      </div>
-                      {!wantsDelivery && (
-                        <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-lg">
-                          <div className="w-3 h-3 rounded-full bg-primary" />
-                        </div>
-                      )}
-                    </div>
-                  </button>
-
-                  {/* Livraison à domicile */}
-                  <button
-                    type="button"
-                    onClick={() => setWantsDelivery(true)}
-                    className={`group relative overflow-hidden rounded-[24px] p-5 transition-all duration-300 ${
-                      wantsDelivery
-                        ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-[1.02]'
-                        : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
-                    }`}
-                  >
-                    <div className="flex flex-col items-center gap-3 text-center">
-                      <div className={`p-3 rounded-xl transition-all ${
-                        wantsDelivery 
-                          ? 'bg-white/20' 
-                          : 'bg-primary/10 group-hover:bg-primary/20'
-                      }`}>
-                        <Bike className="h-7 w-7" />
-                      </div>
-                      <div>
-                        <div className="font-black text-lg tracking-tight">Livraison à domicile</div>
-                        <div className={`text-sm mt-1 ${
-                          wantsDelivery 
-                            ? 'text-white/90' 
-                            : 'text-muted-foreground'
-                        }`}>
-                          + 3,50€ • 30-40 min
-                        </div>
-                      </div>
-                      {wantsDelivery && (
-                        <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-lg">
-                          <div className="w-3 h-3 rounded-full bg-primary" />
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              {addressMessage && (
-                <div className={`p-4 rounded-2xl text-sm font-medium ${addressMessage.includes('✅') ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-800'}`}>
-                  {addressMessage}
-                </div>
-              )}
-
-              <div className="flex gap-3">
-                <Button type="submit" disabled={savingAddress} className="flex-1 h-12 rounded-2xl font-bold">
-                  {savingAddress ? 'Enregistrement...' : 'Enregistrer'}
-                </Button>
-                <Button type="button" variant="outline" onClick={() => setIsEditingAddress(false)} className="h-12 rounded-2xl">
-                  Annuler
-                </Button>
-              </div>
-            </form>
-          )}
+            <Button type="submit" disabled={savingAddress} className="w-full h-12 rounded-2xl font-bold">
+              {savingAddress ? 'Enregistrement...' : 'Enregistrer mes préférences'}
+            </Button>
+          </form>
         </Card>
       </section>
 

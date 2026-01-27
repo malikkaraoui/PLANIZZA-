@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { signOut, updateProfile, deleteUser, reauthenticateWithPopup, GoogleAuthProvider, linkWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { ref, remove, get, set } from 'firebase/database';
 import { ref as storageRef, deleteObject } from 'firebase/storage';
-import { Bike, Store, Trash2, AlertCircle, UserPlus } from 'lucide-react';
+import { AlertCircle, Bike, Store, Trash2, UserPlus } from 'lucide-react';
 import { useAuth } from '../app/providers/AuthProvider';
 import { ROUTES } from '../app/routes';
 import { Button } from '../components/ui/Button';
@@ -11,7 +11,7 @@ import { Input } from '../components/ui/Input';
 import Card from '../components/ui/Card';
 import BackButton from '../components/ui/BackButton';
 import PhoneInputWithPrefix from '../components/ui/PhoneInputWithPrefix';
-import AddressInput from '../components/ui/AddressInput';
+import AddressAutocomplete from '../components/ui/AddressAutocomplete';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { auth, db, storage, isFirebaseConfigured } from '../lib/firebase';
 import { useCart } from '../features/cart/hooks/useCart.jsx';
@@ -35,12 +35,14 @@ export default function Account() {
   const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
 
-  // Adresse décomposée
-  const [streetNumber, setStreetNumber] = useState('');
-  const [street, setStreet] = useState('');
-  const [postalCode, setPostalCode] = useState('');
-  const [city, setCity] = useState('');
-  const country = 'France'; // Fixe pour la France
+  // Adresse unifiée (même format que Dashboard)
+  const [address, setAddress] = useState({
+    streetNumber: '',
+    street: '',
+    postalCode: '',
+    city: '',
+    country: 'France'
+  });
 
   // Préférence livraison
   const [wantsDelivery, setWantsDelivery] = useState(false);
@@ -93,13 +95,15 @@ export default function Account() {
             setPhoneNumber('');
           }
 
-          // Charger l'adresse décomposée
+          // Charger l'adresse
           const addr = data.address || {};
-          setStreetNumber(addr.streetNumber || '');
-          setStreet(addr.street || '');
-          setPostalCode(addr.postalCode || '');
-          setCity(addr.city || '');
-          // country est fixe à "France"
+          setAddress({
+            streetNumber: addr.streetNumber || '',
+            street: addr.street || '',
+            postalCode: addr.postalCode || '',
+            city: addr.city || '',
+            country: addr.country || 'France'
+          });
           
           // Charger préférence livraison
           setWantsDelivery(data.preferences?.wantsDelivery || false);
@@ -179,7 +183,7 @@ export default function Account() {
       const displayName = `${firstName.trim()} ${lastName.trim()}`.trim();
 
       // Si guest et qu'il remplit des informations importantes, proposer l'upgrade
-      if (isGuest && (firstName.trim() || lastName.trim() || phoneNumber.trim() || street.trim())) {
+      if (isGuest && (firstName.trim() || lastName.trim() || phoneNumber.trim() || address.street.trim())) {
         // Sauvegarder temporairement les données
         await set(ref(db, `users/${user.uid}`), {
           displayName,
@@ -187,11 +191,11 @@ export default function Account() {
           photoURL: user.photoURL || '',
           phoneNumber: fullPhoneNumber,
           address: {
-            streetNumber: streetNumber.trim(),
-            street: street.trim(),
-            postalCode: postalCode.trim(),
-            city: city.trim(),
-            country: country.trim()
+            streetNumber: address.streetNumber.trim(),
+            street: address.street.trim(),
+            postalCode: address.postalCode.trim(),
+            city: address.city.trim(),
+            country: address.country.trim()
           },
           preferences: {
             wantsDelivery: wantsDelivery
@@ -217,11 +221,11 @@ export default function Account() {
         photoURL: user.photoURL || '',
         phoneNumber: fullPhoneNumber,
         address: {
-          streetNumber: streetNumber.trim(),
-          street: street.trim(),
-          postalCode: postalCode.trim(),
-          city: city.trim(),
-          country: country.trim()
+          streetNumber: address.streetNumber.trim(),
+          street: address.street.trim(),
+          postalCode: address.postalCode.trim(),
+          city: address.city.trim(),
+          country: address.country.trim()
         },
         preferences: {
           wantsDelivery: wantsDelivery
@@ -467,36 +471,14 @@ export default function Account() {
         </Card>
       )}
 
-      {/* Compte */}
+      {/* Compte - Informations basiques */}
       <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-[32px]">
-        <div className="flex items-start justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-16 w-16 border-2 border-white/40 shadow-xl">
-              <AvatarImage src={user?.photoURL} alt={user?.displayName || 'User'} />
-              <AvatarFallback className="bg-primary/20 text-primary font-bold text-lg">
-                {user?.email?.[0]?.toUpperCase() || 'U'}
-              </AvatarFallback>
-            </Avatar>
-
-            <div className="flex-1 min-w-0">
-              <h2 className="text-xl font-black tracking-tight">{isGuest ? 'Session temporaire' : 'Compte Google'}</h2>
-              <p className="text-sm text-muted-foreground mt-0.5">{user?.email}</p>
-            </div>
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-xl font-black tracking-tight">{isGuest ? 'Session temporaire' : 'Compte Google'}</h2>
+            <p className="text-sm text-muted-foreground mt-1">{user?.email}</p>
           </div>
         </div>
-
-        {/* Carte de fidélité */}
-        {!loyaltyLoading && (
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <LoyaltyProgressBar
-              points={points}
-              currentTier={currentTier}
-              nextTier={nextTier}
-              progress={progress}
-              maxTierReached={maxTierReached}
-            />
-          </div>
-        )}
       </Card>
 
       {/* Informations personnelles */}
@@ -529,12 +511,12 @@ export default function Account() {
 
             <div>
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">📍 Adresse</p>
-              {streetNumber || street || postalCode || city ? (
+              {address.streetNumber || address.street || address.postalCode || address.city ? (
                 <div className="text-gray-900 space-y-0.5">
-                  {streetNumber && street && <p className="font-semibold text-lg">{streetNumber} {street}</p>}
-                  {!streetNumber && street && <p className="font-semibold text-lg">{street}</p>}
-                  {(postalCode || city) && (
-                    <p className="text-muted-foreground">{postalCode} {city}</p>
+                  {address.streetNumber && address.street && <p className="font-semibold text-lg">{address.streetNumber} {address.street}</p>}
+                  {!address.streetNumber && address.street && <p className="font-semibold text-lg">{address.street}</p>}
+                  {(address.postalCode || address.city) && (
+                    <p className="text-muted-foreground">{address.postalCode} {address.city}</p>
                   )}
                 </div>
               ) : (
@@ -672,15 +654,9 @@ export default function Account() {
             {/* Adresse */}
             <div>
               <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">📍 Adresse</label>
-              <AddressInput
-                streetNumber={streetNumber}
-                street={street}
-                postalCode={postalCode}
-                city={city}
-                onStreetNumberChange={setStreetNumber}
-                onStreetChange={setStreet}
-                onPostalCodeChange={setPostalCode}
-                onCityChange={setCity}
+              <AddressAutocomplete
+                address={address}
+                onAddressChange={setAddress}
               />
             </div>
 
@@ -782,22 +758,7 @@ export default function Account() {
       )}
 
       {/* Actions rapides */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        {/* Mes commandes */}
-        <Link to={ROUTES.myOrders} className="group">
-          <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[28px] hover:scale-[1.02] hover:shadow-2xl transition-all duration-300 h-full">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-2xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                <span className="text-3xl">📦</span>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-black tracking-tight">Mes commandes</h3>
-                <p className="text-xs text-muted-foreground">Historique complet</p>
-              </div>
-            </div>
-          </Card>
-        </Link>
-
+      <div className="grid gap-4">
         {/* Se déconnecter ou Créer compte */}
         {!isGuest ? (
           <button onClick={onSignOut} disabled={signingOut} className="group text-left">
@@ -828,28 +789,17 @@ export default function Account() {
             </Card>
           </Link>
         )}
-      </div>
-
-      {/* Zone danger */}
-      <Card className="glass-premium border-red-200/50 p-6 rounded-[28px] bg-red-50/50">
-        <div className="flex items-start gap-3 mb-4">
-          <div className="p-2 rounded-xl bg-red-100">
-            <AlertCircle className="h-5 w-5 text-red-600" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-lg font-black tracking-tight text-red-900">Zone de danger</h3>
-            <p className="text-sm text-red-700 mt-1">Cette action est irréversible</p>
-          </div>
+        
+        {/* Supprimer compte - très discret */}
+        <div className="flex justify-end">
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="text-xs text-muted-foreground/50 hover:text-red-600 transition-colors underline underline-offset-2"
+          >
+            Supprimer mon compte
+          </button>
         </div>
-        <Button
-          variant="destructive"
-          onClick={() => setShowDeleteConfirm(true)}
-          className="w-full rounded-2xl font-bold"
-        >
-          <Trash2 className="h-4 w-4 mr-2" />
-          Supprimer mon compte définitivement
-        </Button>
-      </Card>
+      </div>
 
       {signOutError && (
         <Card className="glass-premium border-red-200/50 p-4 rounded-2xl bg-red-50">

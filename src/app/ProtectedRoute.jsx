@@ -50,6 +50,7 @@ export default function ProtectedRoute({ children, requireClient = false, requir
   // Route client : vérifier qu'on a un profil client
   if (requireClient) {
     if (clientLoading) {
+      devLog('[ProtectedRoute] Chargement profil client...');
       return (
         <div className="mx-auto max-w-6xl px-4 py-10">
           <div className="text-gray-600">Chargement du profil…</div>
@@ -59,8 +60,11 @@ export default function ProtectedRoute({ children, requireClient = false, requir
 
     // Pas de profil client -> rediriger vers création profil client
     if (!isClient) {
+      devLog('[ProtectedRoute] ⚠️ Pas de profil client détecté, redirection vers /register/client');
       return <Navigate to="/register/client" replace state={{ from: location }} />;
     }
+    
+    devLog('[ProtectedRoute] ✅ Profil client confirmé, accès autorisé');
   }
 
   // Route pizzaiolo : vérifier qu'on a un profil pizzaiolo
@@ -76,6 +80,16 @@ export default function ProtectedRoute({ children, requireClient = false, requir
     // Pas de profil pizzaiolo -> rediriger vers onboarding pro
     if (!isPizzaiolo) {
       return <Navigate to="/pro/inscription" replace state={{ from: location }} />;
+    }
+  }
+
+  // Sécurité : vérifier la mutuelle exclusion client/pizzaiolo
+  // Un utilisateur ne peut pas être les deux à la fois
+  if (!clientLoading && !pizzaioloLoading && isClient && isPizzaiolo) {
+    devLog('[ProtectedRoute] ⚠️ ERREUR: Utilisateur est à la fois client ET pizzaiolo!');
+    // Priorité au profil pizzaiolo s'il existe (choix métier)
+    if (requireClient) {
+      return <Navigate to="/pro/truck" replace />;
     }
   }
 

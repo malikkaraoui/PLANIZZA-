@@ -27,6 +27,7 @@ const PizzaioloStart = lazy(() => import('../pages/pizzaiolo/Start'));
 const CreateTruck = lazy(() => import('../pages/pizzaiolo/CreateTruck'));
 const StripeOnboarding = lazy(() => import('../pages/pizzaiolo/StripeOnboarding'));
 const E2ETransitionContract = lazy(() => import('../pages/E2ETransitionContract'));
+const NotFound = lazy(() => import('../pages/NotFound'));
 
 import RootLayout from '../components/layout/RootLayout';
 import ProtectedRoute from './ProtectedRoute';
@@ -135,8 +136,11 @@ export const router = createBrowserRouter([
 
       ...e2eRoutes,
 
-      // Route dynamique truck en DERNIER (catch-all pour les slugs)
+      // Route dynamique truck (pour les slugs de camions)
       { path: ':truckId', element: wrap(<TruckDetails />) },
+
+      // 404 - Page non trouvée (catch-all final)
+      { path: '*', element: wrap(<NotFound />) },
     ],
   },
 ]);

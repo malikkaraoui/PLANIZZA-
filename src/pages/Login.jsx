@@ -24,8 +24,14 @@ export default function Login() {
   const searchParams = new URLSearchParams(location.search);
   const isPizzaioloUpgrade = searchParams.get('pizzaiolo') === 'true';
   const shouldShowReconnectMessage = searchParams.get('message') === 'reconnect';
+  const redirectParam = searchParams.get('redirect'); // Nouvelle détection de redirect
 
   const getReturnTo = () => {
+    // Priorité au paramètre redirect
+    if (redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//')) {
+      return redirectParam;
+    }
+    
     const raw = location?.state?.from;
     if (typeof raw === 'string') {
       if (!raw.startsWith('/') || raw.startsWith('//')) return null;

@@ -48,6 +48,8 @@ export default function Checkout() {
         const { user: anonUser } = await signInAnonymously(auth);
         userUid = anonUser.uid;
         customerName = 'Client';
+        // Sauvegarder l'UID guest pour pouvoir récupérer la commande plus tard
+        localStorage.setItem('planizza:guestUserId', userUid);
       }
 
       // 2. Créer la commande (le token Firebase sera récupéré automatiquement par lib/stripe)

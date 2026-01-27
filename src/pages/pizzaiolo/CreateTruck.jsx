@@ -289,13 +289,31 @@ export default function CreateTruck() {
 
   const isNafValid = nafCode.startsWith('56.10C');
   
+  const phoneDigits = phoneNumber.replace(/\D/g, '');
+
+  // Le format PhoneInputWithPrefix est "6 XX XX XX XX" = 9 chiffres (sans le 0 initial)
   const canGoToStep2 = siretValid === 'valid' &&
                        isNafValid &&
                        companyName.trim().length >= 2 &&
                        managerFirstName.trim().length >= 2 &&
                        managerLastName.trim().length >= 2 &&
-                       getDigitsOnly().length === 10 &&
+                       phoneDigits.length === 9 &&
                        professionalEmail.includes('@');
+  
+  // Debug log
+  console.log('[CreateTruck] Validation étape 1:', {
+    siretValid,
+    isNafValid,
+    companyName: companyName.trim().length,
+    managerFirstName: managerFirstName.trim().length,
+    managerLastName: managerLastName.trim().length,
+    phoneNumber,
+    phoneDigits,
+    phoneDigitsLength: phoneDigits.length,
+    professionalEmail,
+    hasAt: professionalEmail.includes('@'),
+    canGoToStep2
+  });
 
   const canGoToStep3 = truckName.trim().length >= 2 &&
                        truckDescription.trim().length >= 10 &&

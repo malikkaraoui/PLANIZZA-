@@ -38,33 +38,8 @@ export default function PizzaioloStart() {
   const [error, setError] = useState('');
 
   const handleBecomePizzaiolo = async () => {
-    if (!isAuthenticated || !user?.uid) {
-      navigate(ROUTES.login);
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-
-    try {
-      // 1. Mettre à jour le rôle en base
-      const userRef = ref(db, `users/${user.uid}`);
-      await update(userRef, {
-        role: 'pizzaiolo',
-        updatedAt: Date.now(),
-      });
-
-      // 2. Déconnecter l'utilisateur
-      await signOut(auth);
-
-      // 3. Rediriger vers login avec message de reconnexion
-      navigate(`${ROUTES.login}?pizzaiolo=true&message=reconnect`);
-    } catch (err) {
-      console.error('[PLANIZZA] Erreur upgrade pizzaiolo:', err);
-      setError('Impossible de créer votre compte professionnel. Réessayez plus tard.');
-    } finally {
-      setLoading(false);
-    }
+    // Redirection directe vers l'inscription professionnel
+    navigate('/pro/inscription');
   };
 
   return (
@@ -80,15 +55,19 @@ export default function PizzaioloStart() {
         </p>
       </div>
 
-      {/* Avantages */}
+      {/* Avantages cliquables */}
       <div className="mt-12 grid gap-6 md:grid-cols-3">
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <button
+          onClick={handleBecomePizzaiolo}
+          disabled={loading}
+          className="rounded-xl border-2 border-emerald-500 bg-gradient-to-br from-emerald-50 to-white p-6 shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300 text-left"
+        >
           <div className="text-3xl">🚚</div>
-          <h3 className="mt-3 font-semibold text-gray-900">Votre camion</h3>
+          <h3 className="mt-3 font-semibold text-gray-900">Explorer une nouvelle route avec mon camion</h3>
           <p className="mt-2 text-sm text-gray-600">
             Créez et personnalisez votre profil : logo, photos, badges (bio, terroir, halal...).
           </p>
-        </div>
+        </button>
 
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="text-3xl">📋</div>
@@ -107,12 +86,12 @@ export default function PizzaioloStart() {
         </div>
       </div>
 
-      {/* Tarifs & Offres */}
+      {/* Tarifs & Offres - Simplifié */}
       <div className="mt-16">
         <div className="text-center">
-          <p className="text-sm font-semibold text-emerald-600">Nos offres</p>
+          <p className="text-sm font-semibold text-emerald-600">Notre offre unique</p>
           <h2 className="mt-2 text-3xl font-extrabold text-gray-900">
-            Des formules adaptées à votre camion
+            Tout ce dont vous avez besoin
           </h2>
           <p className="mt-3 text-gray-700">
             Sans engagement — vous gardez la main sur vos horaires, votre menu et vos commandes.
@@ -121,48 +100,22 @@ export default function PizzaioloStart() {
 
         <div className="mt-8 grid gap-6">
           <PricingCard
-            title="Vitrine"
-            subtitle="Sans engagement"
-            tagline="Gagnez en visibilité et recevez des clients autour de vous."
+            title="Vitrine + Commande + Paiement"
+            subtitle="Formule complète"
+            tagline="Gagnez en visibilité, encaissez en ligne et pilotez vos commandes depuis une seule interface."
             bullets={[
               'Page camion publique (photos, logo, badges, horaires)',
               'Menu en ligne (pizzas / calzones / sucré)',
               'Localisation + itinéraire (Google/Apple Maps)',
               'Avis & note (étoiles) + mise en avant "Proche"',
               'Badges (Bio, Terroir, Sans gluten, Halal, Kasher, Sucré)',
-              'Bouton "Commander" et "Appeler"',
-            ]}
-          />
-
-          <PricingCard
-            title="Commande + Paiement"
-            subtitle="Le plus populaire"
-            tagline="Encaissez en ligne et pilotez vos commandes depuis une seule interface."
-            bullets={[
-              'Tout le plan Vitrine',
               'Commande en ligne (panier, options, quantités, notes client)',
-              'Paiement Stripe Checkout (one-shot)',
+              'Paiement Stripe Checkout sécurisé',
               'Statuts commande en temps réel : reçue → préparation → cuisson → prête',
               'Notifications (nouvelle commande / commande prête)',
-              'Gestion de capacité : minutes/pizza + pizzas/heure (affiche un délai estimé)',
+              'Gestion de capacité : minutes/pizza + pizzas/heure',
               'Créneaux & "pause service" (si rush / rupture)',
               'Historique commandes + stats simples (jour/semaine, best-sellers)',
-            ]}
-          />
-
-          <PricingCard
-            title="Commande + Caisse + TPE"
-            subtitle="Sans engagement"
-            tagline="Synchronisez la vente sur place et la vente en ligne, sans doublons."
-            bullets={[
-              'Tout le plan Commande + Paiement',
-              'Mode caisse (vente comptoir) + tickets',
-              'TPE relié (paiement sur place)',
-              'Pourboire suggéré (optionnel)',
-              'Clôture journée (export compta simple)',
-              'Gestion produits/ruptures (masquer un item automatiquement)',
-              'Multi-utilisateurs (si vous êtes plusieurs à servir)',
-              'Rapports avancés (heures de pointe, temps moyen de préparation)',
             ]}
           />
         </div>
@@ -170,49 +123,30 @@ export default function PizzaioloStart() {
 
       {/* CTA */}
       <div className="mt-12 rounded-xl border-2 border-emerald-500 bg-emerald-50 p-8 text-center">
-        {!isAuthenticated ? (
-          <>
-            <h2 className="text-xl font-semibold text-gray-900">
-              Connectez-vous pour commencer
-            </h2>
-            <p className="mt-2 text-sm text-gray-600">
-              Créez un compte gratuitement avec Google en quelques secondes.
-            </p>
-            <Button
-              onClick={() => navigate(ROUTES.login)}
-              className="mt-4"
-            >
-              Se connecter avec Google
-            </Button>
-          </>
-        ) : (
-          <>
-            <h2 className="text-xl font-semibold text-gray-900">
-              Prêt à rejoindre PLANIZZA ?
-            </h2>
-            <p className="mt-2 text-sm text-gray-600">
-              Vous allez pouvoir créer votre camion et commencer à recevoir des commandes.
-            </p>
+        <h2 className="text-xl font-semibold text-gray-900">
+          Prêt à rejoindre PLANIZZA ?
+        </h2>
+        <p className="mt-2 text-sm text-gray-600">
+          Créez votre camion et commencez à recevoir des commandes en quelques clics.
+        </p>
 
-            {error && (
-              <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
-                {error}
-              </div>
-            )}
-
-            <Button
-              onClick={handleBecomePizzaiolo}
-              disabled={loading}
-              className="mt-4"
-            >
-              {loading ? 'Création en cours...' : 'Créer mon espace professionnel'}
-            </Button>
-
-            <p className="mt-3 text-xs text-gray-500">
-              En cliquant, vous acceptez nos conditions d'utilisation.
-            </p>
-          </>
+        {error && (
+          <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+            {error}
+          </div>
         )}
+
+        <Button
+          onClick={handleBecomePizzaiolo}
+          disabled={loading}
+          className="mt-4"
+        >
+          {loading ? 'Chargement...' : '🚚 Explorer une nouvelle route avec mon camion'}
+        </Button>
+
+        <p className="mt-3 text-xs text-gray-500">
+          En cliquant, vous acceptez nos conditions d'utilisation.
+        </p>
       </div>
 
       {/* Retour */}
