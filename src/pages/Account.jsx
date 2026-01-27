@@ -399,54 +399,89 @@ export default function Account() {
   };
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10">
+    <div className="relative isolate mx-auto max-w-4xl px-4 py-8 sm:px-6 space-y-8">
+      {/* Background decorations */}
+      <div className="absolute top-0 right-0 -z-10 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 left-0 -z-10 w-80 h-80 bg-purple-500/5 rounded-full blur-3xl" />
+
       <BackButton className="mb-4" />
-      <h1 className="text-3xl font-black text-gray-900 mb-8">Mon Profil</h1>
+
+      {/* Hero Section - Avatar + Nom */}
+      <div className="text-center space-y-6">
+        <div className="flex flex-col items-center gap-6">
+          <Avatar className="h-28 w-28 ring-4 ring-primary/20 ring-offset-4 shadow-2xl">
+            <AvatarImage src={user?.photoURL} alt={user?.displayName || 'User'} />
+            <AvatarFallback className="bg-gradient-to-br from-primary to-purple-500 text-white font-black text-3xl">
+              {user?.displayName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
+            </AvatarFallback>
+          </Avatar>
+          
+          <div className="space-y-2">
+            <h1 className="text-4xl sm:text-5xl font-black tracking-tighter text-premium-gradient">
+              Mon Profil
+            </h1>
+            {isGuest && (
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-100 border border-amber-200">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+                <span className="text-sm font-bold text-amber-900">Session temporaire</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Carte de fidélité */}
+        {!loyaltyLoading && !isGuest && (
+          <div className="max-w-lg mx-auto">
+            <LoyaltyProgressBar
+              points={points}
+              currentTier={currentTier}
+              nextTier={nextTier}
+              progress={progress}
+              maxTierReached={maxTierReached}
+            />
+          </div>
+        )}
+      </div>
 
       {/* Bannière session éphémère pour les guests */}
       {isGuest && (
-        <div className="mb-6 rounded-xl border-2 border-amber-200 bg-amber-50 p-6 animate-in fade-in duration-300">
+        <Card className="glass-premium glass-glossy border-amber-200/50 p-6 bg-gradient-to-br from-amber-50 to-amber-100/50">
           <div className="flex items-start gap-3">
-            <AlertCircle className="h-6 w-6 text-amber-600 shrink-0 mt-0.5" />
+            <div className="p-3 rounded-2xl bg-amber-500/10">
+              <AlertCircle className="h-6 w-6 text-amber-600 shrink-0" />
+            </div>
             <div className="flex-1">
-              <h2 className="text-lg font-bold text-amber-900 mb-2">⏳ Session éphémère</h2>
+              <h2 className="text-lg font-black text-amber-900 mb-2">⏳ Session éphémère</h2>
               <p className="text-sm text-amber-800 mb-4">
                 Pour des raisons de sécurité et de traçabilité du paiement, une session temporaire a été créée automatiquement.
-                <strong> Toutes les informations liées à cette session seront supprimées dans 7 jours.</strong>
+                <strong> Toutes les informations seront supprimées dans 7 jours.</strong>
               </p>
               <Link to={ROUTES.register}>
-                <Button className="w-full sm:w-auto" variant="default">
+                <Button className="w-full sm:w-auto rounded-2xl" variant="default">
                   <UserPlus className="mr-2 h-4 w-4" />
-                  Créer mon compte pour sauvegarder mes données
+                  Créer mon compte
                 </Button>
               </Link>
             </div>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Compte */}
-      <Card className="p-6 mb-6">
+      <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-[32px]">
         <div className="flex items-start justify-between mb-6">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">{isGuest ? 'Session temporaire' : 'Compte Google'}</h2>
-            <p className="text-sm text-gray-600 mt-1">
-              {isGuest ? 'Informations de session' : 'Informations de connexion'}
-            </p>
-          </div>
-        </div>
+          <div className="flex items-center gap-3">
+            <Avatar className="h-16 w-16 border-2 border-white/40 shadow-xl">
+              <AvatarImage src={user?.photoURL} alt={user?.displayName || 'User'} />
+              <AvatarFallback className="bg-primary/20 text-primary font-bold text-lg">
+                {user?.email?.[0]?.toUpperCase() || 'U'}
+              </AvatarFallback>
+            </Avatar>
 
-        <div className="flex items-center gap-4">
-          <Avatar className="h-16 w-16 border-2 border-white/40 shadow-xl">
-            <AvatarImage src={user?.photoURL} alt={user?.displayName || 'User'} />
-            <AvatarFallback className="bg-primary/20 text-primary font-bold text-lg">
-              {user?.email?.[0]?.toUpperCase() || 'U'}
-            </AvatarFallback>
-          </Avatar>
-
-          <div className="flex-1 min-w-0">
-            <p className="font-bold text-gray-900 text-lg">{user?.displayName || 'Utilisateur'}</p>
-            <p className="text-sm text-gray-600">{user?.email}</p>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-xl font-black tracking-tight">{isGuest ? 'Session temporaire' : 'Compte Google'}</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">{user?.email}</p>
+            </div>
           </div>
         </div>
 
@@ -466,50 +501,49 @@ export default function Account() {
 
       {/* Informations personnelles */}
       {!isEditing ? (
-        <Card className="p-6">
+        <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-[32px]">
           <div className="flex items-start justify-between mb-6">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Informations personnelles</h2>
-              <p className="text-sm text-gray-600 mt-1">Vos coordonnées</p>
+              <h2 className="text-2xl font-black tracking-tight">Informations personnelles</h2>
+              <p className="text-sm text-muted-foreground mt-1">Vos coordonnées</p>
             </div>
-            <Button onClick={() => setIsEditing(true)} variant="outline">
+            <Button onClick={() => setIsEditing(true)} variant="outline" size="sm" className="rounded-2xl">
               ✏️ Modifier
             </Button>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div>
-              <p className="text-sm font-semibold text-gray-900">� Nom complet</p>
-              <p className="text-gray-700 mt-1">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">👤 Nom complet</p>
+              <p className="text-gray-900 font-semibold text-lg">
                 {firstName || lastName ? `${firstName} ${lastName}`.trim() : 'Non renseigné'}
               </p>
             </div>
 
             <div>
-              <p className="text-sm font-semibold text-gray-900">�📱 Téléphone</p>
-              <p className="text-gray-700 mt-1">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">📱 Téléphone</p>
+              <p className="text-gray-900 font-semibold text-lg">
                 {phoneNumber ? `+33 ${phoneNumber}` : 'Non renseigné'}
               </p>
             </div>
 
             <div>
-              <p className="text-sm font-semibold text-gray-900">📍 Adresse</p>
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">📍 Adresse</p>
               {streetNumber || street || postalCode || city ? (
-                <div className="text-gray-700 mt-1">
-                  {streetNumber && street && <p>{streetNumber} {street}</p>}
-                  {!streetNumber && street && <p>{street}</p>}
+                <div className="text-gray-900 space-y-0.5">
+                  {streetNumber && street && <p className="font-semibold text-lg">{streetNumber} {street}</p>}
+                  {!streetNumber && street && <p className="font-semibold text-lg">{street}</p>}
                   {(postalCode || city) && (
-                    <p>{postalCode} {city}</p>
+                    <p className="text-muted-foreground">{postalCode} {city}</p>
                   )}
-                  {country && <p>{country}</p>}
                 </div>
               ) : (
-                <p className="text-gray-700 mt-1">Non renseignée</p>
+                <p className="text-gray-900 italic">Non renseignée</p>
               )}
             </div>
 
             <div>
-              <p className="text-sm font-semibold text-gray-900 mb-3">🚚 Méthode de récupération par défaut</p>
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">🚚 Méthode de récupération préférée</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Retrait au camion */}
                 <button
@@ -587,44 +621,47 @@ export default function Account() {
           </div>
         </Card>
       ) : (
-        <Card className="p-6">
+        <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-[32px]">
           <div className="flex items-start justify-between mb-6">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Modifier mes informations</h2>
-              <p className="text-sm text-gray-600 mt-1">Mettez à jour vos coordonnées</p>
+              <h2 className="text-2xl font-black tracking-tight">Modifier mes informations</h2>
+              <p className="text-sm text-muted-foreground mt-1">Mettez à jour vos coordonnées</p>
             </div>
-            <Button onClick={() => setIsEditing(false)} variant="outline">
+            <Button onClick={() => setIsEditing(false)} variant="outline" size="sm" className="rounded-2xl">
               Annuler
             </Button>
           </div>
 
           <form onSubmit={handleSaveProfile} className="space-y-6">
             {/* Prénom et Nom */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">👤 Prénom</label>
+                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">👤 Prénom</label>
                 <Input
                   type="text"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   placeholder="Prénom"
+                  className="rounded-2xl"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">👤 Nom</label>
+                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">👤 Nom</label>
                 <Input
                   type="text"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   placeholder="Nom"
+                  className="rounded-2xl"
                   required
                 />
               </div>
             </div>
 
+            {/* Téléphone */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">📱 Numéro de téléphone</label>
+              <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">📱 Numéro de téléphone</label>
               <PhoneInputWithPrefix
                 value={phoneNumber}
                 onChange={setPhoneNumber}
@@ -632,8 +669,9 @@ export default function Account() {
               />
             </div>
 
+            {/* Adresse */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">📍 Adresse</label>
+              <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">📍 Adresse</label>
               <AddressInput
                 streetNumber={streetNumber}
                 street={street}
@@ -648,7 +686,7 @@ export default function Account() {
 
             {/* Préférence de livraison */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">🚚 Méthode de récupération par défaut</label>
+              <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">🚚 Méthode de récupération par défaut</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Retrait au camion */}
                 <button
@@ -725,72 +763,109 @@ export default function Account() {
             </div>
 
             {message && (
-              <div className={`p-4 rounded-lg ${message.includes('✅') ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-800'}`}>
+              <div className={`p-4 rounded-2xl font-medium ${
+                message.includes('✅') 
+                  ? 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20' 
+                  : 'bg-red-500/10 text-red-700 border border-red-500/20'
+              }`}>
                 {message}
               </div>
             )}
 
-            <Button type="submit" disabled={saving} className="w-full">
-              {saving ? 'Sauvegarde en cours...' : 'Enregistrer mes informations'}
-            </Button>
+            <div className="flex gap-3 pt-2">
+              <Button type="submit" disabled={saving} className="flex-1 rounded-2xl font-bold">
+                {saving ? 'Sauvegarde...' : '💾 Enregistrer'}
+              </Button>
+            </div>
           </form>
         </Card>
       )}
 
-      {/* Actions */}
-      <Card className="p-6 mt-6">
-        <div className="space-y-4">
-          <Link to={ROUTES.myOrders}>
-            <Button variant="outline" className="w-full">
-              📦 Mes commandes
-            </Button>
+      {/* Actions rapides */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        {/* Mes commandes */}
+        <Link to={ROUTES.myOrders} className="group">
+          <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[28px] hover:scale-[1.02] hover:shadow-2xl transition-all duration-300 h-full">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-2xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                <span className="text-3xl">📦</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-black tracking-tight">Mes commandes</h3>
+                <p className="text-xs text-muted-foreground">Historique complet</p>
+              </div>
+            </div>
+          </Card>
+        </Link>
+
+        {/* Se déconnecter ou Créer compte */}
+        {!isGuest ? (
+          <button onClick={onSignOut} disabled={signingOut} className="group text-left">
+            <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[28px] hover:scale-[1.02] hover:shadow-2xl transition-all duration-300 h-full">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-2xl bg-orange-500/10 group-hover:bg-orange-500/20 transition-colors">
+                  <span className="text-3xl">🚪</span>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-black tracking-tight">{signingOut ? 'Déconnexion...' : 'Se déconnecter'}</h3>
+                  <p className="text-xs text-muted-foreground">Quitter la session</p>
+                </div>
+              </div>
+            </Card>
+          </button>
+        ) : (
+          <Link to={ROUTES.register} className="group">
+            <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[28px] hover:scale-[1.02] hover:shadow-2xl transition-all duration-300 h-full">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-2xl bg-emerald-500/10 group-hover:bg-emerald-500/20 transition-colors">
+                  <UserPlus className="h-7 w-7 text-emerald-500" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-black tracking-tight">Créer mon compte</h3>
+                  <p className="text-xs text-muted-foreground">Sauvegarder mes données</p>
+                </div>
+              </div>
+            </Card>
           </Link>
+        )}
+      </div>
 
-          {/* Masquer le bouton déconnexion pour les guests */}
-          {!isGuest && (
-            <>
-              <Button
-                variant="outline"
-                onClick={onSignOut}
-                disabled={signingOut}
-                className="w-full"
-              >
-                {signingOut ? 'Déconnexion…' : '🚪 Se déconnecter'}
-              </Button>
-              {signOutError && <p className="text-sm text-red-600">{signOutError}</p>}
-            </>
-          )}
-
-          {/* Afficher le bouton créer compte pour les guests */}
-          {isGuest && (
-            <Link to={ROUTES.register}>
-              <Button variant="default" className="w-full">
-                <UserPlus className="h-4 w-4 mr-2" />
-                Créer mon compte
-              </Button>
-            </Link>
-          )}
-
-          <Button
-            variant="destructive"
-            onClick={() => setShowDeleteConfirm(true)}
-            className="w-full mt-4"
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Supprimer mon compte
-          </Button>
+      {/* Zone danger */}
+      <Card className="glass-premium border-red-200/50 p-6 rounded-[28px] bg-red-50/50">
+        <div className="flex items-start gap-3 mb-4">
+          <div className="p-2 rounded-xl bg-red-100">
+            <AlertCircle className="h-5 w-5 text-red-600" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-black tracking-tight text-red-900">Zone de danger</h3>
+            <p className="text-sm text-red-700 mt-1">Cette action est irréversible</p>
+          </div>
         </div>
+        <Button
+          variant="destructive"
+          onClick={() => setShowDeleteConfirm(true)}
+          className="w-full rounded-2xl font-bold"
+        >
+          <Trash2 className="h-4 w-4 mr-2" />
+          Supprimer mon compte définitivement
+        </Button>
       </Card>
+
+      {signOutError && (
+        <Card className="glass-premium border-red-200/50 p-4 rounded-2xl bg-red-50">
+          <p className="text-sm text-red-800 font-medium">{signOutError}</p>
+        </Card>
+      )}
 
       {/* Modal upgrade compte pour guest */}
       {showEmailPrompt && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300 p-4">
-          <div className="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-300">
+          <div className="glass-premium glass-glossy border-white/30 rounded-[32px] p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-300">
             <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <UserPlus className="h-8 w-8 text-emerald-600" />
+              <div className="w-16 h-16 bg-gradient-to-br from-primary to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/30">
+                <UserPlus className="h-8 w-8 text-white" />
               </div>
-              <h2 className="text-2xl font-black mb-2">Créer votre compte</h2>
+              <h2 className="text-2xl font-black tracking-tight mb-2">Créer votre compte</h2>
               <p className="text-muted-foreground text-sm">
                 Vous avez renseigné des informations personnelles. Pour les sauvegarder et ne pas les perdre, créez un compte avec votre email.
               </p>
@@ -798,22 +873,24 @@ export default function Account() {
 
             <div className="space-y-4 mb-6">
               <div>
-                <label className="block text-sm font-medium mb-2">📧 Email</label>
+                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">📧 Email</label>
                 <Input
                   type="email"
                   value={upgradeEmail}
                   onChange={(e) => setUpgradeEmail(e.target.value)}
                   placeholder="votre@email.com"
+                  className="rounded-2xl"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">🔒 Mot de passe</label>
+                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">🔒 Mot de passe</label>
                 <Input
                   type="password"
                   value={upgradePassword}
                   onChange={(e) => setUpgradePassword(e.target.value)}
                   placeholder="••••••••"
+                  className="rounded-2xl"
                   required
                 />
                 <p className="text-xs text-muted-foreground mt-1">Minimum 6 caractères</p>
@@ -821,7 +898,11 @@ export default function Account() {
             </div>
 
             {message && (
-              <div className={`mb-4 p-3 rounded-lg text-sm ${message.includes('✅') ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-800'}`}>
+              <div className={`mb-4 p-3 rounded-2xl text-sm font-medium ${
+                message.includes('✅') 
+                  ? 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20' 
+                  : 'bg-red-500/10 text-red-700 border border-red-500/20'
+              }`}>
                 {message}
               </div>
             )}
@@ -836,7 +917,7 @@ export default function Account() {
                   setIsEditing(false);
                 }}
                 disabled={upgrading}
-                className="flex-1"
+                className="flex-1 rounded-2xl"
               >
                 Plus tard
               </Button>
@@ -844,9 +925,9 @@ export default function Account() {
                 variant="default"
                 onClick={handleUpgradeAccount}
                 disabled={upgrading || !upgradeEmail.trim() || !upgradePassword.trim()}
-                className="flex-1"
+                className="flex-1 rounded-2xl font-bold"
               >
-                {upgrading ? 'Création...' : 'Créer mon compte'}
+                {upgrading ? 'Création...' : '✨ Créer mon compte'}
               </Button>
             </div>
           </div>
@@ -856,18 +937,18 @@ export default function Account() {
       {/* Modal de confirmation suppression */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300 p-4">
-          <div className="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-300">
+          <div className="glass-premium glass-glossy border-red-500/30 rounded-[32px] p-8 max-w-md w-full shadow-2xl shadow-red-500/20 animate-in zoom-in-95 duration-300">
             <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Trash2 className="h-8 w-8 text-red-600" />
+              <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-red-500/30">
+                <Trash2 className="h-8 w-8 text-white" />
               </div>
-              <h2 className="text-2xl font-black mb-2">Supprimer mon compte</h2>
+              <h2 className="text-2xl font-black tracking-tight mb-2">Supprimer mon compte</h2>
               <p className="text-muted-foreground text-sm">
-                Cette action est <strong>irréversible</strong>. Toutes vos données seront définitivement supprimées :
+                Cette action est <strong className="text-red-600">irréversible</strong>. Toutes vos données seront définitivement supprimées :
               </p>
             </div>
 
-            <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-6 space-y-2 text-sm">
+            <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 mb-6 space-y-2 text-sm">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-red-500 rounded-full" />
                 <span>Informations personnelles (nom, prénom, téléphone)</span>
@@ -891,15 +972,15 @@ export default function Account() {
             </div>
 
             <div className="mb-6">
-              <label className="block text-sm font-bold mb-2">
-                Pour confirmer, tapez <span className="text-red-600">SUPPRIMER</span>
+              <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
+                Pour confirmer, tapez <span className="text-red-600 font-black">SUPPRIMER</span>
               </label>
               <Input
                 type="text"
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
                 placeholder="Tapez SUPPRIMER"
-                className="text-center font-bold"
+                className="text-center font-bold rounded-2xl"
               />
             </div>
 
@@ -911,7 +992,7 @@ export default function Account() {
                   setDeleteConfirmText('');
                 }}
                 disabled={deleting}
-                className="flex-1"
+                className="flex-1 rounded-2xl"
               >
                 Annuler
               </Button>
@@ -919,9 +1000,9 @@ export default function Account() {
                 variant="destructive"
                 onClick={handleDeleteAccount}
                 disabled={deleting || deleteConfirmText !== 'SUPPRIMER'}
-                className="flex-1"
+                className="flex-1 rounded-2xl font-bold"
               >
-                {deleting ? 'Suppression...' : 'Supprimer définitivement'}
+                {deleting ? 'Suppression...' : '🗑️ Supprimer définitivement'}
               </Button>
             </div>
           </div>

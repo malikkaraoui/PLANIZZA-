@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../app/providers/AuthProvider';
 import { ref, update } from 'firebase/database';
-import { db } from '../../lib/firebase';
+import { signOut } from 'firebase/auth';
+import { db, auth } from '../../lib/firebase';
 import { ROUTES } from '../../app/routes';
 import { Button } from '../../components/ui/Button';
 import BackButton from '../../components/ui/BackButton';
@@ -46,14 +47,18 @@ export default function PizzaioloStart() {
     setError('');
 
     try {
+      // 1. Mettre à jour le rôle en base
       const userRef = ref(db, `users/${user.uid}`);
       await update(userRef, {
         role: 'pizzaiolo',
         updatedAt: Date.now(),
       });
 
-      // Redirection vers la création de camion
-      navigate('/pro/creer-camion');
+      // 2. Déconnecter l'utilisateur
+      await signOut(auth);
+
+      // 3. Rediriger vers login avec message de reconnexion
+      navigate(`${ROUTES.login}?pizzaiolo=true&message=reconnect`);
     } catch (err) {
       console.error('[PLANIZZA] Erreur upgrade pizzaiolo:', err);
       setError('Impossible de créer votre compte professionnel. Réessayez plus tard.');

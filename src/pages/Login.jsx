@@ -20,6 +20,11 @@ export default function Login() {
   const passwordRef = useRef(null);
   const formRef = useRef(null);
 
+  // Détection du paramètre pizzaiolo pour afficher un message de reconnexion
+  const searchParams = new URLSearchParams(location.search);
+  const isPizzaioloUpgrade = searchParams.get('pizzaiolo') === 'true';
+  const shouldShowReconnectMessage = searchParams.get('message') === 'reconnect';
+
   const getReturnTo = () => {
     const raw = location?.state?.from;
     if (typeof raw === 'string') {
@@ -54,7 +59,12 @@ export default function Login() {
       provider.setCustomParameters({ prompt: 'select_account' });
       const cred = await signInWithPopup(auth, provider);
       await upsertUserProfile(cred.user);
-      navigate(returnTo || '/explore', { replace: true });
+      // Rediriger vers création camion si upgrade pizzaiolo
+      if (isPizzaioloUpgrade) {
+        navigate('/pro/creer-camion', { replace: true });
+      } else {
+        navigate(returnTo || '/explore', { replace: true });
+      }
     } catch (err) {
       setError(err?.message || 'Connexion Google impossible');
     } finally {
@@ -75,7 +85,12 @@ export default function Login() {
     try {
       const cred = await signInWithEmailAndPassword(auth, email, password);
       await upsertUserProfile(cred.user);
-      navigate(returnTo || '/explore', { replace: true });
+      // Rediriger vers création camion si upgrade pizzaiolo
+      if (isPizzaioloUpgrade) {
+        navigate('/pro/creer-camion', { replace: true });
+      } else {
+        navigate(returnTo || '/explore', { replace: true });
+      }
     } catch (err) {
       setError(err?.message || 'Connexion impossible');
     } finally {
@@ -154,6 +169,18 @@ export default function Login() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Message de reconnexion après upgrade pizzaiolo */}
+          {isPizzaioloUpgrade && shouldShowReconnectMessage && (
+            <div className="p-4 rounded-2xl bg-primary/10 border border-primary/30">
+              <p className="text-sm font-semibold text-primary">
+                🎉 Votre compte a été transformé en compte pizzaiolo !
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Reconnectez-vous pour accéder à la création de votre camion.
+              </p>
+            </div>
+          )}
+
           <form ref={formRef} className="space-y-4" onSubmit={onSubmit}>
             <div className="space-y-2">
               <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
