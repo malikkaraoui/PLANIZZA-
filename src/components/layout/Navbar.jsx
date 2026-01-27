@@ -14,48 +14,27 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 import { useAuth } from '../../app/providers/AuthProvider';
+import { useClientProfile } from '../../features/users/hooks/useClientProfile';
+import { usePizzaioloProfile } from '../../features/users/hooks/usePizzaioloProfile';
 import { ROUTES } from '../../app/routes';
 import { useCart } from '../../features/cart/hooks/useCart.jsx';
-import { ref, onValue, get, set } from 'firebase/database';
+import { ref, get } from 'firebase/database';
 import { db } from '../../lib/firebase';
-import { rtdbPaths } from '../../lib/rtdbPaths';
 import { useScrollDirection } from '../../hooks/useScrollDirection';
 
 export default function Navbar() {
   const { isAuthenticated, user } = useAuth();
+  const { isClient } = useClientProfile();
+  const { isPizzaiolo, truckId: pizzaioloTruckId } = usePizzaioloProfile();
   const { items } = useCart();
   const location = useLocation();
-  const [pizzaioloTruckId, setPizzaioloTruckId] = useState(null);
   const [pizzaPerHour, setPizzaPerHour] = useState(30);
   const { isVisible } = useScrollDirection(10);
 
-  const isPizzaiolo = Boolean(user?.uid && pizzaioloTruckId);
   const isOnOrdersPage = location.pathname === '/pro/commandes';
 
   const cartItemsCount = items.reduce((sum, item) => sum + (item.qty || 0), 0);
   const cartHasItems = cartItemsCount > 0;
-
-  // Vérifier si l'utilisateur est pizzaiolo (écoute en temps réel)
-  useEffect(() => {
-    if (!user?.uid) return;
-
-    // Reset (asynchrone) pour éviter d'afficher l'état précédent si l'uid change.
-    queueMicrotask(() => setPizzaioloTruckId(null));
-
-    const pizzaioloRef = ref(db, rtdbPaths.pizzaiolo(user.uid));
-    const unsubscribe = onValue(
-      pizzaioloRef,
-      (snap) => {
-        setPizzaioloTruckId(snap.exists() ? (snap.val()?.truckId ?? null) : null);
-      },
-      (err) => {
-        console.error('[PLANIZZA] Erreur écoute pizzaiolo:', err);
-        setPizzaioloTruckId(null);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [user?.uid]);
 
   // Charger la cadence du camion si on est sur la page Orders
   useEffect(() => {

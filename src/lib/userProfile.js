@@ -2,39 +2,12 @@ import { get, ref, serverTimestamp, set, update } from 'firebase/database';
 import { db, isFirebaseConfigured } from './firebase';
 
 /**
- * Crée/MàJ le profil utilisateur dans RTDB.
- *
- * Stockage par UID (clé sûre côté règles), tout en conservant l'email comme identifiant unique métier.
- * Chemin: /users/{uid}
+ * DÉPRÉCIÉ - Ne plus utiliser cette fonction.
+ * Les profils client et pizzaiolo sont maintenant créés explicitement
+ * via useClientProfile.createClientProfile() ou usePizzaioloProfile.createPizzaioloProfile()
  */
 export async function upsertUserProfile(firebaseUser) {
-  if (!isFirebaseConfigured || !db) return;
-  if (!firebaseUser?.uid) return;
-
-  const userRef = ref(db, `users/${firebaseUser.uid}`);
-
-  const payload = {
-    uid: firebaseUser.uid,
-    email: firebaseUser.email ?? null,
-    displayName: firebaseUser.displayName ?? null,
-    photoURL: firebaseUser.photoURL ?? null,
-    providerId: firebaseUser.providerData?.[0]?.providerId ?? null,
-    updatedAt: serverTimestamp(),
-  };
-
-  const snap = await get(userRef);
-
-  if (!snap.exists()) {
-    await set(userRef, {
-      ...payload,
-      phoneNumber: null,
-      phoneVerified: false,
-      role: 'user',
-      createdAt: serverTimestamp(),
-    });
-    return;
-  }
-
-  // Ne pas écraser createdAt si déjà présent
-  await update(userRef, payload);
+  // Ne fait plus rien - on ne crée plus automatiquement de profil
+  console.warn('[DEPRECATED] upsertUserProfile ne crée plus de profil automatiquement');
+  return;
 }

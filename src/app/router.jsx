@@ -13,6 +13,8 @@ const Dashboard = lazy(() => import('../pages/Dashboard'));
 const Orders = lazy(() => import('../pages/Orders'));
 const Login = lazy(() => import('../pages/Login'));
 const Register = lazy(() => import('../pages/Register'));
+const RegisterClient = lazy(() => import('../pages/RegisterClient'));
+const RegisterPizzaiolo = lazy(() => import('../pages/RegisterPizzaiolo'));
 
 const PizzaioloDashboard = lazy(() => import('../pages/pizzaiolo/Dashboard'));
 const PizzaioloProfile = lazy(() => import('../pages/pizzaiolo/Profile'));
@@ -79,13 +81,15 @@ export const router = createBrowserRouter([
 
       // Auth
       { path: 'login', element: wrap(<Login />) },
-      { path: 'register', element: wrap(<Register />) },
+      { path: 'register', element: <Navigate to="/register/client" replace /> },
+      { path: 'register/client', element: wrap(<RegisterClient />) },
+      { path: 'pro/inscription', element: wrap(<RegisterPizzaiolo />) },
 
 
-      // Client (privé plus tard; navigation en place)
-      { path: 'dashboard', element: <ProtectedRoute>{wrap(<Dashboard />)}</ProtectedRoute> },
-      { path: 'mon-compte', element: <ProtectedRoute>{wrap(<Account />)}</ProtectedRoute> },
-      { path: 'commandes', element: <ProtectedRoute>{wrap(<Orders />)}</ProtectedRoute> },
+      // Client (privé requireClient)
+      { path: 'dashboard', element: <ProtectedRoute requireClient={true}>{wrap(<Dashboard />)}</ProtectedRoute> },
+      { path: 'mon-compte', element: <ProtectedRoute requireClient={true}>{wrap(<Account />)}</ProtectedRoute> },
+      { path: 'commandes', element: <ProtectedRoute requireClient={true}>{wrap(<Orders />)}</ProtectedRoute> },
 
       // Pizzaiolo start (public pour découverte)
       { path: 'pizzaiolo/start', element: wrap(<PizzaioloStart />) },

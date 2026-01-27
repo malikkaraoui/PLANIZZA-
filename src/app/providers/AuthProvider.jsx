@@ -2,7 +2,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, isFirebaseConfigured } from '../../lib/firebase';
-import { upsertUserProfile } from '../../lib/userProfile';
 
 const AuthContext = createContext(null);
 
@@ -32,12 +31,10 @@ export function AuthProvider({ children }) {
       setUser(u);
       setLoading(false);
 
-      // Best-effort: on crée/maj un profil RTDB (email + photoURL Google, etc.)
-      if (u) {
-        upsertUserProfile(u).catch((err) => {
-          console.warn('[PLANIZZA] Impossible de synchroniser le profil utilisateur:', err);
-        });
-      }
+      // On ne crée plus automatiquement de profil
+      // Les profils sont créés explicitement :
+      // - Client : via useClientProfile.createClientProfile()
+      // - Pizzaiolo : via usePizzaioloProfile.createPizzaioloProfile()
     });
 
     return () => unsub();
