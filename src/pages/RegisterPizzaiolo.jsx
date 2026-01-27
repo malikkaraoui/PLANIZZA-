@@ -1,21 +1,30 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { auth } from '../../lib/firebase';
-import { usePizzaioloProfile } from '../../features/users/hooks/usePizzaioloProfile';
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
-import Card from '../../components/ui/Card';
-import { Pizza, TrendingUp, Zap, Users } from 'lucide-react';
+import { auth } from '../lib/firebase';
+import { usePizzaioloProfile } from '../features/users/hooks/usePizzaioloProfile';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import Card from '../components/ui/Card';
+import PhoneInputWithPrefix from '../components/ui/PhoneInputWithPrefix';
+import { Pizza, TrendingUp, Zap, Users, Eye, EyeOff } from 'lucide-react';
 
 export default function RegisterPizzaiolo() {
   const navigate = useNavigate();
-  const { createPizzaioloProfile } = usePizzaioloProfile();
+  const { isPizzaiolo, loading: profileLoading, createPizzaioloProfile } = usePizzaioloProfile();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [loading, setLoading] = useState('');
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Rediriger si déjà pizzaiolo
+  useEffect(() => {
+    if (!profileLoading && isPizzaiolo) {
+      navigate('/pro/truck', { replace: true });
+    }
+  }, [isPizzaiolo, profileLoading, navigate]);
 
   const handleEmailRegister = async (e) => {
     e.preventDefault();
@@ -23,16 +32,30 @@ export default function RegisterPizzaiolo() {
     setLoading(true);
 
     try {
-      // 1. Créer le compte Firebase Auth
-      await createUserWithEmailAndPassword(auth, email, password);
+      console.log('[RegisterPizzaiolo] Début inscription...');
       
-      // 2. Créer le profil pizzaiolo dans RTDB
-      await createPizzaioloProfile({
-        phoneNumber: phoneNumber || '',
+      // 1. Créer le compte Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      console.log('[RegisterPizzaiolo] Compte créé:', userCredential.user.uid);
+      
+      // 2. Attendre un court instant que Firebase Auth soit complètement initialisé
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // 3. Créer le profil pizzaiolo dans RTDB
+      const fullPhone = phoneNumber ? `+33${phoneNumber.replace(/\s/g, '')}` : '';
+      const success = await createPizzaioloProfile({
+        phoneNumber: fullPhone,
         displayName: email.split('@')[0],
       });
 
-      // 3. Rediriger vers création du camion
+      console.log('[RegisterPizzaiolo] Profil créé:', success);
+
+      if (!success) {
+        throw new Error('Impossible de créer le profil pizzaiolo');
+      }
+
+      // 4. Rediriger vers création du camion
+      console.log('[RegisterPizzaiolo] Redirection vers /pro/creer-camion');
       navigate('/pro/creer-camion');
     } catch (err) {
       console.error('[RegisterPizzaiolo] Error:', err);
@@ -51,8 +74,9 @@ export default function RegisterPizzaiolo() {
       await signInWithPopup(auth, provider);
       
       // Créer le profil pizzaiolo
+      const fullPhone = phoneNumber ? `+33${phoneNumber.replace(/\s/g, '')}` : '';
       await createPizzaioloProfile({
-        phoneNumber: phoneNumber || '',
+        phoneNumber: fullPhone,
       });
 
       navigate('/pro/creer-camion');
@@ -114,27 +138,40 @@ export default function RegisterPizzaiolo() {
 
           <div>
             <label className="block text-sm font-bold mb-2">Mot de passe</label>
-            <Input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              minLength={6}
-              className="rounded-2xl h-12"
-            />
+            <div className="relative">
+              <Input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                minLength={6}
+                className="rounded-2xl h-12 pr-12"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showPassword ? (
+                  <EyeOff className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
+              </button>
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm font-bold mb-2">Téléphone</label>
-            <Input
-              type="tel"
+            <label className="block text-sm font-bold mb-2">Téléphone professionnel</label>
+            <PhoneInputWithPrefix
               value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-              placeholder="+33 6 12 34 56 78"
-              required
-              className="rounded-2xl h-12"
+              onChange={setPhoneNumber}
+              placeholder="6 12 34 56 78"
             />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Format : 06 ou 07 uniquement
+            </p>
           </div>
 
           <Button

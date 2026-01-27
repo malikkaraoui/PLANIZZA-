@@ -38,6 +38,13 @@ export default function Dashboard() {
 
   const isPizzaiolo = Boolean(truckId);
 
+  // Rediriger les pizzaiolos vers leur dashboard pro
+  useEffect(() => {
+    if (isPizzaiolo && !_loadingTruckId) {
+      navigate('/pro/truck', { replace: true });
+    }
+  }, [isPizzaiolo, _loadingTruckId, navigate]);
+
   const { togglePause, isUpdating: isPauseUpdating } = useTruckPause(truckId);
   const { count: activeOrdersCount } = useActiveOrdersCount(truckId);
   const [phoneNumber, setPhoneNumber] = useState('');

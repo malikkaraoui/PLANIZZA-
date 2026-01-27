@@ -56,13 +56,18 @@ export function usePizzaioloProfile() {
    * Créer un profil pizzaiolo
    */
   const createPizzaioloProfile = async (data = {}) => {
-    if (!user?.uid || !db) return false;
+    // Utiliser auth.currentUser directement au lieu de user du hook
+    const currentUser = user || (await import('../../../lib/firebase').then(m => m.auth.currentUser));
+    if (!currentUser?.uid || !db) {
+      console.error('[usePizzaioloProfile] No user or db:', { currentUser, db });
+      return false;
+    }
 
     try {
       const profileData = {
-        displayName: user.displayName || '',
-        email: user.email || '',
-        photoURL: user.photoURL || '',
+        displayName: currentUser.displayName || data.displayName || '',
+        email: currentUser.email || '',
+        photoURL: currentUser.photoURL || '',
         phoneNumber: data.phoneNumber || '',
         truckId: data.truckId || null,
         createdAt: Date.now(),
@@ -70,7 +75,9 @@ export function usePizzaioloProfile() {
         ...data,
       };
 
-      await set(ref(db, `pizzaiolos/${user.uid}`), profileData);
+      console.log('[usePizzaioloProfile] Creating profile for:', currentUser.uid, profileData);
+      await set(ref(db, `pizzaiolos/${currentUser.uid}`), profileData);
+      console.log('[usePizzaioloProfile] Profile created successfully');
       return true;
     } catch (error) {
       console.error('[usePizzaioloProfile] Create error:', error);

@@ -381,8 +381,8 @@ export default function CreateTruck() {
         createdAt: Date.now()
       });
 
-      // Rediriger vers le dashboard
-      navigate(ROUTES.dashboard);
+      // Rediriger vers le dashboard pro
+      navigate(ROUTES.pizzaioloProfile);
     } catch (err) {
       console.error('[PLANIZZA] Erreur création camion:', err);
       setError('Impossible de créer votre camion. Réessayez plus tard.');

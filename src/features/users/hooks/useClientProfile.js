@@ -26,6 +26,13 @@ export function useClientProfile() {
     const unsubscribe = onValue(
       profileRef,
       (snapshot) => {
+        console.log('[useClientProfile] Snapshot:', { 
+          exists: snapshot.exists(), 
+          uid: user.uid,
+          path: `users/${user.uid}`,
+          data: snapshot.val() 
+        });
+        
         if (snapshot.exists()) {
           const data = snapshot.val();
           setProfile(data);
@@ -51,13 +58,18 @@ export function useClientProfile() {
    * Créer un profil client
    */
   const createClientProfile = async (data = {}) => {
-    if (!user?.uid || !db) return false;
+    // Utiliser auth.currentUser directement au lieu de user du hook
+    const currentUser = user || (await import('../../../lib/firebase').then(m => m.auth.currentUser));
+    if (!currentUser?.uid || !db) {
+      console.error('[useClientProfile] No user or db:', { currentUser, db });
+      return false;
+    }
 
     try {
       const profileData = {
-        displayName: user.displayName || '',
-        email: user.email || '',
-        photoURL: user.photoURL || '',
+        displayName: currentUser.displayName || data.displayName || '',
+        email: currentUser.email || '',
+        photoURL: currentUser.photoURL || '',
         phoneNumber: data.phoneNumber || '',
         phoneVerified: false,
         createdAt: Date.now(),
@@ -65,7 +77,9 @@ export function useClientProfile() {
         ...data,
       };
 
-      await set(ref(db, `users/${user.uid}`), profileData);
+      console.log('[useClientProfile] Creating profile for:', currentUser.uid, profileData);
+      await set(ref(db, `users/${currentUser.uid}`), profileData);
+      console.log('[useClientProfile] Profile created successfully');
       return true;
     } catch (error) {
       console.error('[useClientProfile] Create error:', error);
