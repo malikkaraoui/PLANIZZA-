@@ -277,50 +277,38 @@ export default function Dashboard() {
   const completedOrders = orders.filter(o => o.status === 'ready' || o.status === 'completed').length;
 
   return (
-    <div className="relative isolate mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-12">
+    <div className="relative isolate mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 space-y-10">
       {/* Background decorations */}
-      <div className="absolute top-0 right-0 -z-10 w-150 h-150 bg-primary/5 rounded-full blur-[120px]" />
-      <div className="absolute bottom-0 left-0 -z-10 w-100 h-100 bg-orange-500/5 rounded-full blur-[100px]" />
+      <div className="absolute top-0 right-0 -z-10 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 left-0 -z-10 w-80 h-80 bg-orange-500/5 rounded-full blur-3xl" />
 
       <BackButton className="mb-4" />
 
-      {/* Header */}
-      <div className="text-center space-y-4">
-        <div className="flex justify-center mb-6">
-          <div className="relative">
-            <Avatar className="h-24 w-24 border-4 border-white/40 shadow-2xl">
-              <AvatarImage src={user?.photoURL} alt={user?.displayName || 'User'} />
-              <AvatarFallback className="bg-primary/20 text-primary font-black text-2xl">
-                {user?.displayName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
-              </AvatarFallback>
-            </Avatar>
-            {isPizzaiolo && (
-              <div className="absolute -bottom-1 -right-1 h-10 w-10 rounded-full bg-orange-500 border-4 border-white shadow-xl flex items-center justify-center animate-in zoom-in">
-                <ChefHat className="h-5 w-5 text-white" />
-              </div>
-            )}
+      {/* Hero Section - Avatar + Nom + Fidélité */}
+      <div className="text-center space-y-6">
+        <div className="flex flex-col items-center gap-6">
+          {/* Avatar */}
+          <Avatar className="h-28 w-28 ring-4 ring-primary/20 ring-offset-4 shadow-2xl">
+            <AvatarImage src={user?.photoURL} alt={user?.displayName || 'User'} />
+            <AvatarFallback className="bg-gradient-to-br from-primary to-orange-500 text-white font-black text-3xl">
+              {user?.displayName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
+            </AvatarFallback>
+          </Avatar>
+          
+          {/* Texte d'accueil */}
+          <div className="space-y-2">
+            <h1 className="text-5xl sm:text-6xl font-black tracking-tighter text-premium-gradient">
+              Salut, {user?.displayName?.split(' ')[0] || 'toi'} ! 👋
+            </h1>
+            <p className="text-muted-foreground font-medium text-lg">
+              Ton espace client PLANIZZA
+            </p>
           </div>
         </div>
-        <h1 className="text-5xl font-black tracking-tighter text-premium-gradient">
-          Salut, {user?.displayName?.split(' ')[0] || 'toi'} ! 👋
-        </h1>
-        <p className="text-muted-foreground font-medium text-lg">
-          Bienvenue sur votre tableau de bord personnel
-        </p>
-
-        {/* Téléphone */}
-        {phoneNumber && (
-          <div className="inline-flex items-center gap-2 text-sm text-gray-600 bg-white/50 px-4 py-2 rounded-full border border-gray-200 group hover:bg-white transition-all duration-300 cursor-default overflow-hidden">
-            <Phone className="h-4 w-4 text-primary transition-all duration-2000 ease-linear group-hover:-rotate-360 group-hover:translate-x-1" />
-            <span className="font-medium max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-2000 ease-linear whitespace-nowrap">
-              {phoneNumber}
-            </span>
-          </div>
-        )}
 
         {/* Carte de fidélité */}
         {!loyaltyLoading && (
-          <div className="max-w-md mx-auto mt-6">
+          <div className="max-w-lg mx-auto">
             <LoyaltyProgressBar
               points={points}
               currentTier={currentTier}
@@ -332,22 +320,64 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Section Client */}
-      <section className="space-y-6">
-        <div className="flex items-center gap-4">
-          <div className="h-1 flex-1 bg-linear-to-r from-transparent via-primary/30 to-transparent rounded-full" />
-          <h2 className="text-2xl font-black tracking-tight flex items-center gap-3">
-            <Pizza className="h-7 w-7 text-primary" />
-            Mon Espace Client
-          </h2>
-          <div className="h-1 flex-1 bg-linear-to-r from-transparent via-primary/30 to-transparent rounded-full" />
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2">
+      {/* Quick Actions - Grille 3 colonnes */}
+      <section>
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {/* Mes Commandes */}
-          <Link to={ROUTES.myOrders}>
-            <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px] hover:scale-[1.02] hover:shadow-2xl transition-all group cursor-pointer h-full">
-              <div className="space-y-3">
+          <Link to={ROUTES.myOrders} className="group">
+            <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[28px] hover:scale-[1.02] hover:shadow-2xl transition-all duration-300 h-full">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 rounded-2xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                  <Receipt className="h-7 w-7 text-primary" />
+                </div>
+                <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+              </div>
+              <h3 className="text-xl font-black tracking-tight mb-2">Mes Commandes</h3>
+              <p className="text-sm text-muted-foreground">
+                {totalOrders === 0 ? 'Aucune commande' : `${totalOrders} commande${totalOrders > 1 ? 's' : ''}`}
+              </p>
+              {totalOrders > 0 && (
+                <div className="flex items-center gap-2 text-xs font-bold text-emerald-500 mt-3">
+                  <TrendingUp className="h-4 w-4" />
+                  {completedOrders} terminée{completedOrders > 1 ? 's' : ''}
+                </div>
+              )}
+            </Card>
+          </Link>
+
+          {/* Explorer */}
+          <Link to={ROUTES.explore} className="group">
+            <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[28px] hover:scale-[1.02] hover:shadow-2xl transition-all duration-300 h-full">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 rounded-2xl bg-orange-500/10 group-hover:bg-orange-500/20 transition-colors">
+                  <Pizza className="h-7 w-7 text-orange-500" />
+                </div>
+                <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
+              </div>
+              <h3 className="text-xl font-black tracking-tight mb-2">Explorer</h3>
+              <p className="text-sm text-muted-foreground">
+                Découvre les camions près de toi
+              </p>
+            </Card>
+          </Link>
+
+          {/* Mon Profil */}
+          <Link to="/mon-compte" className="group">
+            <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[28px] hover:scale-[1.02] hover:shadow-2xl transition-all duration-300 h-full">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 rounded-2xl bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors">
+                  <UserCircle className="h-7 w-7 text-purple-500" />
+                </div>
+                <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-purple-500 group-hover:translate-x-1 transition-all" />
+              </div>
+              <h3 className="text-xl font-black tracking-tight mb-2">Mon Profil</h3>
+              <p className="text-sm text-muted-foreground">
+                Gérer mes informations
+              </p>
+            </Card>
+          </Link>
+        </div>
+      </section>
                 <div className="flex items-start justify-between">
                   <div className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
                     <Receipt className="h-6 w-6 text-primary" />
@@ -641,188 +671,230 @@ export default function Dashboard() {
         )}
       </section>
 
-      {/* Section Pizzaiolo (si applicable) */}
-      {isPizzaiolo ? (
-        <section className="space-y-6">
-          <div className="flex items-center gap-4">
-            <div className="h-1 flex-1 bg-linear-to-r from-transparent via-orange-500/30 to-transparent rounded-full" />
-            <h2 className="text-2xl font-black tracking-tight flex items-center gap-3">
-              <ChefHat className="h-7 w-7 text-orange-500" />
-              Mon Espace Pizzaiolo
-            </h2>
-            <div className="h-1 flex-1 bg-linear-to-r from-transparent via-orange-500/30 to-transparent rounded-full" />
+      {/* Ma Livraison - Section unifiée */}
+      <section>
+        <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-[32px]">
+          <div className="flex items-start justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-primary/10">
+                <MapPin className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-black tracking-tight">Ma Livraison</h3>
+                <p className="text-sm text-muted-foreground mt-1">Comment récupérer mes pizzas</p>
+              </div>
+            </div>
+            {!isEditingAddress && (
+              <Button onClick={() => setIsEditingAddress(true)} variant="outline" size="sm" className="rounded-2xl">
+                <Edit2 className="h-4 w-4 mr-2" />
+                Modifier
+              </Button>
+            )}
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
-            {/* Mon Camion */}
-            <Link to={ROUTES.pizzaioloProfile} className="relative">
-              <Card className="glass-premium glass-glossy border-orange-500/20 p-8 rounded-[32px] hover:scale-[1.02] hover:shadow-2xl hover:shadow-orange-500/10 transition-all group cursor-pointer h-full">
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div className="p-4 rounded-2xl bg-orange-500/10 group-hover:bg-orange-500/20 transition-colors">
-                      <Store className="h-8 w-8 text-orange-500" />
+          {!isEditingAddress ? (
+            <div className="space-y-6">
+              {/* Adresse */}
+              <div>
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Adresse de livraison</p>
+                <div className="text-gray-900">
+                  {address.streetNumber || address.street || address.postalCode || address.city ? (
+                    <div className="space-y-0.5">
+                      {address.streetNumber && address.street && <p className="font-semibold text-lg">{address.streetNumber} {address.street}</p>}
+                      {!address.streetNumber && address.street && <p className="font-semibold text-lg">{address.street}</p>}
+                      {(address.postalCode || address.city) && (
+                        <p className="text-muted-foreground">{address.postalCode} {address.city}</p>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleTogglePause();
-                        }}
-                        disabled={isPauseUpdating || !truckData}
-                        size="sm"
-                        variant={truckData?.isPaused ? "default" : "outline"}
-                        className={truckData?.isPaused ? "bg-emerald-500 hover:bg-emerald-600" : ""}
-                      >
-                        {isPauseUpdating ? (
-                          '...'
-                        ) : truckData?.isPaused ? (
-                          <>
-                            <Play className="h-4 w-4 mr-1" />
-                            Relancer
-                          </>
-                        ) : (
-                          <>
-                            <Pause className="h-4 w-4 mr-1" />
-                            Pause
-                          </>
-                        )}
-                      </Button>
-                      <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <h3 className="text-xl font-black tracking-tight">Mon Camion</h3>
-                    {loadingTruck ? (
-                      <p className="text-sm text-muted-foreground font-medium">Chargement...</p>
-                    ) : truckData ? (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <p className="text-lg font-bold text-orange-500">{truckData.name}</p>
-                          {truckData.isPaused && (
-                            <Badge variant="secondary" className="text-xs">
-                              <Pause className="h-3 w-3 mr-1" />
-                              En pause
-                            </Badge>
-                          )}
+                  ) : (
+                    <p className="text-muted-foreground italic">Aucune adresse renseignée</p>
+                  )}
+                </div>
+              </div>
+              
+              {/* Mode de récupération */}
+              <div>
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Mode de récupération préféré</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Retrait au camion */}
+                  <button
+                    onClick={() => handleToggleDeliveryPreference(false)}
+                    disabled={savingDeliveryPref}
+                    className={`group relative overflow-hidden rounded-[24px] p-5 transition-all duration-300 ${
+                      !wantsDelivery
+                        ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-[1.02]'
+                        : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
+                    } ${savingDeliveryPref ? 'cursor-wait opacity-50' : 'cursor-pointer'}`}
+                  >
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <div className={`p-3 rounded-xl transition-all ${
+                        !wantsDelivery 
+                          ? 'bg-white/20' 
+                          : 'bg-primary/10 group-hover:bg-primary/20'
+                      }`}>
+                        <Store className="h-7 w-7" />
+                      </div>
+                      <div>
+                        <div className="font-black text-lg tracking-tight">Retrait au camion</div>
+                        <div className={`text-sm mt-1 ${
+                          !wantsDelivery 
+                            ? 'text-white/90' 
+                            : 'text-muted-foreground'
+                        }`}>
+                          Gratuit • 15-20 min
                         </div>
-                        {truckData.ratingAvg && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
-                            <span className="font-bold">{truckData.ratingAvg.toFixed(1)}</span>
-                            {truckData.ratingCount && (
-                              <span className="text-muted-foreground">({truckData.ratingCount})</span>
-                            )}
-                          </div>
-                        )}
                       </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground font-medium">Gérer votre établissement</p>
-                    )}
-                  </div>
-                </div>
-              </Card>
-            </Link>
-
-            {/* Menu */}
-            <Link to={ROUTES.pizzaioloMenu}>
-              <Card className="glass-premium glass-glossy border-orange-500/20 p-8 rounded-[32px] hover:scale-[1.02] hover:shadow-2xl hover:shadow-orange-500/10 transition-all group cursor-pointer h-full">
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div className="p-4 rounded-2xl bg-orange-500/10 group-hover:bg-orange-500/20 transition-colors">
-                      <Pizza className="h-8 w-8 text-orange-500" />
-                    </div>
-                    <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="text-xl font-black tracking-tight">Menu</h3>
-                    <p className="text-sm text-muted-foreground font-medium">
-                      Gérer vos pizzas et produits
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            </Link>
-
-            {/* Commandes Reçues */}
-            <Link to={ROUTES.pizzaioloOrders} className="relative">
-              <Card className="glass-premium glass-glossy border-orange-500/20 p-8 rounded-[32px] hover:scale-[1.02] hover:shadow-2xl hover:shadow-orange-500/10 transition-all group cursor-pointer h-full">
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div className="relative">
-                      <div className="p-4 rounded-2xl bg-orange-500/10 group-hover:bg-orange-500/20 transition-colors">
-                        <Receipt className="h-8 w-8 text-orange-500" />
-                      </div>
-                      {activeOrdersCount > 0 && (
-                        <div className="absolute -top-2 -right-2 h-8 w-8 bg-red-500 rounded-full flex items-center justify-center border-2 border-white shadow-lg animate-pulse">
-                          <span className="text-white text-xs font-black">{activeOrdersCount}</span>
+                      {!wantsDelivery && (
+                        <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-lg">
+                          <div className="w-3 h-3 rounded-full bg-primary" />
                         </div>
                       )}
                     </div>
-                    <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="text-xl font-black tracking-tight">Commandes</h3>
-                    <p className="text-sm text-muted-foreground font-medium">
-                      {activeOrdersCount > 0 
-                        ? `${activeOrdersCount} commande${activeOrdersCount > 1 ? 's' : ''} en cours`
-                        : 'Gérer vos commandes en cours'
-                      }
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            </Link>
+                  </button>
 
-            {/* Statistiques */}
-            <Link to={ROUTES.pizzaioloStats}>
-              <Card className="glass-premium glass-glossy border-purple-500/20 p-8 rounded-[32px] hover:scale-[1.02] hover:shadow-2xl hover:shadow-purple-500/10 transition-all group cursor-pointer h-full">
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div className="p-4 rounded-2xl bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors">
-                      <TrendingUp className="h-8 w-8 text-purple-500" />
-                    </div>
-                    <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-purple-500 group-hover:translate-x-1 transition-all" />
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="text-xl font-black tracking-tight">Statistiques</h3>
-                    <p className="text-sm text-muted-foreground font-medium">
-                      Analyser vos performances
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            </Link>
-
-            {/* Live - Prise de commande */}
-            <Link to={ROUTES.pizzaioloLive}>
-              <Card className="glass-premium glass-glossy border-red-500/20 p-8 rounded-[32px] hover:scale-[1.02] hover:shadow-2xl hover:shadow-red-500/10 transition-all group cursor-pointer h-full">
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div className="relative">
-                      <div className="p-4 rounded-2xl bg-red-500/10 group-hover:bg-red-500/20 transition-colors">
-                        <Radio className="h-8 w-8 text-red-500" />
+                  {/* Livraison à domicile */}
+                  <button
+                    onClick={() => handleToggleDeliveryPreference(true)}
+                    disabled={savingDeliveryPref}
+                    className={`group relative overflow-hidden rounded-[24px] p-5 transition-all duration-300 ${
+                      wantsDelivery
+                        ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-[1.02]'
+                        : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
+                    } ${savingDeliveryPref ? 'cursor-wait opacity-50' : 'cursor-pointer'}`}
+                  >
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <div className={`p-3 rounded-xl transition-all ${
+                        wantsDelivery 
+                          ? 'bg-white/20' 
+                          : 'bg-primary/10 group-hover:bg-primary/20'
+                      }`}>
+                        <Bike className="h-7 w-7" />
                       </div>
-                      <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                      </span>
+                      <div>
+                        <div className="font-black text-lg tracking-tight">Livraison à domicile</div>
+                        <div className={`text-sm mt-1 ${
+                          wantsDelivery 
+                            ? 'text-white/90' 
+                            : 'text-muted-foreground'
+                        }`}>
+                          + 3,50€ • 30-40 min
+                        </div>
+                      </div>
+                      {wantsDelivery && (
+                        <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-lg">
+                          <div className="w-3 h-3 rounded-full bg-primary" />
+                        </div>
+                      )}
                     </div>
-                    <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-red-500 group-hover:translate-x-1 transition-all" />
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="text-xl font-black tracking-tight">Live</h3>
-                    <p className="text-sm text-muted-foreground font-medium">
-                      Prise de commande manuelle
-                    </p>
-                  </div>
+                  </button>
                 </div>
-              </Card>
-            </Link>
-          </div>
-        </section>
-      ) : null}
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleSaveAddress} className="space-y-6">
+              <div>
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Adresse de livraison</p>
+                <AddressAutocomplete 
+                  address={address}
+                  onAddressChange={setAddress}
+                />
+              </div>
+
+              <div>
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Mode de récupération préféré</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Retrait au camion */}
+                  <button
+                    type="button"
+                    onClick={() => setWantsDelivery(false)}
+                    className={`group relative overflow-hidden rounded-[24px] p-5 transition-all duration-300 ${
+                      !wantsDelivery
+                        ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-[1.02]'
+                        : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
+                    }`}
+                  >
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <div className={`p-3 rounded-xl transition-all ${
+                        !wantsDelivery 
+                          ? 'bg-white/20' 
+                          : 'bg-primary/10 group-hover:bg-primary/20'
+                      }`}>
+                        <Store className="h-7 w-7" />
+                      </div>
+                      <div>
+                        <div className="font-black text-lg tracking-tight">Retrait au camion</div>
+                        <div className={`text-sm mt-1 ${
+                          !wantsDelivery 
+                            ? 'text-white/90' 
+                            : 'text-muted-foreground'
+                        }`}>
+                          Gratuit • 15-20 min
+                        </div>
+                      </div>
+                      {!wantsDelivery && (
+                        <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-lg">
+                          <div className="w-3 h-3 rounded-full bg-primary" />
+                        </div>
+                      )}
+                    </div>
+                  </button>
+
+                  {/* Livraison à domicile */}
+                  <button
+                    type="button"
+                    onClick={() => setWantsDelivery(true)}
+                    className={`group relative overflow-hidden rounded-[24px] p-5 transition-all duration-300 ${
+                      wantsDelivery
+                        ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-[1.02]'
+                        : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
+                    }`}
+                  >
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <div className={`p-3 rounded-xl transition-all ${
+                        wantsDelivery 
+                          ? 'bg-white/20' 
+                          : 'bg-primary/10 group-hover:bg-primary/20'
+                      }`}>
+                        <Bike className="h-7 w-7" />
+                      </div>
+                      <div>
+                        <div className="font-black text-lg tracking-tight">Livraison à domicile</div>
+                        <div className={`text-sm mt-1 ${
+                          wantsDelivery 
+                            ? 'text-white/90' 
+                            : 'text-muted-foreground'
+                        }`}>
+                          + 3,50€ • 30-40 min
+                        </div>
+                      </div>
+                      {wantsDelivery && (
+                        <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-lg">
+                          <div className="w-3 h-3 rounded-full bg-primary" />
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {addressMessage && (
+                <div className={`p-4 rounded-2xl text-sm font-medium ${addressMessage.includes('✅') ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-800'}`}>
+                  {addressMessage}
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <Button type="submit" disabled={savingAddress} className="flex-1 h-12 rounded-2xl font-bold">
+                  {savingAddress ? 'Enregistrement...' : 'Enregistrer'}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => setIsEditingAddress(false)} className="h-12 rounded-2xl">
+                  Annuler
+                </Button>
+              </div>
+            </form>
+          )}
+        </Card>
+      </section>
 
       {/* Bouton Déconnexion */}
       <div className="flex justify-center pt-8">
