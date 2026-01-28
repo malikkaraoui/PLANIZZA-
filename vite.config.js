@@ -21,7 +21,7 @@ export default defineConfig({
           if (!id.includes('node_modules')) return;
 
           // React core - chargé en premier, mis en cache longtemps
-          if (id.includes('/react-dom/')) return 'vendor-react-dom';
+          if (id.includes('/react-dom/') || id.includes('/scheduler/')) return 'vendor-react-dom';
           if (id.includes('/react/') && !id.includes('react-')) return 'vendor-react';
 
           // React Router
