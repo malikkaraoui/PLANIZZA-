@@ -116,7 +116,11 @@ export default function Login() {
     }
     setResetError('');
     try {
-      await sendPasswordResetEmail(auth, resetEmail.trim());
+      const actionCodeSettings = {
+        url: `${window.location.origin}/auth/action`,
+        handleCodeInApp: false,
+      };
+      await sendPasswordResetEmail(auth, resetEmail.trim(), actionCodeSettings);
       setResetSent(true);
     } catch (err) {
       if (err.code === 'auth/user-not-found') {

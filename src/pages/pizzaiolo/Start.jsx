@@ -114,7 +114,10 @@ export default function PizzaioloStart() {
         </div>
 
         {/* Stats teaser */}
-        <div className="mt-8 rounded-xl border border-gray-200 bg-linear-to-br from-gray-50 to-white p-6">
+        <Link
+          to={ROUTES.pizzaioloStats}
+          className="mt-8 block rounded-xl border border-gray-200 bg-linear-to-br from-gray-50 to-white p-6 transition-all duration-300 hover:shadow-md hover:scale-[1.01]"
+        >
           <div className="flex items-center gap-3 mb-4">
             <TrendingUp className="h-5 w-5 text-emerald-500" />
             <h3 className="font-semibold text-gray-900">Statistiques</h3>
@@ -122,7 +125,7 @@ export default function PizzaioloStart() {
           <p className="text-sm text-gray-600">
             Bientôt disponible : suivez vos ventes, vos best-sellers et votre activité en temps réel.
           </p>
-        </div>
+        </Link>
 
         {/* Retour */}
         <div className="mt-8 text-center">

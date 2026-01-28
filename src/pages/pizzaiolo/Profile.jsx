@@ -2,7 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ref, get, set, push, update, remove } from 'firebase/database';
 import { ref as storageRef, deleteObject } from 'firebase/storage';
-import { Pause, Play, Pizza, Edit2, ArrowLeft, Trash2, Radio, ListOrdered, Utensils, TrendingUp, X, Heart, Clock, Zap, MapPin, Image as ImageIcon, Download } from 'lucide-react';
+import { Pause, Play, Pizza, Edit2, ArrowLeft, Trash2, Radio, ListOrdered, Utensils, TrendingUp, X, Heart, Clock, Zap, MapPin, Image as ImageIcon, Download, LogOut } from 'lucide-react';
+import { signOut } from 'firebase/auth';
+import { auth } from '../../lib/firebase';
 import QRCode from 'react-qr-code';
 import Card from '../../components/ui/Card';
 import { useAuth } from '../../app/providers/AuthProvider';
@@ -895,6 +897,34 @@ export default function PizzaioloProfile() {
               )}
             </div>
           </div>
+
+          {/* Actions compte */}
+          <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
+            <h3 className="text-lg font-black mb-4">Compte</h3>
+            <div className="space-y-3">
+              <Button
+                type="button"
+                onClick={() => signOut(auth)}
+                variant="outline"
+                className="w-full rounded-2xl h-12 font-bold"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Se déconnecter
+              </Button>
+
+              {truckId && (
+                <Button
+                  type="button"
+                  onClick={() => setShowDeleteDialog(true)}
+                  variant="outline"
+                  className="w-full rounded-2xl h-12 font-bold text-red-600 border-red-600/30 hover:bg-red-600/10"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Supprimer le compte professionnel
+                </Button>
+              )}
+            </div>
+          </Card>
         </div>
       ) : (
         // MODE ÉDITION
@@ -1191,8 +1221,18 @@ export default function PizzaioloProfile() {
               {saving ? 'Sauvegarde en cours...' : truckId ? 'Mettre à jour le camion' : 'Créer mon camion'}
             </Button>
             
+            <Button
+              type="button"
+              onClick={() => signOut(auth)}
+              variant="outline"
+              className="w-full rounded-2xl h-12 font-bold"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Se déconnecter
+            </Button>
+
             {truckId && (
-              <Button 
+              <Button
                 type="button"
                 onClick={() => setShowDeleteDialog(true)}
                 variant="outline"
