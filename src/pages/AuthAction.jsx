@@ -22,7 +22,9 @@ export default function AuthAction() {
   const [resetStatus, setResetStatus] = useState('idle'); // idle | ready | success | error
   const [resetEmail, setResetEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [resetError, setResetError] = useState('');
 
   // Verification email : appliquer le code
@@ -50,6 +52,10 @@ export default function AuthAction() {
     e.preventDefault();
     if (!isPasswordValid(newPassword)) {
       setResetError('Le mot de passe ne remplit pas tous les critères.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setResetError('Les mots de passe ne correspondent pas.');
       return;
     }
     setResetError('');
@@ -158,6 +164,30 @@ export default function AuthAction() {
                 <PasswordStrengthIndicator password={newPassword} />
               </div>
 
+              <div>
+                <label className="block text-sm font-bold mb-2">Confirmer le mot de passe</label>
+                <div className="relative">
+                  <Input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    className="rounded-2xl h-12 pr-12"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+                {confirmPassword && newPassword !== confirmPassword && (
+                  <p className="text-xs text-red-500 mt-1">Les mots de passe ne correspondent pas.</p>
+                )}
+              </div>
+
               {resetError && (
                 <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-600 font-medium">
                   {resetError}
@@ -166,7 +196,7 @@ export default function AuthAction() {
 
               <Button
                 type="submit"
-                disabled={!isPasswordValid(newPassword)}
+                disabled={!isPasswordValid(newPassword) || newPassword !== confirmPassword}
                 className="w-full rounded-2xl h-12 font-bold bg-orange-500 hover:bg-orange-600"
               >
                 Réinitialiser le mot de passe

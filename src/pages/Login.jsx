@@ -24,6 +24,15 @@ export default function Login() {
   const passwordRef = useRef(null);
   const formRef = useRef(null);
 
+  // Redirection vers /auth/action si Firebase envoie un lien de reset/verify sur /login
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const mode = params.get('mode');
+    if (mode === 'resetPassword' || mode === 'verifyEmail') {
+      navigate(`/auth/action${location.search}`, { replace: true });
+    }
+  }, [location.search, navigate]);
+
   // Détection du paramètre pizzaiolo pour afficher un message de reconnexion
   const searchParams = new URLSearchParams(location.search);
   const isPizzaioloUpgrade = searchParams.get('pizzaiolo') === 'true';
@@ -186,6 +195,7 @@ export default function Login() {
 
   return (
     <div className="container mx-auto max-w-lg px-4 py-12">
+      <div inert={resetMode || undefined}>
       <BackButton className="mb-4" />
       <Card>
         <CardHeader>
@@ -292,6 +302,7 @@ export default function Login() {
           </Button>
         </CardContent>
       </Card>
+      </div>
 
       {/* Modal mot de passe oublié */}
       {resetMode && (
