@@ -22,8 +22,12 @@ export default function DesiredTimePicker({
   deliveryExtraMinutes = 15,
   onErrorChange,
   helperText,
+  disableValidation = false,
 }) {
   const { minTime, totalMinutes } = useMemo(() => {
+    if (disableValidation) {
+      return { minTime: '', totalMinutes: 0 };
+    }
     return getMinDesiredTime({
       now: new Date(),
       pizzaCount,
@@ -32,21 +36,24 @@ export default function DesiredTimePicker({
       perPizzaMinutes,
       deliveryExtraMinutes,
     });
-  }, [pizzaCount, deliveryMethod, baseLeadMinutes, perPizzaMinutes, deliveryExtraMinutes]);
+  }, [pizzaCount, deliveryMethod, baseLeadMinutes, perPizzaMinutes, deliveryExtraMinutes, disableValidation]);
 
   const todayOpening = useMemo(() => {
+    if (disableValidation) return null;
     return getTodayOpeningHours(openingHours, new Date());
-  }, [openingHours]);
+  }, [openingHours, disableValidation]);
 
   const inputMin = useMemo(() => {
+    if (disableValidation) return undefined;
     if (todayOpening?.enabled && todayOpening.open) {
       return maxTime(minTime, todayOpening.open);
     }
     return minTime;
-  }, [minTime, todayOpening]);
+  }, [minTime, todayOpening, disableValidation]);
 
   // Valider à chaque changement de valeur (pas seulement au blur)
   const validationError = useMemo(() => {
+    if (disableValidation) return '';
     if (!value || !TIME_RE.test(value)) return '';
     // Recalculer minDate avec l'heure actuelle pour avoir une validation fraîche
     const now = new Date();
@@ -66,7 +73,7 @@ export default function DesiredTimePicker({
       getTodayOpeningHours,
     });
     return nextError || '';
-  }, [value, pizzaCount, deliveryMethod, baseLeadMinutes, perPizzaMinutes, deliveryExtraMinutes, openingHours]);
+  }, [value, pizzaCount, deliveryMethod, baseLeadMinutes, perPizzaMinutes, deliveryExtraMinutes, openingHours, disableValidation]);
 
   useEffect(() => {
     if (typeof onErrorChange === 'function') {

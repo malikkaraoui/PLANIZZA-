@@ -50,6 +50,9 @@ export default defineConfig({
           // Toast
           if (id.includes('/react-toastify/')) return 'vendor-toast';
 
+          // Sentry
+          if (id.includes('/@sentry/')) return 'vendor-sentry';
+
           // Utils
           if (id.includes('/lodash')) return 'vendor-lodash';
           if (id.includes('/clsx/') || id.includes('/tailwind-merge/') || id.includes('/class-variance-authority/')) {

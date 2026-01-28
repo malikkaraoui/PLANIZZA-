@@ -29,7 +29,6 @@ import {
 } from '../../features/menu/utils/priceCalculations';
 import { formatDrinkVolumeLabel } from '../../features/menu/utils/formatDrinkVolumeLabel';
 import DesiredTimePicker from '../../features/orders/components/DesiredTimePicker';
-import { getMinDesiredTime, validateDesiredTime } from '../../features/orders/utils/desiredTime';
 import BackButton from '../../components/ui/BackButton';
 
 export default function PizzaioloLive() {
@@ -41,10 +40,6 @@ export default function PizzaioloLive() {
 
   const [menu, setMenu] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Validation UX: ne pas bloquer la saisie de l'heure au clavier.
-  // On valide à la fin (blur) et lors de la création de commande.
-  const [pickupTimeError, setPickupTimeError] = useState('');
 
   // Navigation entre catégories
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -191,29 +186,6 @@ export default function PizzaioloLive() {
     if (cart.length === 0) {
       alert('Le panier est vide');
       return;
-    }
-
-    // Validation: empêcher les heures invalides (validation finale)
-    if (pickupTime && /^\d{2}:\d{2}$/.test(pickupTime)) {
-      const { minDate } = getMinDesiredTime({
-        now: new Date(),
-        pizzaCount: 0,
-        deliveryMethod: 'pickup',
-        baseLeadMinutes: 0,
-        perPizzaMinutes: 0,
-        deliveryExtraMinutes: 0,
-      });
-      const { error } = validateDesiredTime({
-        value: pickupTime,
-        now: new Date(),
-        minDate,
-      });
-
-      if (error) {
-        setPickupTimeError(error);
-        alert(`❌ ${error}`);
-        return;
-      }
     }
 
     setIsSubmitting(true);
@@ -783,12 +755,7 @@ export default function PizzaioloLive() {
                 label="Heure de retrait"
                 value={pickupTime}
                 onChange={setPickupTime}
-                pizzaCount={0}
-                deliveryMethod="pickup"
-                baseLeadMinutes={0}
-                perPizzaMinutes={0}
-                deliveryExtraMinutes={0}
-                onErrorChange={setPickupTimeError}
+                disableValidation
               />
             </div>
 

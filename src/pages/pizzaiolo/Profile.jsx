@@ -726,30 +726,43 @@ export default function PizzaioloProfile() {
                 </div>
               </Card>
 
-              {/* Horaires d'ouverture compact */}
+              {/* Horaires d'ouverture */}
               {openingHours && (
                 <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
                   <h3 className="text-lg font-black mb-4 flex items-center gap-2">
                     <Clock className="h-5 w-5" />
                     Horaires d'ouverture
                   </h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    {Object.entries(openingHours).map(([day, hours]) => {
-                      const dayLabels = {
-                        monday: 'Lun',
-                        tuesday: 'Mar',
-                        wednesday: 'Mer',
-                        thursday: 'Jeu',
-                        friday: 'Ven',
-                        saturday: 'Sam',
-                        sunday: 'Dim'
-                      };
+                  <div className="space-y-2">
+                    {[
+                      { key: 'monday', label: 'Lundi' },
+                      { key: 'tuesday', label: 'Mardi' },
+                      { key: 'wednesday', label: 'Mercredi' },
+                      { key: 'thursday', label: 'Jeudi' },
+                      { key: 'friday', label: 'Vendredi' },
+                      { key: 'saturday', label: 'Samedi' },
+                      { key: 'sunday', label: 'Dimanche' }
+                    ].map(({ key, label }) => {
+                      const hours = openingHours[key];
                       return (
-                        <div key={day} className={`flex items-center justify-between p-3 rounded-xl ${hours.enabled ? 'bg-emerald-500/5 border border-emerald-500/20' : 'bg-white/5 border border-white/10'}`}>
-                          <span className="text-sm font-bold">{dayLabels[day]}</span>
-                          <span className="text-xs font-medium text-muted-foreground">
-                            {hours.enabled ? `${hours.open} - ${hours.close}` : 'Fermé'}
+                        <div
+                          key={key}
+                          className={`flex items-center justify-between p-3 rounded-xl transition-all ${
+                            hours?.enabled
+                              ? 'bg-emerald-500/10 border border-emerald-500/20'
+                              : 'bg-gray-100/50 dark:bg-white/5 border border-gray-200 dark:border-white/10'
+                          }`}
+                        >
+                          <span className={`text-sm font-bold ${hours?.enabled ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-400'}`}>
+                            {label}
                           </span>
+                          {hours?.enabled ? (
+                            <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                              {hours.open} → {hours.close}
+                            </span>
+                          ) : (
+                            <span className="text-sm font-medium text-gray-400 italic">Fermé</span>
+                          )}
                         </div>
                       );
                     })}
@@ -944,7 +957,7 @@ export default function PizzaioloProfile() {
                   value={truckDescription}
                   onChange={(e) => setTruckDescription(e.target.value)}
                   placeholder="Ex: Pizzas artisanales au feu de bois, pâte maison fermentée 48h..."
-                  className="mt-1 w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-sm font-medium focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+                  className="w-full rounded-2xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 text-sm font-medium focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all placeholder:text-gray-400"
                   rows={4}
                 />
               </div>

@@ -46,30 +46,49 @@ export const formatPrice = (cents) => {
  */
 export const getItemPrice = (item, size = null) => {
   if (!item) return null;
-  
+
   // Si une taille est spécifiée et existe
   if (size && item.sizes?.[size]?.priceCents) {
     return item.sizes[size].priceCents;
   }
-  
-  // Sinon, prix direct
-  return item.priceCents || null;
+
+  // Prix direct
+  if (item.priceCents) {
+    return item.priceCents;
+  }
+
+  // Fallback: si pas de taille spécifiée mais l'item a des sizes, prendre la première
+  if (item.sizes && typeof item.sizes === 'object') {
+    const firstSizeWithPrice = Object.values(item.sizes).find(s => s?.priceCents > 0);
+    if (firstSizeWithPrice) return firstSizeWithPrice.priceCents;
+  }
+
+  return null;
 };
 
 /**
  * Obtient le prix d'affichage pour un item (pour l'aperçu)
- * Pour les pizzas, retourne le prix taille M par défaut
+ * Pour les pizzas, retourne le prix taille M par défaut, sinon la première taille disponible
  * @param {Object} item - Item du menu
  * @returns {number|null} Prix en cents ou null
  */
 export const getDisplayPrice = (item) => {
   if (!item) return null;
-  
-  // Pour les pizzas avec tailles, afficher le prix M
-  if (item.type === 'pizza' && item.sizes?.m?.priceCents) {
-    return item.sizes.m.priceCents;
+
+  // Si l'item a des tailles
+  if (item.sizes && typeof item.sizes === 'object') {
+    // Pour les pizzas, préférer M > S > L
+    if (item.type === 'pizza') {
+      if (item.sizes.m?.priceCents) return item.sizes.m.priceCents;
+      if (item.sizes.s?.priceCents) return item.sizes.s.priceCents;
+      if (item.sizes.l?.priceCents) return item.sizes.l.priceCents;
+    }
+
+    // Pour les autres types, prendre la première taille avec un prix
+    const firstSizeWithPrice = Object.values(item.sizes).find(size => size?.priceCents > 0);
+    if (firstSizeWithPrice) return firstSizeWithPrice.priceCents;
   }
-  
+
   // Sinon prix direct
   return item.priceCents || null;
 };
