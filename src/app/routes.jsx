@@ -14,6 +14,7 @@ export const ROUTES = {
   // Auth
   login: '/login',
   register: '/register',
+  authAction: '/auth/action',
 
   // Client (privé)
   dashboard: '/dashboard',

@@ -14,6 +14,7 @@ const Orders = lazy(() => import('../pages/Orders'));
 const Login = lazy(() => import('../pages/Login'));
 const Register = lazy(() => import('../pages/Register'));
 const RegisterClient = lazy(() => import('../pages/RegisterClient'));
+const AuthAction = lazy(() => import('../pages/AuthAction'));
 // RegisterPizzaiolo supprimé - fusionné dans CreateTruck
 
 const PizzaioloDashboard = lazy(() => import('../pages/pizzaiolo/Dashboard'));
@@ -84,6 +85,7 @@ export const router = createBrowserRouter([
       { path: 'login', element: wrap(<Login />) },
       { path: 'register', element: <Navigate to="/register/client" replace /> },
       { path: 'register/client', element: wrap(<RegisterClient />) },
+      { path: 'auth/action', element: wrap(<AuthAction />) },
       // pro/inscription redirige vers le formulaire unifié de création camion
       { path: 'pro/inscription', element: <Navigate to="/pro/creer-camion" replace /> },
 
