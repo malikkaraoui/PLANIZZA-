@@ -1,10 +1,8 @@
 import * as React from 'react';
 import { devError, devLog } from '../lib/devLog';
-import { captureException, withScope } from '../lib/sentry';
-
 /**
  * ErrorBoundary global : évite la "page blanche" en cas d'erreur runtime.
- * Affiche une UI minimale + logs dev (console) + report Sentry.
+ * Affiche une UI minimale + logs dev (console).
  */
 export default class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -21,11 +19,6 @@ export default class ErrorBoundary extends React.Component {
     devError('[ErrorBoundary] Uncaught error', error);
     devLog('[ErrorBoundary] Component stack:', info?.componentStack);
 
-    // Envoyer à Sentry avec le component stack
-    withScope((scope) => {
-      scope.setExtra('componentStack', info?.componentStack);
-      captureException(error);
-    });
   }
 
   render() {
