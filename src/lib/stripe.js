@@ -65,9 +65,13 @@ export async function createCheckoutSession({
     }
 
     // Appeler l'endpoint HTTP v2 (onRequest) avec Auth Bearer
-    // Si pas authentifié, créer un compte anonyme
+    // Si pas authentifié, créer un compte anonyme (guest)
+    // C'est le SEUL endroit où on crée un guest - juste avant le paiement Stripe
     if (!auth.currentUser) {
-      await signInAnonymously(auth);
+      const { user: anonUser } = await signInAnonymously(auth);
+      // Sauvegarder l'UID guest pour pouvoir récupérer la commande plus tard
+      localStorage.setItem('planizza:guestUserId', anonUser.uid);
+      console.log('[PLANIZZA] Compte guest créé pour le paiement:', anonUser.uid);
     }
 
     const token = await auth?.currentUser?.getIdToken?.();

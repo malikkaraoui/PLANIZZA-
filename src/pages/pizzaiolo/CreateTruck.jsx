@@ -1,19 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ref, set, push, get } from 'firebase/database';
+import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, updateProfile } from 'firebase/auth';
 import { useAuth } from '../../app/providers/AuthProvider';
-import { db } from '../../lib/firebase';
+import { usePizzaioloProfile } from '../../features/users/hooks/usePizzaioloProfile';
+import { db, auth } from '../../lib/firebase';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import PhoneInputWithPrefix from '../../components/ui/PhoneInputWithPrefix';
 import { generateUniqueTruckSlug } from '../../features/trucks/utils/truckSlug';
 import LocationPicker from '../../components/ui/LocationPicker';
-import ImageUploader from '../../components/ui/ImageUploader';
 import { ROUTES } from '../../app/routes';
 import BackButton from '../../components/ui/BackButton';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function CreateTruck() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  usePizzaioloProfile(); // Hook utilisé pour la détection du profil
   const navigate = useNavigate();
 
   // Vérifier si le pizzaiolo a déjà un camion
@@ -31,15 +34,33 @@ export default function CreateTruck() {
     checkExistingTruck();
   }, [user?.uid, navigate]);
 
-  // Récupérer le nom de l'utilisateur connecté
+  // Récupérer le nom de l'utilisateur connecté (si connecté)
   const userDisplayName = user?.displayName || '';
-  const [_userFirstName, userLastName] = userDisplayName.split(' ').length >= 2 
+  const [_userFirstName, userLastName] = userDisplayName.split(' ').length >= 2
     ? [userDisplayName.split(' ')[0], userDisplayName.split(' ').slice(1).join(' ')]
     : ['', userDisplayName];
 
   // États du formulaire
-  const [step, setStep] = useState(1); // 1: Légal, 2: Camion, 3: Horaires
-  
+  // Étape 0 = Création compte (si pas connecté), 1 = Légal, 2 = Camion, 3 = Horaires
+  const [step, setStep] = useState(0);
+
+  // Si l'utilisateur est déjà connecté au chargement, passer directement à l'étape 1
+  useEffect(() => {
+    if (isAuthenticated && step === 0) {
+      setStep(1);
+      // Pré-remplir l'email professionnel si on a l'email
+      if (user?.email) {
+        setProfessionalEmail(user.email);
+      }
+    }
+  }, [isAuthenticated, user?.email, step]);
+
+  // Étape 0: Création du compte Firebase Auth
+  const [accountEmail, setAccountEmail] = useState('');
+  const [accountPassword, setAccountPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [creatingAccount, setCreatingAccount] = useState(false);
+
   // Étape 1: Informations légales
   const [siret, setSiret] = useState('');
   const [companyName, setCompanyName] = useState('');
@@ -51,15 +72,14 @@ export default function CreateTruck() {
   // Téléphone
   const [phoneNumber, setPhoneNumber] = useState('');
 
-  // Email professionnel (pour Stripe Connect)
+  // Email professionnel (pour Stripe Connect) - pré-rempli avec l'email du compte
   const [professionalEmail, setProfessionalEmail] = useState('');
 
   // Étape 2: Informations du camion
   const [truckName, setTruckName] = useState('');
   const [truckDescription, setTruckDescription] = useState('');
   const [location, setLocation] = useState(null);
-  const [logoUrl, setLogoUrl] = useState('');
-  const [photoUrl, setPhotoUrl] = useState('');
+  // Logo et photo seront ajoutés depuis le dashboard (nécessite authentification Firebase Storage)
   const [ovenType, setOvenType] = useState('Bois');
   
   // Badges
@@ -291,6 +311,9 @@ export default function CreateTruck() {
   
   const phoneDigits = phoneNumber.replace(/\D/g, '');
 
+  // Étape 0: validation compte
+  const canGoToStep1 = accountEmail.includes('@') && accountPassword.length >= 6;
+
   // Le format PhoneInputWithPrefix est "6 XX XX XX XX" = 9 chiffres (sans le 0 initial)
   const canGoToStep2 = siretValid === 'valid' &&
                        isNafValid &&
@@ -299,28 +322,48 @@ export default function CreateTruck() {
                        managerLastName.trim().length >= 2 &&
                        phoneDigits.length === 9 &&
                        professionalEmail.includes('@');
-  
-  // Debug log
-  console.log('[CreateTruck] Validation étape 1:', {
-    siretValid,
-    isNafValid,
-    companyName: companyName.trim().length,
-    managerFirstName: managerFirstName.trim().length,
-    managerLastName: managerLastName.trim().length,
-    phoneNumber,
-    phoneDigits,
-    phoneDigitsLength: phoneDigits.length,
-    professionalEmail,
-    hasAt: professionalEmail.includes('@'),
-    canGoToStep2
-  });
 
+  // Étape 0: On ne crée PAS le compte ici, on passe juste à l'étape suivante
+  // Le compte sera créé à la FIN du formulaire (handleSubmit)
+  const handleGoToStep1 = () => {
+    // Pré-remplir l'email professionnel avec l'email du compte
+    setProfessionalEmail(accountEmail);
+    setStep(1);
+  };
+
+  // Connexion avec Google (étape 0)
+  // Note: Google crée le compte immédiatement, on ne peut pas différer
+  // Mais c'est acceptable car l'utilisateur a fait un choix actif (popup Google)
+  const handleGoogleSignIn = async () => {
+    setCreatingAccount(true);
+    setError('');
+
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      console.log('[CreateTruck] Connexion Google réussie');
+
+      // Pré-remplir l'email professionnel avec l'email Google
+      if (result.user?.email) {
+        setProfessionalEmail(result.user.email);
+      }
+
+      // Passer à l'étape 1
+      setStep(1);
+    } catch (err) {
+      console.error('[CreateTruck] Erreur Google:', err);
+      setError(err.message || 'Erreur lors de la connexion Google');
+    } finally {
+      setCreatingAccount(false);
+    }
+  };
+
+  // Logo et photo sont ajoutés plus tard dans le dashboard (après création du compte)
+  // Car l'upload Firebase Storage nécessite une authentification
   const canGoToStep3 = truckName.trim().length >= 2 &&
                        truckDescription.trim().length >= 10 &&
                        location?.lat &&
-                       location?.lng &&
-                       logoUrl &&
-                       photoUrl;
+                       location?.lng;
 
   const canSubmit = Object.values(openingHours).some(day => day.enabled) &&
                     pizzaPerHour >= 10;
@@ -328,15 +371,30 @@ export default function CreateTruck() {
   // Menu sera créé plus tard depuis le dashboard pizzaiolo
 
   const handleSubmit = async () => {
-    if (!user?.uid) {
-      setError('Vous devez être connecté');
-      return;
-    }
-
     setSaving(true);
     setError('');
 
     try {
+      let currentUser = user;
+
+      // Si pas connecté, créer le compte Firebase Auth maintenant
+      // C'est le SEUL moment où on crée le compte - à la toute fin du formulaire
+      if (!isAuthenticated) {
+        console.log('[CreateTruck] Création du compte Firebase Auth...');
+        const userCredential = await createUserWithEmailAndPassword(auth, accountEmail, accountPassword);
+        currentUser = userCredential.user;
+
+        // Définir le displayName avec le prénom du gérant
+        const fullName = `${managerFirstName.trim()} ${managerLastName.trim()}`;
+        await updateProfile(currentUser, { displayName: fullName });
+        console.log('[CreateTruck] Compte créé avec displayName:', fullName);
+      }
+
+      if (!currentUser?.uid) {
+        setError('Erreur: impossible de créer le compte');
+        return;
+      }
+
       const slug = await generateUniqueTruckSlug({
         db,
         name: truckName.trim(),
@@ -355,8 +413,9 @@ export default function CreateTruck() {
           lng: location.lng,
           address: location.address || ''
         },
-        logoUrl,
-        photoUrl,
+        // Logo et photo seront ajoutés depuis le dashboard
+        logoUrl: '',
+        photoUrl: '',
         ovenType,
         badges,
         deliveryOptions,
@@ -379,14 +438,14 @@ export default function CreateTruck() {
         ratingCount: 0,
         createdAt: Date.now(),
         updatedAt: Date.now(),
-        ownerId: user.uid
+        ownerId: currentUser.uid
       };
 
       // Créer le camion
       await set(truckRef, truckData);
 
       // Lier le camion au pizzaiolo (avec email pour Stripe Connect)
-      const pizzaioloRef = ref(db, `pizzaiolos/${user.uid}`);
+      const pizzaioloRef = ref(db, `pizzaiolos/${currentUser.uid}`);
       await set(pizzaioloRef, {
         truckId,
         professionalEmail: professionalEmail.trim().toLowerCase(),
@@ -397,11 +456,33 @@ export default function CreateTruck() {
       navigate(ROUTES.pizzaioloProfile);
     } catch (err) {
       console.error('[PLANIZZA] Erreur création camion:', err);
-      setError('Impossible de créer votre camion. Réessayez plus tard.');
+
+      // Gérer les erreurs Firebase Auth
+      if (err.code === 'auth/email-already-in-use') {
+        setError('Cet email est déjà utilisé. Connectez-vous ou utilisez un autre email.');
+      } else if (err.code === 'auth/weak-password') {
+        setError('Le mot de passe doit contenir au moins 6 caractères.');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('L\'email n\'est pas valide.');
+      } else {
+        setError(err.message || 'Impossible de créer votre camion. Réessayez plus tard.');
+      }
     } finally {
       setSaving(false);
     }
   };
+
+  // Labels des étapes
+  const stepLabels = {
+    0: 'Créer votre compte',
+    1: 'Informations légales',
+    2: 'Votre camion',
+    3: 'Horaires & Capacité',
+  };
+
+  // Nombre total d'étapes (4 si pas connecté, 3 si déjà connecté)
+  const totalSteps = isAuthenticated ? 3 : 4;
+  const displayStep = isAuthenticated ? step : step + 1; // Pour afficher 1-4 au lieu de 0-3
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
@@ -409,23 +490,23 @@ export default function CreateTruck() {
       {/* Progress bar */}
       <div className="mb-8">
         <div className="flex items-center justify-between">
-          {[1, 2, 3].map((s) => (
+          {Array.from({ length: totalSteps }, (_, i) => i + 1).map((s) => (
             <div key={s} className="flex items-center">
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                  s === step
+                  s === displayStep
                     ? 'bg-emerald-600 text-white'
-                    : s < step
+                    : s < displayStep
                     ? 'bg-emerald-200 text-emerald-800'
                     : 'bg-gray-200 text-gray-500'
                 }`}
               >
                 {s}
               </div>
-              {s < 3 && (
+              {s < totalSteps && (
                 <div
                   className={`w-16 h-1 mx-2 ${
-                    s < step ? 'bg-emerald-600' : 'bg-gray-200'
+                    s < displayStep ? 'bg-emerald-600' : 'bg-gray-200'
                   }`}
                 />
               )}
@@ -434,12 +515,106 @@ export default function CreateTruck() {
         </div>
         <div className="mt-3 text-center">
           <p className="text-sm font-semibold text-gray-900">
-            {step === 1 && 'Informations légales'}
-            {step === 2 && 'Votre camion'}
-            {step === 3 && 'Horaires & Capacité'}
+            {stepLabels[step]}
           </p>
         </div>
       </div>
+
+      {/* Étape 0: Création du compte */}
+      {step === 0 && (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Créer votre compte professionnel</h2>
+            <p className="mt-2 text-sm text-gray-600">
+              Créez votre compte pour gérer votre camion pizza sur PLANIZZA.
+            </p>
+          </div>
+
+          {error && (
+            <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-900">
+              Email *
+            </label>
+            <Input
+              type="email"
+              value={accountEmail}
+              onChange={(e) => setAccountEmail(e.target.value)}
+              placeholder="contact@monpizza.com"
+              className="mt-2"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-900">
+              Mot de passe *
+            </label>
+            <div className="relative mt-2">
+              <Input
+                type={showPassword ? 'text' : 'password'}
+                value={accountPassword}
+                onChange={(e) => setAccountPassword(e.target.value)}
+                placeholder="••••••••"
+                className="pr-12"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-gray-500">Minimum 6 caractères</p>
+          </div>
+
+          <Button
+            onClick={handleGoToStep1}
+            disabled={!canGoToStep1}
+            className="w-full"
+          >
+            Continuer →
+          </Button>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="bg-white px-4 text-gray-500">ou</span>
+            </div>
+          </div>
+
+          <Button
+            variant="outline"
+            onClick={handleGoogleSignIn}
+            disabled={creatingAccount}
+            className="w-full"
+          >
+            <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+              <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            Continuer avec Google
+          </Button>
+
+          <p className="text-center text-sm text-gray-600">
+            Déjà un compte pro ?{' '}
+            <button
+              onClick={() => navigate('/login')}
+              className="font-semibold text-emerald-600 hover:text-emerald-700"
+            >
+              Se connecter
+            </button>
+          </p>
+        </div>
+      )}
 
       {/* Étape 1: Informations légales */}
       {step === 1 && (
@@ -637,30 +812,13 @@ export default function CreateTruck() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Logo * <span className="text-xs text-gray-500 font-normal">(Votre marque/enseigne)</span>
-            </label>
-            <ImageUploader
-              value={logoUrl}
-              onChange={setLogoUrl}
-              folder="logos"
-              maxWidth={500}
-              maxHeight={500}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Photo du camion * <span className="text-xs text-gray-500 font-normal">(Votre véhicule)</span>
-            </label>
-            <ImageUploader
-              value={photoUrl}
-              onChange={setPhotoUrl}
-              folder="trucks"
-              maxWidth={1200}
-              maxHeight={800}
-            />
+          {/* Logo et photo seront ajoutés dans le dashboard après création du compte */}
+          {/* Car l'upload Firebase Storage nécessite une authentification */}
+          <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+            <p className="text-sm text-blue-800">
+              📸 <strong>Logo et photos</strong> : vous pourrez ajouter votre logo et vos photos
+              depuis votre tableau de bord après la création de votre compte.
+            </p>
           </div>
 
           <div>
@@ -728,8 +886,6 @@ export default function CreateTruck() {
                 {truckName.trim().length < 2 && <li>• Nom du camion (min 2 caractères)</li>}
                 {truckDescription.trim().length < 10 && <li>• Description (min 10 caractères)</li>}
                 {!location?.lat && <li>• Localisation (cliquez sur la carte)</li>}
-                {!logoUrl && <li>• Logo (uploadez votre logo)</li>}
-                {!photoUrl && <li>• Photo du camion (uploadez une photo)</li>}
               </ul>
             </div>
           )}

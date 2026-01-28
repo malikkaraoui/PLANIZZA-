@@ -121,7 +121,22 @@ export default function Navbar() {
                   </div>
                 </Card>
               </div>
+            ) : isPizzaiolo ? (
+              // Pizzaiolo : bouton Live uniquement (pas de panier)
+              <Link to={ROUTES.pizzaioloLive} className="hidden lg:block">
+                <Button variant="outline" className="gap-2 glass-premium border-red-500/30 hover:border-red-500/50 bg-red-500/10 rounded-full px-8 h-11 font-bold transition-all hover:shadow-lg hover:shadow-red-500/20 relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-linear-to-r from-red-500/0 via-red-500/10 to-red-500/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                  <span className="relative flex items-center gap-2">
+                    <span className="flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                    </span>
+                    Live
+                  </span>
+                </Button>
+              </Link>
             ) : (
+              // Client : panier + bouton Professionnel
               <>
                 {/* Panier */}
                 <Link to={ROUTES.cart}>
@@ -140,28 +155,13 @@ export default function Navbar() {
                   </Button>
                 </Link>
 
-                {/* Devenir partenaire / Live */}
-                {isPizzaiolo ? (
-                  <Link to={ROUTES.pizzaioloLive} className="hidden lg:block">
-                    <Button variant="outline" className="gap-2 glass-premium border-red-500/30 hover:border-red-500/50 bg-red-500/10 rounded-full px-8 h-11 font-bold transition-all hover:shadow-lg hover:shadow-red-500/20 relative overflow-hidden group">
-                      <div className="absolute inset-0 bg-linear-to-r from-red-500/0 via-red-500/10 to-red-500/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                      <span className="relative flex items-center gap-2">
-                        <span className="flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-red-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                        </span>
-                        Live
-                      </span>
-                    </Button>
-                  </Link>
-                ) : (
-                  <Link to={ROUTES.becomePartner} className="hidden lg:block">
-                    <Button variant="outline" className="gap-2 glass-premium border-white/20 hover:border-primary/50 rounded-full px-8 h-11 font-bold transition-all hover:shadow-lg hover:shadow-primary/5">
-                      <ChefHat className="h-4 w-4 text-primary" />
-                      Professionnel
-                    </Button>
-                  </Link>
-                )}
+                {/* Devenir partenaire */}
+                <Link to={ROUTES.becomePartner} className="hidden lg:block">
+                  <Button variant="outline" className="gap-2 glass-premium border-white/20 hover:border-primary/50 rounded-full px-8 h-11 font-bold transition-all hover:shadow-lg hover:shadow-primary/5">
+                    <ChefHat className="h-4 w-4 text-primary" />
+                    Professionnel
+                  </Button>
+                </Link>
               </>
             )}
 
@@ -183,7 +183,11 @@ export default function Navbar() {
                         </div>
                       )}
                     </div>
-                    <span className="hidden md:inline text-sm font-black tracking-tight">{user.displayName || 'Mon compte'}</span>
+                    <span className="hidden md:inline text-sm font-black tracking-tight">
+                      {isPizzaiolo
+                        ? `Chef ${user.displayName?.split(' ')[0] || 'Pro'}`
+                        : (user.displayName?.split(' ')[0] || 'Mon compte')}
+                    </span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-72 glass-deep border-white/20 p-2 mt-4 rounded-3xl shadow-2xl animate-in slide-in-from-top-2">

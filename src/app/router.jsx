@@ -14,7 +14,7 @@ const Orders = lazy(() => import('../pages/Orders'));
 const Login = lazy(() => import('../pages/Login'));
 const Register = lazy(() => import('../pages/Register'));
 const RegisterClient = lazy(() => import('../pages/RegisterClient'));
-const RegisterPizzaiolo = lazy(() => import('../pages/RegisterPizzaiolo'));
+// RegisterPizzaiolo supprimé - fusionné dans CreateTruck
 
 const PizzaioloDashboard = lazy(() => import('../pages/pizzaiolo/Dashboard'));
 const PizzaioloProfile = lazy(() => import('../pages/pizzaiolo/Profile'));
@@ -84,7 +84,8 @@ export const router = createBrowserRouter([
       { path: 'login', element: wrap(<Login />) },
       { path: 'register', element: <Navigate to="/register/client" replace /> },
       { path: 'register/client', element: wrap(<RegisterClient />) },
-      { path: 'pro/inscription', element: wrap(<RegisterPizzaiolo />) },
+      // pro/inscription redirige vers le formulaire unifié de création camion
+      { path: 'pro/inscription', element: <Navigate to="/pro/creer-camion" replace /> },
 
 
       // Client (privé requireClient)
@@ -95,15 +96,9 @@ export const router = createBrowserRouter([
       // Pizzaiolo start (public pour découverte)
       { path: 'pizzaiolo/start', element: wrap(<PizzaioloStart />) },
 
-      // Création de camion (privé pizzaiolo)
-      {
-        path: 'pro/creer-camion',
-        element: (
-          <ProtectedRoute requirePizzaiolo={true}>
-            {wrap(<CreateTruck />)}
-          </ProtectedRoute>
-        )
-      },
+      // Création de camion (PUBLIC - gère sa propre auth dans le formulaire)
+      // L'étape 0 crée le compte, les étapes suivantes créent le camion
+      { path: 'pro/creer-camion', element: wrap(<CreateTruck />) },
 
       // Stripe Connect onboarding return page
       {

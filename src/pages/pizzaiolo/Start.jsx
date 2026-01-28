@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../app/providers/AuthProvider';
-import { ref, update } from 'firebase/database';
 import { signOut } from 'firebase/auth';
-import { db, auth } from '../../lib/firebase';
+import { auth } from '../../lib/firebase';
+import { usePizzaioloProfile } from '../../features/users/hooks/usePizzaioloProfile';
 import { ROUTES } from '../../app/routes';
 import { Button } from '../../components/ui/Button';
 import BackButton from '../../components/ui/BackButton';
+import { ChefHat, Store, Radio, Utensils, TrendingUp, ListOrdered } from 'lucide-react';
 
 function PricingCard({ title, subtitle, tagline, bullets }) {
   return (
@@ -34,12 +35,128 @@ function PricingCard({ title, subtitle, tagline, bullets }) {
 export default function PizzaioloStart() {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
+  const { isPizzaiolo, truckId } = usePizzaioloProfile();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Si l'utilisateur est déjà pizzaiolo, afficher le dashboard pro
+  if (isPizzaiolo) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-10">
+        <BackButton className="mb-6" />
+
+        {/* Hero */}
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-orange-500 to-red-500 mb-6">
+            <ChefHat className="h-10 w-10 text-white" />
+          </div>
+          <h1 className="text-4xl font-bold text-gray-900">
+            Bienvenue Chef {user?.displayName?.split(' ')[0] || 'Pro'} ! 👨‍🍳
+          </h1>
+          <p className="mt-4 text-lg text-gray-600">
+            Vous êtes déjà inscrit sur PLANIZZA. Gérez votre activité depuis votre espace pro.
+          </p>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="mt-12 grid gap-4 md:grid-cols-2">
+          <Link
+            to={ROUTES.pizzaioloLive}
+            className="flex items-center gap-4 rounded-xl border-2 border-red-500 bg-gradient-to-br from-red-50 to-white p-6 shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-500">
+              <Radio className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">Mode Live</h3>
+              <p className="text-sm text-gray-600">Prendre des commandes sur place</p>
+            </div>
+          </Link>
+
+          <Link
+            to={ROUTES.pizzaioloOrders}
+            className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-500">
+              <ListOrdered className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">Commandes Reçues</h3>
+              <p className="text-sm text-gray-600">Gérer les commandes en ligne</p>
+            </div>
+          </Link>
+
+          <Link
+            to={ROUTES.pizzaioloProfile}
+            className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500">
+              <Store className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">Mon Camion</h3>
+              <p className="text-sm text-gray-600">Profil, photos, horaires</p>
+            </div>
+          </Link>
+
+          <Link
+            to={ROUTES.pizzaioloMenu}
+            className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500">
+              <Utensils className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">Mon Menu</h3>
+              <p className="text-sm text-gray-600">Pizzas, prix, disponibilité</p>
+            </div>
+          </Link>
+        </div>
+
+        {/* Stats teaser */}
+        <div className="mt-8 rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <TrendingUp className="h-5 w-5 text-emerald-500" />
+            <h3 className="font-semibold text-gray-900">Statistiques</h3>
+          </div>
+          <p className="text-sm text-gray-600">
+            Bientôt disponible : suivez vos ventes, vos best-sellers et votre activité en temps réel.
+          </p>
+        </div>
+
+        {/* Retour */}
+        <div className="mt-8 text-center">
+          <button
+            onClick={() => navigate(ROUTES.explore)}
+            className="text-sm text-gray-600 hover:text-gray-900 underline"
+          >
+            ← Retour à l'exploration
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const handleBecomePizzaiolo = async () => {
-    // Redirection directe vers l'inscription professionnel
-    navigate('/pro/inscription');
+    setLoading(true);
+    setError('');
+
+    try {
+      // Si l'utilisateur est connecté (client ou guest), on le déconnecte
+      // Car un compte PRO doit être un compte SÉPARÉ
+      if (isAuthenticated && user) {
+        console.log('[PLANIZZA] Déconnexion avant inscription pro (était:', user.email || 'guest', ')');
+        await signOut(auth);
+      }
+
+      // Redirection vers le formulaire unifié de création camion
+      navigate('/pro/creer-camion');
+    } catch (err) {
+      console.error('[PLANIZZA] Erreur déconnexion avant inscription pro:', err);
+      setError('Erreur lors de la préparation. Veuillez réessayer.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

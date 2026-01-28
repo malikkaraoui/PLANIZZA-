@@ -88,16 +88,7 @@ export default function PizzaioloLive() {
   
   const { clearLiveOrder } = useLiveOrder(truckId, user?.uid, cart, customerName, pickupTime);
 
-  // Initialiser l'heure de retrait avec heure actuelle + 15 minutes
-  useEffect(() => {
-    if (!pickupTime) {
-      const now = new Date();
-      now.setMinutes(now.getMinutes() + 15);
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      setPickupTime(`${hours}:${minutes}`);
-    }
-  }, [pickupTime, setPickupTime]);
+  // Note: l'heure de retrait est initialisée à +15 min dans useLiveCart
 
   // Synchroniser le menu local (format attendu par l'écran Live)
   useEffect(() => {

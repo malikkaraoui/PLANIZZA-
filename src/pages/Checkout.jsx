@@ -1,13 +1,11 @@
 import { useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { signInAnonymously } from 'firebase/auth';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../app/providers/AuthProvider';
 import { useCart } from '../features/cart/hooks/useCart.jsx';
 import { useCreateOrder } from '../features/orders/hooks/useCreateOrder';
 import { ROUTES } from '../app/routes';
 import BackButton from '../components/ui/BackButton';
-import { auth } from '../lib/firebase';
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -40,23 +38,14 @@ export default function Checkout() {
     }
 
     try {
-      // 1. Si pas authentifié, créer un compte Firebase anonyme
-      let userUid = user?.uid;
-      let customerName = user?.displayName || 'Client';
+      // La création du compte anonyme (guest) est gérée dans lib/stripe.js
+      // uniquement au moment de l'appel à Stripe, pas avant.
+      // Cela évite de créer des comptes fantômes si l'utilisateur abandonne.
+      const customerName = user?.displayName || 'Client';
 
-      if (!userUid) {
-        const { user: anonUser } = await signInAnonymously(auth);
-        userUid = anonUser.uid;
-        customerName = 'Client';
-        // Sauvegarder l'UID guest pour pouvoir récupérer la commande plus tard
-        localStorage.setItem('planizza:guestUserId', userUid);
-      }
-
-      // 2. Créer la commande (le token Firebase sera récupéré automatiquement par lib/stripe)
       await createOrder({
         truckId,
         items,
-        userUid,
         customerName,
       });
       // createOrder déclenche le redirect Stripe via lib/stripe

@@ -51,7 +51,12 @@ export const useLiveCart = () => {
     } catch (err) {
       console.error('[useLiveCart] Erreur restauration pickupTime:', err);
     }
-    return '';
+    // Par défaut : heure actuelle + 15 minutes
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + 15);
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
   });
 
   /**
@@ -142,12 +147,19 @@ export const useLiveCart = () => {
 
   /**
    * Vide complètement le panier et le localStorage
+   * Réinitialise l'heure de retrait à +15 minutes
    */
   const clearCart = useCallback(() => {
     setCart([]);
     setCustomerName('');
-    setPickupTime('');
-    
+
+    // Réinitialiser l'heure de retrait à +15 minutes
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + 15);
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    setPickupTime(`${hours}:${minutes}`);
+
     try {
       localStorage.removeItem(STORAGE_KEYS.LIVE_CART);
       localStorage.removeItem(STORAGE_KEYS.LIVE_CUSTOMER);

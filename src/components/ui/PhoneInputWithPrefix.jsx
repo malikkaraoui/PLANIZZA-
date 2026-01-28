@@ -50,8 +50,8 @@ export default function PhoneInputWithPrefix({ value, onChange, placeholder = "6
   };
 
   return (
-    <div className={`relative flex items-center rounded-2xl border border-input bg-background h-12 overflow-hidden focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 transition-all ${className}`}>
-      <span className="pl-4 pr-2 text-sm font-bold text-muted-foreground select-none">
+    <div className={`relative flex items-center rounded-xl border border-gray-300 bg-white h-12 overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-emerald-500 transition-all ${className}`}>
+      <span className="pl-4 pr-2 text-sm font-bold text-gray-500 select-none">
         +33
       </span>
       <input
@@ -59,7 +59,8 @@ export default function PhoneInputWithPrefix({ value, onChange, placeholder = "6
         value={value}
         onChange={handleChange}
         placeholder={placeholder}
-        className="flex-1 h-full px-3 bg-transparent border-none outline-none focus:ring-0 text-foreground placeholder:text-muted-foreground"
+        className="flex-1 h-full px-3 bg-transparent border-0 outline-none text-gray-900 placeholder:text-gray-400"
+        style={{ WebkitAppearance: 'none', appearance: 'none' }}
       />
     </div>
   );

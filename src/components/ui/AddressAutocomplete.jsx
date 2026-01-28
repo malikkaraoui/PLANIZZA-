@@ -314,18 +314,10 @@ export default function AddressAutocomplete({ address, onAddressChange }) {
           />
         </div>
 
-        <select
-          value={address.country}
-          onChange={(e) => onAddressChange({ ...address, country: e.target.value })}
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white"
-        >
-          <option value="France">🇫🇷 France</option>
-          <option value="Belgique">🇧🇪 Belgique</option>
-          <option value="Suisse">🇨🇭 Suisse</option>
-          <option value="Luxembourg">🇱🇺 Luxembourg</option>
-          <option value="Canada">🇨🇦 Canada</option>
-          <option value="États-Unis">🇺🇸 États-Unis</option>
-        </select>
+{/* Pays bloqué sur France */}
+        <div className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm bg-gray-100 text-gray-600">
+          🇫🇷 France
+        </div>
       </div>
     </div>
   );
