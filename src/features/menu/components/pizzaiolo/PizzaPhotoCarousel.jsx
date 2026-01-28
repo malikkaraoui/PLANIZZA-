@@ -127,7 +127,7 @@ export default function PizzaPhotoCarousel({ selectedPhotoUrl, onSelectPhoto }) 
                   <Check className="h-4 w-4 text-white" />
                 </div>
               )}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+              <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/60 to-transparent p-2">
                 <div className="text-[10px] font-medium text-white line-clamp-1">
                   {preset.name}
                 </div>

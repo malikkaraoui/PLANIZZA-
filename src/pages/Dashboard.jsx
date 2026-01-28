@@ -311,7 +311,7 @@ export default function Dashboard() {
           {/* Avatar */}
           <Avatar className="h-28 w-28 ring-4 ring-primary/20 ring-offset-4 shadow-2xl">
             <AvatarImage src={user?.photoURL} alt={user?.displayName || 'User'} />
-            <AvatarFallback className="bg-gradient-to-br from-primary to-orange-500 text-white font-black text-3xl">
+            <AvatarFallback className="bg-linear-to-br from-primary to-orange-500 text-white font-black text-3xl">
               {user?.displayName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
             </AvatarFallback>
           </Avatar>

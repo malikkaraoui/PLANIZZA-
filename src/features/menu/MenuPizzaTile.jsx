@@ -306,7 +306,7 @@ export default function MenuPizzaTile({
                     >
                       {/* Background orange animé */}
                       <span
-                        className={`absolute inset-0 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 shadow-md transition-all duration-300 ease-out ${
+                        className={`absolute inset-0 rounded-full bg-linear-to-br from-orange-500 to-orange-600 shadow-md transition-all duration-300 ease-out ${
                           active ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
                         }`}
                       />
@@ -339,7 +339,7 @@ export default function MenuPizzaTile({
                   e.stopPropagation();
                   setCustomizeOpen(true);
                 }}
-                className="group flex-shrink-0 h-10 w-10 rounded-xl text-[11px] font-black tracking-wide uppercase transition-all bg-gradient-to-br from-orange-100 to-orange-200 hover:from-orange-500 hover:to-orange-600 text-orange-600 hover:text-white border border-orange-300 hover:border-orange-600 shadow-sm hover:shadow-md flex items-center justify-center"
+                className="group flex-shrink-0 h-10 w-10 rounded-xl text-[11px] font-black tracking-wide uppercase transition-all bg-linear-to-br from-orange-100 to-orange-200 hover:from-orange-500 hover:to-orange-600 text-orange-600 hover:text-white border border-orange-300 hover:border-orange-600 shadow-sm hover:shadow-md flex items-center justify-center"
                 title="Personnaliser"
               >
                 <Pencil className="h-4 w-4 transition-transform group-hover:scale-110" />

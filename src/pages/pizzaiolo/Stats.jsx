@@ -458,11 +458,11 @@ export default function PizzaioloStats() {
 
       {/* Section Envoi Comptable - Toujours visible */}
       <Card className="glass-premium glass-glossy border-2 border-emerald-500/30 p-6 rounded-[24px] relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-emerald-500/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-linear-to-bl from-emerald-500/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/2" />
 
         <div className="relative">
           <div className="flex items-center gap-3 mb-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-lg shadow-emerald-500/30">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-linear-to-br from-emerald-500 to-emerald-600 shadow-lg shadow-emerald-500/30">
               <Send className="h-6 w-6 text-white" />
             </div>
             <div>
@@ -512,7 +512,7 @@ export default function PizzaioloStats() {
             </div>
           </div>
 
-          <div className="mt-6 p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border border-emerald-500/20">
+          <div className="mt-6 p-4 rounded-2xl bg-linear-to-r from-emerald-500/10 to-blue-500/10 border border-emerald-500/20">
             <div className="flex items-center gap-3">
               <Sparkles className="h-5 w-5 text-emerald-500" />
               <p className="text-sm font-medium">
@@ -523,7 +523,7 @@ export default function PizzaioloStats() {
 
           <Button
             disabled
-            className="mt-6 w-full md:w-auto bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold rounded-2xl h-12 px-8 opacity-50 cursor-not-allowed"
+            className="mt-6 w-full md:w-auto bg-linear-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold rounded-2xl h-12 px-8 opacity-50 cursor-not-allowed"
           >
             <Send className="h-4 w-4 mr-2" />
             Envoyer a mon comptable
@@ -535,7 +535,7 @@ export default function PizzaioloStats() {
       {!hasOrders && (
         <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-[24px]">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-orange-500 to-red-500 mb-4">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-linear-to-br from-orange-500 to-red-500 mb-4">
               <TrendingUp className="h-10 w-10 text-white" />
             </div>
             <h2 className="text-2xl font-black tracking-tight">Vos statistiques arrivent bientot !</h2>
@@ -545,7 +545,7 @@ export default function PizzaioloStats() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20">
+            <div className="p-5 rounded-2xl bg-linear-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500 mb-3">
                 <TrendingUp className="h-6 w-6 text-white" />
               </div>
@@ -555,7 +555,7 @@ export default function PizzaioloStats() {
               </p>
             </div>
 
-            <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-500/10 to-orange-500/5 border border-orange-500/20">
+            <div className="p-5 rounded-2xl bg-linear-to-br from-orange-500/10 to-orange-500/5 border border-orange-500/20">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500 mb-3">
                 <Calculator className="h-6 w-6 text-white" />
               </div>
@@ -565,7 +565,7 @@ export default function PizzaioloStats() {
               </p>
             </div>
 
-            <div className="p-5 rounded-2xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 border border-blue-500/20">
+            <div className="p-5 rounded-2xl bg-linear-to-br from-blue-500/10 to-blue-500/5 border border-blue-500/20">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500 mb-3">
                 <Clock className="h-6 w-6 text-white" />
               </div>
@@ -575,7 +575,7 @@ export default function PizzaioloStats() {
               </p>
             </div>
 
-            <div className="p-5 rounded-2xl bg-gradient-to-br from-purple-500/10 to-purple-500/5 border border-purple-500/20">
+            <div className="p-5 rounded-2xl bg-linear-to-br from-purple-500/10 to-purple-500/5 border border-purple-500/20">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-500 mb-3">
                 <PieChartIcon className="h-6 w-6 text-white" />
               </div>

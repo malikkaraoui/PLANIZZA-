@@ -72,7 +72,7 @@ export default function Pricing() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-16 px-4">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 to-slate-100 py-16 px-4">
       <div className="max-w-7xl mx-auto">
         <BackButton className="mb-8" />
         {/* Header */}

@@ -47,7 +47,7 @@ export default function PizzaioloStart() {
 
         {/* Hero */}
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-orange-500 to-red-500 mb-6">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-linear-to-br from-orange-500 to-red-500 mb-6">
             <ChefHat className="h-10 w-10 text-white" />
           </div>
           <h1 className="text-4xl font-bold text-gray-900">
@@ -62,7 +62,7 @@ export default function PizzaioloStart() {
         <div className="mt-12 grid gap-4 md:grid-cols-2">
           <Link
             to={ROUTES.pizzaioloLive}
-            className="flex items-center gap-4 rounded-xl border-2 border-red-500 bg-gradient-to-br from-red-50 to-white p-6 shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300"
+            className="flex items-center gap-4 rounded-xl border-2 border-red-500 bg-linear-to-br from-red-50 to-white p-6 shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-500">
               <Radio className="h-6 w-6 text-white" />
@@ -114,7 +114,7 @@ export default function PizzaioloStart() {
         </div>
 
         {/* Stats teaser */}
-        <div className="mt-8 rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-6">
+        <div className="mt-8 rounded-xl border border-gray-200 bg-linear-to-br from-gray-50 to-white p-6">
           <div className="flex items-center gap-3 mb-4">
             <TrendingUp className="h-5 w-5 text-emerald-500" />
             <h3 className="font-semibold text-gray-900">Statistiques</h3>
@@ -177,7 +177,7 @@ export default function PizzaioloStart() {
         <button
           onClick={handleBecomePizzaiolo}
           disabled={loading}
-          className="rounded-xl border-2 border-emerald-500 bg-gradient-to-br from-emerald-50 to-white p-6 shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300 text-left"
+          className="rounded-xl border-2 border-emerald-500 bg-linear-to-br from-emerald-50 to-white p-6 shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300 text-left"
         >
           <div className="text-3xl">🚚</div>
           <h3 className="mt-3 font-semibold text-gray-900">Explorer une nouvelle route avec mon camion</h3>

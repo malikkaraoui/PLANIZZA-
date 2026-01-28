@@ -415,7 +415,7 @@ export default function Account() {
         <div className="flex flex-col items-center gap-6">
           <Avatar className="h-28 w-28 ring-4 ring-primary/20 ring-offset-4 shadow-2xl">
             <AvatarImage src={user?.photoURL} alt={user?.displayName || 'User'} />
-            <AvatarFallback className="bg-gradient-to-br from-primary to-purple-500 text-white font-black text-3xl">
+            <AvatarFallback className="bg-linear-to-br from-primary to-purple-500 text-white font-black text-3xl">
               {user?.displayName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
             </AvatarFallback>
           </Avatar>
@@ -449,7 +449,7 @@ export default function Account() {
 
       {/* Bannière session éphémère pour les guests */}
       {isGuest && (
-        <Card className="glass-premium glass-glossy border-amber-200/50 p-6 bg-gradient-to-br from-amber-50 to-amber-100/50">
+        <Card className="glass-premium glass-glossy border-amber-200/50 p-6 bg-linear-to-br from-amber-50 to-amber-100/50">
           <div className="flex items-start gap-3">
             <div className="p-3 rounded-2xl bg-amber-500/10">
               <AlertCircle className="h-6 w-6 text-amber-600 shrink-0" />
@@ -812,7 +812,7 @@ export default function Account() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300 p-4">
           <div className="glass-premium glass-glossy border-white/30 rounded-[32px] p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-300">
             <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-primary to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/30">
+              <div className="w-16 h-16 bg-linear-to-br from-primary to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/30">
                 <UserPlus className="h-8 w-8 text-white" />
               </div>
               <h2 className="text-2xl font-black tracking-tight mb-2">Créer votre compte</h2>
@@ -889,7 +889,7 @@ export default function Account() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300 p-4">
           <div className="glass-premium glass-glossy border-red-500/30 rounded-[32px] p-8 max-w-md w-full shadow-2xl shadow-red-500/20 animate-in zoom-in-95 duration-300">
             <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-red-500/30">
+              <div className="w-16 h-16 bg-linear-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-red-500/30">
                 <Trash2 className="h-8 w-8 text-white" />
               </div>
               <h2 className="text-2xl font-black tracking-tight mb-2">Supprimer mon compte</h2>

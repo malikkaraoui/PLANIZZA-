@@ -4,7 +4,7 @@ import BackButton from '../components/ui/BackButton';
 
 export default function Cancel() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-linear-to-br from-red-50 to-red-100 flex items-center justify-center px-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
         <BackButton className="mb-4" />
         <div className="flex justify-center mb-6">

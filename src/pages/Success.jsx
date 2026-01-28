@@ -8,7 +8,7 @@ export default function Success() {
   const plan = searchParams.get('plan');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-linear-to-br from-green-50 to-green-100 flex items-center justify-center px-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
         <BackButton className="mb-4" />
         <div className="flex justify-center mb-6">

@@ -76,3 +76,10 @@ test-*.html
 *.pem
 .vercel
 
+# ============ Instructions ============
+
+CLAUDE.md
+instruction_base_website.md
+instruction_base_functions.md
+instruction_base_pro_dashboard.md
+instructions_commands.md

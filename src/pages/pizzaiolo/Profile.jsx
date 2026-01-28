@@ -635,7 +635,7 @@ export default function PizzaioloProfile() {
           {/* Stats Cards */}
           <div className="grid md:grid-cols-3 gap-4">
             {/* Favoris */}
-            <Card className="glass-premium glass-glossy border-white/20 p-5 rounded-[20px]">
+            <Card className="glass-premium glass-glossy border-white/20 p-5 rounded-4xl">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground font-medium mb-1">Favoris</p>
@@ -648,7 +648,7 @@ export default function PizzaioloProfile() {
             </Card>
 
             {/* Commandes actives */}
-            <Card className="glass-premium glass-glossy border-white/20 p-5 rounded-[20px]">
+            <Card className="glass-premium glass-glossy border-white/20 p-5 rounded-4xl">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground font-medium mb-1">Commandes actives</p>
@@ -661,7 +661,7 @@ export default function PizzaioloProfile() {
             </Card>
 
             {/* Cadence */}
-            <Card className="glass-premium glass-glossy border-white/20 p-5 rounded-[20px]">
+            <Card className="glass-premium glass-glossy border-white/20 p-5 rounded-4xl">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground font-medium mb-1">Cadence</p>
