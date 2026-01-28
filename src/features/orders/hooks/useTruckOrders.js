@@ -8,9 +8,12 @@ import { notifyPizzaiolo } from '../../../lib/notifications';
 /**
  * Hook pour récupérer les commandes d'un camion spécifique
  * @param {string} truckId - ID du camion
+ * @param {object} [options] - Options du hook
+ * @param {Function} [options.navigate] - Fonction de navigation (pour notifications cliquables)
  * @returns {object} { orders, loading, error }
  */
-export function useTruckOrders(truckId) {
+export function useTruckOrders(truckId, options = {}) {
+  const { navigate } = options;
   const enabled = Boolean(isFirebaseConfigured && db && truckId);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(enabled);
@@ -57,7 +60,7 @@ export function useTruckOrders(truckId) {
                 // Nouvelle commande !
                 const customerName = order.customerName || 'Client';
                 const total = ((order.totalCents || 0) / 100).toFixed(2);
-                notifyPizzaiolo.newOrder(customerName, total);
+                notifyPizzaiolo.newOrder(customerName, total, order.id, navigate);
               }
             }
             previousOrderIdsRef.current = currentIds;

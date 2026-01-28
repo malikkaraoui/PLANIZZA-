@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Clock, Check, Flame, Handshake, X, CreditCard } from 'lucide-react';
 
 import { ROUTES } from '../../app/routes';
@@ -229,9 +229,10 @@ function Column({ title, orders, nowMs, onAdvance, onCancel, onMarkPaid, busy })
 }
 
 export default function PizzaioloOrdersV2() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { truckId, loading: loadingTruckId } = usePizzaioloTruckId(user?.uid);
-  const { orders, loading: ordersLoading } = useTruckOrders(truckId);
+  const { orders, loading: ordersLoading } = useTruckOrders(truckId, { navigate });
   const { nowMs } = useServerNow({ tickMs: 1000 });
   const [mutating, setMutating] = useState(false);
 

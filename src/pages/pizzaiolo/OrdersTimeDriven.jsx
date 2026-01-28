@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { ROUTES } from '../../app/routes';
 import { useAuth } from '../../app/providers/AuthProvider';
@@ -383,9 +383,10 @@ function OrderRow({ row, nowMs, busy, onAction, isHistory = false, onClick }) {
 }
 
 export default function OrdersPageTimeDriven() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { truckId, loading: loadingTruckId, error: truckIdError } = usePizzaioloTruckId(user?.uid);
-  const { orders, loading: ordersLoading, error: ordersError } = useTruckOrders(truckId);
+  const { orders, loading: ordersLoading, error: ordersError } = useTruckOrders(truckId, { navigate });
   const { nowMs } = useServerNow({ tickMs: 1000 });
 
   const [q, setQ] = useState('');

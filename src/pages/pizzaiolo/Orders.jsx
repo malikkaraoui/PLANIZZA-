@@ -57,7 +57,7 @@ export default function PizzaioloOrders() {
   const { nowMs: currentTime } = useServerNow({ tickMs: 1000 });
   const [pizzaPerHour, setPizzaPerHour] = useState(30); // Cadence du pizzaiolo
   const [_openingHours, setOpeningHours] = useState(null); // Horaires d'ouverture
-  const { orders, loading: ordersLoading } = useTruckOrders(truckId);
+  const { orders, loading: ordersLoading } = useTruckOrders(truckId, { navigate });
   const { updateStatus, loading: updating, error: updateError } = useUpdateOrderStatus();
 
   const [message, setMessage] = useState('');
