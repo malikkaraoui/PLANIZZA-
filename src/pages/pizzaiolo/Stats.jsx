@@ -41,7 +41,7 @@ ChartJS.register(
 const TVA_RATE = 0.10;
 
 export default function PizzaioloStats() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { truckId, loading: loadingTruckId } = usePizzaioloTruckId(user?.uid);
   const { orders, loading: ordersLoading } = useTruckOrders(truckId);
@@ -413,10 +413,30 @@ export default function PizzaioloStats() {
     } : undefined
   };
 
-  if (loadingTruckId || ordersLoading) {
+  if (authLoading || loadingTruckId || ordersLoading) {
     return (
       <div className="flex items-center justify-center h-96">
         <p className="text-muted-foreground font-medium">Chargement...</p>
+      </div>
+    );
+  }
+
+  // Si pas d'utilisateur connecté, rediriger
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96 gap-4">
+        <p className="text-muted-foreground font-medium">Vous devez être connecté pour voir cette page.</p>
+        <Button onClick={() => navigate('/login')}>Se connecter</Button>
+      </div>
+    );
+  }
+
+  // Si pas de truckId, l'utilisateur n'est pas pizzaiolo
+  if (!truckId) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96 gap-4">
+        <p className="text-muted-foreground font-medium">Vous n'avez pas encore de camion.</p>
+        <Button onClick={() => navigate('/pro/creer-camion')}>Créer mon camion</Button>
       </div>
     );
   }
