@@ -20,13 +20,16 @@ export default defineConfig({
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
 
-          // React core - TOUT dans un seul chunk (React 19 ne supporte pas la séparation)
-          if (id.includes('/react-dom/') || id.includes('/react/') || id.includes('/scheduler/')) {
+          // React core + libs qui utilisent React internals - TOUT ensemble
+          if (
+            id.includes('/react-dom/') ||
+            id.includes('/react/') ||
+            id.includes('/scheduler/') ||
+            id.includes('/react-leaflet/') ||
+            id.includes('/react-router')
+          ) {
             return 'vendor-react';
           }
-
-          // React Router
-          if (id.includes('/react-router')) return 'vendor-router';
 
           // Firebase - gros module, séparé
           if (id.includes('/firebase/')) return 'vendor-firebase';
@@ -39,8 +42,8 @@ export default defineConfig({
             return 'vendor-charts';
           }
 
-          // Maps (Leaflet)
-          if (id.includes('/leaflet/') || id.includes('/react-leaflet/')) return 'vendor-map';
+          // Leaflet (sans react-leaflet qui est avec React)
+          if (id.includes('/leaflet/') && !id.includes('/react-leaflet/')) return 'vendor-map';
 
           // UI / composants / icônes / dnd
           if (id.includes('/@radix-ui/')) return 'vendor-radix';
