@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { onValue, ref } from 'firebase/database';
 import { db, isFirebaseConfigured } from '../../../lib/firebase';
 import { rtdbPaths } from '../../../lib/rtdbPaths';
@@ -12,28 +12,25 @@ import { devLog, devWarn } from '../../../lib/devLog';
  * @returns {{ truckId: string|null, loading: boolean, error: Error|null }}
  */
 export function usePizzaioloTruckId(userId) {
-  // Déterminer l'état initial en fonction des conditions
-  const initialState = useMemo(() => {
-    if (!userId || !isFirebaseConfigured || !db) {
-      return { truckId: null, loading: false, error: null };
-    }
-    return { truckId: null, loading: true, error: null };
-  }, [userId]);
-
-  const [state, setState] = useState(initialState);
+  const [state, setState] = useState({ truckId: null, loading: true, error: null });
 
   useEffect(() => {
-    // Pas de userId : ne rien faire (état déjà correct)
+    // Pas de userId : arrêter le chargement
     if (!userId) {
       devLog('[usePizzaioloTruckId] no userId');
+      setState({ truckId: null, loading: false, error: null });
       return;
     }
 
-    // Firebase non configuré : ne rien faire (état déjà correct)
+    // Firebase non configuré : arrêter le chargement
     if (!isFirebaseConfigured || !db) {
       devWarn('[usePizzaioloTruckId] firebase not configured');
+      setState({ truckId: null, loading: false, error: null });
       return;
     }
+
+    // Remettre en loading quand userId change
+    setState(prev => ({ ...prev, loading: true }));
 
     // Variables de contrôle
     let cancelled = false;
