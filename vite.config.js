@@ -20,9 +20,10 @@ export default defineConfig({
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
 
-          // React core - chargé en premier, mis en cache longtemps
-          if (id.includes('/react-dom/') || id.includes('/scheduler/')) return 'vendor-react-dom';
-          if (id.includes('/react/') && !id.includes('react-')) return 'vendor-react';
+          // React core - TOUT dans un seul chunk (React 19 ne supporte pas la séparation)
+          if (id.includes('/react-dom/') || id.includes('/react/') || id.includes('/scheduler/')) {
+            return 'vendor-react';
+          }
 
           // React Router
           if (id.includes('/react-router')) return 'vendor-router';
