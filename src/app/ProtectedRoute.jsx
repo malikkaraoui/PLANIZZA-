@@ -1,10 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { signOut } from 'firebase/auth';
 import { useAuth } from './providers/AuthProvider';
 import { useClientProfile } from '../features/users/hooks/useClientProfile';
 import { usePizzaioloProfile } from '../features/users/hooks/usePizzaioloProfile';
-import { auth } from '../lib/firebase';
 import { devLog } from '../lib/devLog';
 
 /**
@@ -20,7 +18,6 @@ export default function ProtectedRoute({ children, requireClient = false, requir
   const { isClient, loading: clientLoading } = useClientProfile();
   const { isPizzaiolo, loading: pizzaioloLoading } = usePizzaioloProfile();
   const location = useLocation();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     devLog('[ProtectedRoute]', {
@@ -87,22 +84,25 @@ export default function ProtectedRoute({ children, requireClient = false, requir
   }
 
   // Sécurité : vérifier la mutuelle exclusion client/pizzaiolo
-  // Un utilisateur ne peut pas être les deux à la fois → déconnexion forcée
+  // Un utilisateur ne peut pas être les deux à la fois
+  // MAIS on ne déconnecte plus automatiquement - on donne la priorité au contexte de la route
   if (!clientLoading && !pizzaioloLoading && isClient && isPizzaiolo) {
-    devLog('[ProtectedRoute] ⚠️ ERREUR: Utilisateur est à la fois client ET pizzaiolo! Déconnexion...');
+    devLog('[ProtectedRoute] ⚠️ ATTENTION: Utilisateur a les deux profils (client ET pizzaiolo)');
 
-    // Éviter les appels multiples
-    if (!isLoggingOut) {
-      setIsLoggingOut(true);
-      signOut(auth).then(() => {
-        devLog('[ProtectedRoute] Déconnexion effectuée suite au conflit de profils');
-      }).catch((err) => {
-        console.error('[ProtectedRoute] Erreur déconnexion:', err);
-      });
+    // Si on est sur une route pizzaiolo, on laisse passer (le profil pizzaiolo a priorité)
+    if (requirePizzaiolo) {
+      devLog('[ProtectedRoute] Route pizzaiolo demandée, profil pizzaiolo prioritaire - accès autorisé');
+      return children;
     }
 
-    // Rediriger vers login avec message
-    return <Navigate to="/login?message=conflict" replace />;
+    // Si on est sur une route client, on laisse passer (le profil client a priorité)
+    if (requireClient) {
+      devLog('[ProtectedRoute] Route client demandée, profil client prioritaire - accès autorisé');
+      return children;
+    }
+
+    // Route générique (ni client ni pizzaiolo spécifiquement) : on laisse passer
+    devLog('[ProtectedRoute] Route générique, accès autorisé malgré double profil');
   }
 
   return children;

@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
-import { ref, get, onValue } from 'firebase/database';
+import { ref, onValue } from 'firebase/database';
 import { httpsCallable } from 'firebase/functions';
-import { CreditCard, ExternalLink, AlertCircle, CheckCircle2, Clock, Loader2 } from 'lucide-react';
+import { CreditCard, ExternalLink, AlertCircle, CheckCircle2, Clock, Loader2, Building2, FileCheck, Banknote, Shield } from 'lucide-react';
 import { db, functions } from '../../lib/firebase';
 import { Button } from '../ui/Button';
 import Card from '../ui/Card';
 
 /**
  * Composant affichant le statut Stripe Connect du pizzaiolo
- * et permettant l'onboarding si nécessaire.
+ * avec un stepper visuel clair pour l'onboarding.
  */
 export default function StripeConnectStatus({ userId }) {
   const [stripeData, setStripeData] = useState(null);
@@ -127,6 +127,45 @@ export default function StripeConnectStatus({ userId }) {
   const needsAction = stripeData?.status === 'action_required' || stripeData?.status === 'restricted';
   const requirements = stripeData?.requirements?.currentlyDue || [];
 
+  // Calculer l'étape actuelle (1-4)
+  const getCurrentStep = () => {
+    if (!hasAccount) return 1; // Pas de compte
+    if (requirements.some(r => r.includes('individual.') && !r.includes('verification'))) return 2; // Infos personnelles
+    if (requirements.some(r => r.includes('verification') || r.includes('external_account'))) return 3; // Vérification
+    if (isActive) return 4; // Terminé
+    return 3; // En cours de vérification
+  };
+
+  const currentStep = getCurrentStep();
+
+  // Définir les étapes
+  const steps = [
+    {
+      id: 1,
+      label: 'Créer le compte',
+      icon: CreditCard,
+      description: 'Initialisation de votre compte Stripe'
+    },
+    {
+      id: 2,
+      label: 'Informations',
+      icon: Building2,
+      description: 'Identité et coordonnées professionnelles'
+    },
+    {
+      id: 3,
+      label: 'Vérification',
+      icon: FileCheck,
+      description: 'Documents et coordonnées bancaires'
+    },
+    {
+      id: 4,
+      label: 'Activé',
+      icon: Banknote,
+      description: 'Prêt à recevoir des paiements'
+    },
+  ];
+
   // Mapper les requirements en français
   const requirementLabels = {
     'individual.verification.document': "Pièce d'identité",
@@ -144,139 +183,186 @@ export default function StripeConnectStatus({ userId }) {
     'individual.phone': 'Téléphone',
   };
 
-  return (
-    <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px]">
-      <div className="flex items-start gap-4">
-        {/* Icône statut */}
-        <div className={`p-3 rounded-2xl ${
-          isActive
-            ? 'bg-emerald-500/10'
-            : needsAction
-              ? 'bg-orange-500/10'
-              : isPending
-                ? 'bg-blue-500/10'
-                : 'bg-gray-500/10'
-        }`}>
-          {isActive ? (
+  // Si paiements activés, affichage minimal
+  if (isActive) {
+    return (
+      <Card className="glass-premium glass-glossy border-2 border-emerald-500/30 p-6 rounded-[24px]">
+        <div className="flex items-center gap-4">
+          <div className="p-3 rounded-2xl bg-emerald-500/10">
             <CheckCircle2 className="h-6 w-6 text-emerald-500" />
-          ) : needsAction ? (
-            <AlertCircle className="h-6 w-6 text-orange-500" />
-          ) : isPending ? (
-            <Clock className="h-6 w-6 text-blue-500" />
-          ) : (
-            <CreditCard className="h-6 w-6 text-gray-500" />
-          )}
-        </div>
-
-        {/* Contenu */}
-        <div className="flex-1">
-          <h3 className="text-lg font-black tracking-tight">
-            {isActive
-              ? 'Paiements activés'
-              : needsAction
-                ? 'Action requise'
-                : isPending
-                  ? 'Vérification en cours'
-                  : 'Configurer les paiements'}
-          </h3>
-
-          <p className="mt-1 text-sm text-muted-foreground font-medium">
-            {isActive
-              ? 'Vous pouvez recevoir des paiements de vos clients.'
-              : needsAction
-                ? 'Complétez votre profil Stripe pour recevoir les paiements.'
-                : isPending
-                  ? 'Stripe vérifie vos informations. Cela peut prendre 24-48h.'
-                  : 'Configurez Stripe pour recevoir l\'argent de vos commandes.'}
-          </p>
-
-          {/* Liste des requirements si action requise */}
-          {needsAction && requirements.length > 0 && (
-            <div className="mt-3 p-3 rounded-xl bg-orange-500/5 border border-orange-500/20">
-              <p className="text-xs font-bold text-orange-600 mb-2">Documents manquants :</p>
-              <ul className="text-xs text-muted-foreground space-y-1">
-                {requirements.slice(0, 5).map((req) => (
-                  <li key={req} className="flex items-center gap-2">
-                    <span className="w-1 h-1 rounded-full bg-orange-500" />
-                    {requirementLabels[req] || req}
-                  </li>
-                ))}
-                {requirements.length > 5 && (
-                  <li className="text-orange-600 font-medium">
-                    + {requirements.length - 5} autre(s)...
-                  </li>
-                )}
-              </ul>
-            </div>
-          )}
-
-          {/* Erreur */}
-          {error && (
-            <div className="mt-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
-              <p className="text-xs text-red-600 font-medium">{error}</p>
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="mt-4 flex flex-wrap gap-3">
-            {!hasAccount && (
-              <Button
-                onClick={handleCreateAccount}
-                disabled={actionLoading}
-                className="rounded-2xl font-bold bg-emerald-500 hover:bg-emerald-600"
-              >
-                {actionLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Configuration...
-                  </>
-                ) : (
-                  <>
-                    <CreditCard className="h-4 w-4 mr-2" />
-                    Configurer Stripe
-                  </>
-                )}
-              </Button>
-            )}
-
-            {hasAccount && !isActive && (
-              <Button
-                onClick={handleStartOnboarding}
-                disabled={actionLoading}
-                className={`rounded-2xl font-bold ${
-                  needsAction
-                    ? 'bg-orange-500 hover:bg-orange-600'
-                    : 'bg-blue-500 hover:bg-blue-600'
-                }`}
-              >
-                {actionLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Chargement...
-                  </>
-                ) : (
-                  <>
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    {needsAction ? 'Compléter mon profil' : 'Continuer l\'inscription'}
-                  </>
-                )}
-              </Button>
-            )}
-
-            {isActive && (
-              <a
-                href="https://dashboard.stripe.com/express"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-500/10 text-emerald-600 font-bold text-sm hover:bg-emerald-500/20 transition"
-              >
-                <ExternalLink className="h-4 w-4" />
-                Voir mes revenus
-              </a>
-            )}
           </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-black tracking-tight text-emerald-600">
+              Paiements activés
+            </h3>
+            <p className="text-sm text-muted-foreground font-medium">
+              Vous pouvez recevoir des paiements de vos clients.
+            </p>
+          </div>
+          <a
+            href="https://dashboard.stripe.com/express"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-500 text-white font-bold text-sm hover:bg-emerald-600 transition"
+          >
+            <ExternalLink className="h-4 w-4" />
+            Voir mes revenus
+          </a>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="glass-premium glass-glossy border-2 border-orange-500/30 p-6 rounded-[24px]">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-2.5 rounded-xl bg-orange-500/10">
+          <Shield className="h-5 w-5 text-orange-500" />
+        </div>
+        <div>
+          <h3 className="text-lg font-black tracking-tight">Configuration des paiements</h3>
+          <p className="text-sm text-muted-foreground">
+            {isPending
+              ? 'Stripe vérifie vos informations (24-48h)'
+              : 'Quelques étapes pour recevoir vos paiements'}
+          </p>
         </div>
       </div>
+
+      {/* Stepper */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between">
+          {steps.map((step, index) => {
+            const StepIcon = step.icon;
+            const isCompleted = step.id < currentStep;
+            const isCurrent = step.id === currentStep;
+            const isPendingStep = isCurrent && isPending;
+
+            return (
+              <div key={step.id} className="flex items-center flex-1">
+                {/* Step circle */}
+                <div className="flex flex-col items-center">
+                  <div
+                    className={`
+                      w-10 h-10 rounded-full flex items-center justify-center transition-all
+                      ${isCompleted
+                        ? 'bg-emerald-500 text-white'
+                        : isCurrent
+                          ? isPendingStep
+                            ? 'bg-blue-500 text-white animate-pulse'
+                            : 'bg-orange-500 text-white ring-4 ring-orange-500/20'
+                          : 'bg-gray-200 text-gray-400'
+                      }
+                    `}
+                  >
+                    {isCompleted ? (
+                      <CheckCircle2 className="h-5 w-5" />
+                    ) : isPendingStep ? (
+                      <Clock className="h-5 w-5" />
+                    ) : (
+                      <StepIcon className="h-5 w-5" />
+                    )}
+                  </div>
+                  <span className={`
+                    mt-2 text-xs font-bold text-center
+                    ${isCompleted || isCurrent ? 'text-foreground' : 'text-muted-foreground'}
+                  `}>
+                    {step.label}
+                  </span>
+                </div>
+
+                {/* Connector line */}
+                {index < steps.length - 1 && (
+                  <div
+                    className={`
+                      flex-1 h-1 mx-2 rounded-full
+                      ${step.id < currentStep ? 'bg-emerald-500' : 'bg-gray-200'}
+                    `}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Current step description */}
+      <div className="p-4 rounded-xl bg-white/5 border border-white/10 mb-4">
+        <p className="text-sm font-medium">
+          <span className="text-orange-500 font-bold">Étape {currentStep}/4 :</span>{' '}
+          {steps[currentStep - 1]?.description}
+        </p>
+
+        {/* Liste des requirements si action requise */}
+        {needsAction && requirements.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-white/10">
+            <p className="text-xs font-bold text-orange-600 mb-2">Il vous reste à fournir :</p>
+            <ul className="text-xs text-muted-foreground space-y-1">
+              {requirements.slice(0, 5).map((req) => (
+                <li key={req} className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                  {requirementLabels[req] || req.split('.').pop().replace(/_/g, ' ')}
+                </li>
+              ))}
+              {requirements.length > 5 && (
+                <li className="text-orange-600 font-medium">
+                  + {requirements.length - 5} autre(s)...
+                </li>
+              )}
+            </ul>
+          </div>
+        )}
+
+        {isPending && (
+          <div className="mt-3 pt-3 border-t border-white/10 flex items-center gap-2 text-blue-500">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="text-xs font-medium">Vérification en cours par Stripe...</span>
+          </div>
+        )}
+      </div>
+
+      {/* Erreur */}
+      {error && (
+        <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+          <p className="text-xs text-red-600 font-medium">{error}</p>
+        </div>
+      )}
+
+      {/* Action button */}
+      <Button
+        onClick={hasAccount ? handleStartOnboarding : handleCreateAccount}
+        disabled={actionLoading || isPending}
+        className={`
+          w-full rounded-2xl font-bold h-12
+          ${isPending
+            ? 'bg-blue-500 hover:bg-blue-600 opacity-50 cursor-not-allowed'
+            : 'bg-orange-500 hover:bg-orange-600'
+          }
+        `}
+      >
+        {actionLoading ? (
+          <>
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            Chargement...
+          </>
+        ) : isPending ? (
+          <>
+            <Clock className="h-4 w-4 mr-2" />
+            Vérification en cours...
+          </>
+        ) : (
+          <>
+            <ExternalLink className="h-4 w-4 mr-2" />
+            {hasAccount ? 'Continuer sur Stripe' : 'Commencer la configuration'}
+          </>
+        )}
+      </Button>
+
+      {/* Info */}
+      <p className="mt-3 text-xs text-center text-muted-foreground">
+        Vous serez redirigé vers Stripe pour compléter votre inscription sécurisée.
+      </p>
     </Card>
   );
 }
