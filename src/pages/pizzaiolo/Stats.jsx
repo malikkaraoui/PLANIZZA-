@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Filter, TrendingUp, Clock, PieChart as PieChartIcon, BarChart3, Store, Bike, CreditCard, Calendar, CalendarRange } from 'lucide-react';
+import { ArrowLeft, Filter, TrendingUp, Clock, PieChart as PieChartIcon, BarChart3, Store, Bike, CreditCard, Calendar, CalendarRange, Send, FileText, Calculator, Sparkles, CheckCircle2, Mail, Download, Zap } from 'lucide-react';
 import { useAuth } from '../../app/providers/AuthProvider';
 import { ROUTES } from '../../app/routes';
 import { Card } from '../../components/ui/Card';
@@ -9,6 +9,7 @@ import { useTruckOrders } from '../../features/orders/hooks/useTruckOrders';
 import { usePizzaioloTruckId } from '../../features/pizzaiolo/hooks/usePizzaioloTruckId';
 import { getFilteredOrders, isExpired } from '../../features/orders/utils/orderFilters';
 import BackButton from '../../components/ui/BackButton';
+import { Button } from '../../components/ui/Button';
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -420,6 +421,10 @@ export default function PizzaioloStats() {
     );
   }
 
+  // Vérifier si on a des commandes
+  const hasOrders = orders && orders.length > 0;
+  const totalOrdersCount = orders?.length || 0;
+
   return (
     <div className="space-y-8">
       <BackButton />
@@ -430,6 +435,164 @@ export default function PizzaioloStats() {
           Analyse des performances de votre camion
         </p>
       </div>
+
+      {/* Section Envoi Comptable - Toujours visible */}
+      <Card className="glass-premium glass-glossy border-2 border-emerald-500/30 p-6 rounded-[24px] relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-emerald-500/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/2" />
+
+        <div className="relative">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-lg shadow-emerald-500/30">
+              <Send className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-black tracking-tight">Export Comptable</h2>
+              <p className="text-sm text-muted-foreground">Simplifiez votre comptabilité</p>
+            </div>
+            <span className="ml-auto px-3 py-1 rounded-full bg-amber-500/20 text-amber-600 text-xs font-bold">
+              Bientot
+            </span>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-4 mt-6">
+            <div className="flex items-start gap-3 p-4 rounded-2xl bg-white/5 border border-white/10">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/20">
+                <FileText className="h-5 w-5 text-blue-500" />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm">Rapport PDF</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  CA, TVA, moyennes... tout en un clic
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 p-4 rounded-2xl bg-white/5 border border-white/10">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/20">
+                <Mail className="h-5 w-5 text-purple-500" />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm">Envoi Direct</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  1 bouton = rapport chez votre comptable
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 p-4 rounded-2xl bg-white/5 border border-white/10">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/20">
+                <Calculator className="h-5 w-5 text-emerald-500" />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm">TVA Auto</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Calcul automatique, zéro erreur
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border border-emerald-500/20">
+            <div className="flex items-center gap-3">
+              <Sparkles className="h-5 w-5 text-emerald-500" />
+              <p className="text-sm font-medium">
+                <span className="font-black text-emerald-500">Le reve :</span> Fin de mois, vous appuyez sur "Envoyer", et hop, votre comptable recoit tout. Fini les tableaux Excel !
+              </p>
+            </div>
+          </div>
+
+          <Button
+            disabled
+            className="mt-6 w-full md:w-auto bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold rounded-2xl h-12 px-8 opacity-50 cursor-not-allowed"
+          >
+            <Send className="h-4 w-4 mr-2" />
+            Envoyer a mon comptable
+          </Button>
+        </div>
+      </Card>
+
+      {/* Si aucune commande, afficher la présentation des fonctionnalités */}
+      {!hasOrders && (
+        <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-[24px]">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-orange-500 to-red-500 mb-4">
+              <TrendingUp className="h-10 w-10 text-white" />
+            </div>
+            <h2 className="text-2xl font-black tracking-tight">Vos statistiques arrivent bientot !</h2>
+            <p className="text-muted-foreground mt-2 max-w-lg mx-auto">
+              Des que vous aurez vos premieres commandes, vous decouvrirez ici un tableau de bord complet pour piloter votre activite.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500 mb-3">
+                <TrendingUp className="h-6 w-6 text-white" />
+              </div>
+              <h3 className="font-bold">Chiffre d'affaires</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Suivez votre CA en temps reel : jour, semaine, mois, annee
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-500/10 to-orange-500/5 border border-orange-500/20">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500 mb-3">
+                <Calculator className="h-6 w-6 text-white" />
+              </div>
+              <h3 className="font-bold">TVA Automatique</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                TVA collectee calculee automatiquement. Plus d'erreurs !
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 border border-blue-500/20">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500 mb-3">
+                <Clock className="h-6 w-6 text-white" />
+              </div>
+              <h3 className="font-bold">Performance</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Temps de preparation moyen, prise en charge... Optimisez !
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-gradient-to-br from-purple-500/10 to-purple-500/5 border border-purple-500/20">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-500 mb-3">
+                <PieChartIcon className="h-6 w-6 text-white" />
+              </div>
+              <h3 className="font-bold">Repartition</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Retrait camion vs livraison, cash vs CB... Tout en graphiques
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-8 grid md:grid-cols-3 gap-4">
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-white/5">
+              <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
+              <span className="text-sm font-medium">Ticket moyen calcule automatiquement</span>
+            </div>
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-white/5">
+              <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
+              <span className="text-sm font-medium">Best-sellers identifies</span>
+            </div>
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-white/5">
+              <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
+              <span className="text-sm font-medium">Heures de pointe detectees</span>
+            </div>
+          </div>
+
+          <div className="mt-8 text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 text-amber-600 text-sm font-bold">
+              <Zap className="h-4 w-4" />
+              Commencez a vendre pour debloquer vos stats !
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Afficher les stats si on a des commandes */}
+      {hasOrders && (
+        <>
 
       {/* Filtres */}
       <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px]">
@@ -731,6 +894,8 @@ export default function PizzaioloStats() {
           </div>
         </Card>
       </div>
+      </>
+      )}
     </div>
   );
 }
