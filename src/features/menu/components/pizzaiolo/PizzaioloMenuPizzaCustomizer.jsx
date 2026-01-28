@@ -155,7 +155,7 @@ export function PizzaioloMenuPizzaCustomizer({
 
   return (
     <div className="space-y-6">
-      <div className="glass-premium glass-glossy border-white/20 p-5 rounded-[24px]">
+      <div className="glass-premium glass-glossy border-white/20 p-5 rounded-3xl">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h3 className="text-lg font-black text-gray-900">🍕 {title}</h3>
@@ -192,7 +192,7 @@ export function PizzaioloMenuPizzaCustomizer({
 
       <div className="grid gap-6 lg:grid-cols-2 items-start">
         {/* Colonne 1 : identité + base + fromages (AVANT garnitures) */}
-        <div className="glass-premium glass-glossy border-white/20 p-5 rounded-[24px] space-y-5">
+        <div className="glass-premium glass-glossy border-white/20 p-5 rounded-3xl space-y-5">
           {/* Nom de la pizza/calzone */}
           <div>
             <label className="block text-sm font-medium text-gray-800 mb-2">
@@ -307,7 +307,7 @@ export function PizzaioloMenuPizzaCustomizer({
         </div>
 
         {/* Colonne 2 : garnitures */}
-        <div className="glass-premium glass-glossy border-white/20 p-5 rounded-[24px] space-y-4">
+        <div className="glass-premium glass-glossy border-white/20 p-5 rounded-3xl space-y-4">
           <div className="flex items-center justify-between">
             <label className="block text-sm font-semibold text-gray-800">🥗 Garnitures</label>
             <span className="text-xs text-gray-600">(multi)</span>

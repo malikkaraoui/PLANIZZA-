@@ -465,7 +465,7 @@ export default function TrucksNew() {
                 <Button
                   variant="outline"
                   size="lg"
-                  className="h-16 w-full px-8 rounded-[24px] glass-premium border-white/30 hover:bg-white/10 font-black tracking-tight gap-3 transition-all justify-center"
+                  className="h-16 w-full px-8 rounded-3xl glass-premium border-white/30 hover:bg-white/10 font-black tracking-tight gap-3 transition-all justify-center"
                 >
                   <SlidersHorizontal className="h-5 w-5 text-primary" />
                   Affiner ma recherche
@@ -633,7 +633,7 @@ export default function TrucksNew() {
               ))}
           </div>
         ) : (
-          <Card className="glass-premium p-24 text-center rounded-[48px] space-y-6 border-white/10 animate-in fade-in zoom-in">
+          <Card className="glass-premium p-24 text-center rounded-4xl space-y-6 border-white/10 animate-in fade-in zoom-in">
             <CardContent className="space-y-6">
               <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-8">
                 <Search className="h-12 w-12 text-primary" />

@@ -111,7 +111,7 @@ export default function StripeConnectStatus({ userId }) {
   // Affichage loading
   if (loading) {
     return (
-      <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px]">
+      <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
         <div className="flex items-center gap-3">
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           <span className="text-muted-foreground font-medium">Chargement...</span>
@@ -186,7 +186,7 @@ export default function StripeConnectStatus({ userId }) {
   // Si paiements activés, affichage minimal
   if (isActive) {
     return (
-      <Card className="glass-premium glass-glossy border-2 border-emerald-500/30 p-6 rounded-[24px]">
+      <Card className="glass-premium glass-glossy border-2 border-emerald-500/30 p-6 rounded-3xl">
         <div className="flex items-center gap-4">
           <div className="p-3 rounded-2xl bg-emerald-500/10">
             <CheckCircle2 className="h-6 w-6 text-emerald-500" />
@@ -214,7 +214,7 @@ export default function StripeConnectStatus({ userId }) {
   }
 
   return (
-    <Card className="glass-premium glass-glossy border-2 border-orange-500/30 p-6 rounded-[24px]">
+    <Card className="glass-premium glass-glossy border-2 border-orange-500/30 p-6 rounded-3xl">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <div className="p-2.5 rounded-xl bg-orange-500/10">

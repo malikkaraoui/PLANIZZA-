@@ -20,7 +20,7 @@ export default function CartDrawer({ onCheckout, disabled = false }) {
   const sections = useMemo(() => buildCartSections(items), [items]);
 
   return (
-    <Card className="glass-premium glass-glossy p-8 rounded-[40px] border-white/30 space-y-8 shadow-2xl relative overflow-hidden">
+    <Card className="glass-premium glass-glossy p-8 rounded-4xl border-white/30 space-y-8 shadow-2xl relative overflow-hidden">
       <div className="absolute top-0 right-0 -z-10 w-32 h-32 bg-primary/10 rounded-full blur-2xl" />
 
       <div className="flex items-center gap-4 pb-6 border-b border-white/10">
@@ -51,7 +51,7 @@ export default function CartDrawer({ onCheckout, disabled = false }) {
 
               <div className="space-y-4">
                 {section.items.map((it) => (
-                  <div key={it.id} className="group flex items-center justify-between gap-4 p-4 rounded-[28px] glass-premium hover:bg-white/10 transition-all border-white/10 shadow-sm relative overflow-hidden">
+                  <div key={it.id} className="group flex items-center justify-between gap-4 p-4 rounded-3xl glass-premium hover:bg-white/10 transition-all border-white/10 shadow-sm relative overflow-hidden">
                     <div className="flex-1 min-w-0">
                       <div className="font-black text-sm tracking-tight truncate group-hover:text-primary transition-colors pr-8">
                         {formatCartItemName(it.name)}
@@ -107,7 +107,7 @@ export default function CartDrawer({ onCheckout, disabled = false }) {
         </div>
 
         <Button
-          className="w-full h-16 rounded-[24px] bg-linear-to-r from-primary to-orange-500 hover:shadow-2xl hover:shadow-primary/40 transition-all text-sm font-black tracking-widest uppercase gap-3 disabled:opacity-20 relative overflow-hidden group"
+          className="w-full h-16 rounded-3xl bg-linear-to-r from-primary to-orange-500 hover:shadow-2xl hover:shadow-primary/40 transition-all text-sm font-black tracking-widest uppercase gap-3 disabled:opacity-20 relative overflow-hidden group"
           onClick={onCheckout}
           disabled={items.length === 0 || disabled}
         >

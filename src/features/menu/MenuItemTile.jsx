@@ -91,7 +91,7 @@ export default function MenuItemTile({ item, onAdd, isDisabled = false }) {
 
   return (
     <Card
-      className={`group glass-premium glass-glossy overflow-hidden border-white/30 transition-all duration-300 rounded-[28px] ${
+      className={`group glass-premium glass-glossy overflow-hidden border-white/30 transition-all duration-300 rounded-3xl ${
         !isAvailable
           ? 'opacity-50 grayscale pointer-events-none'
           : 'hover:shadow-[0_24px_48px_-18px_rgba(0,0,0,0.18)]'
@@ -100,7 +100,7 @@ export default function MenuItemTile({ item, onAdd, isDisabled = false }) {
       <CardContent className="p-5">
         <div className="flex items-start gap-4">
           {item.photo && (
-            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-[18px] shadow-lg border-white/40 border group-hover:border-primary/40 transition-all">
+            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl shadow-lg border-white/40 border group-hover:border-primary/40 transition-all">
               <img src={item.photo} alt={item.name} className="h-full w-full object-cover" loading="lazy" />
             </div>
           )}

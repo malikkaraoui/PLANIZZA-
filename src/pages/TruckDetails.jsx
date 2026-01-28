@@ -193,7 +193,7 @@ export default function TruckDetails() {
 
       {isLoading ? (
         <div className="flex h-[60vh] flex-col items-center justify-center space-y-6">
-          <div className="p-8 rounded-[40px] glass-premium glass-glossy shadow-2xl animate-bounce-subtle">
+          <div className="p-8 rounded-4xl glass-premium glass-glossy shadow-2xl animate-bounce-subtle">
             <Pizza className="h-16 w-16 text-primary animate-spin" />
           </div>
           <div className="font-black tracking-[0.3em] text-primary/60 uppercase text-xs animate-pulse">
@@ -201,7 +201,7 @@ export default function TruckDetails() {
           </div>
         </div>
       ) : truckError ? (
-        <Card className="glass-premium glass-glossy py-24 text-center rounded-[48px] border-white/20 shadow-2xl">
+        <Card className="glass-premium glass-glossy py-24 text-center rounded-4xl border-white/20 shadow-2xl">
           <CardContent className="space-y-6">
             <div className="w-20 h-20 bg-destructive/10 rounded-full flex items-center justify-center mx-auto text-4xl">
               ⚠️
@@ -226,7 +226,7 @@ export default function TruckDetails() {
           </CardContent>
         </Card>
       ) : !truck ? (
-        <Card className="glass-premium glass-glossy py-32 text-center rounded-[48px] border-white/20 shadow-2xl">
+        <Card className="glass-premium glass-glossy py-32 text-center rounded-4xl border-white/20 shadow-2xl">
           <CardContent className="space-y-8">
             <div className="w-24 h-24 bg-destructive/10 rounded-full flex items-center justify-center mx-auto text-5xl">
               🚫
@@ -248,7 +248,7 @@ export default function TruckDetails() {
           }`}>
           <div className="flex-1 space-y-12">
             {/* Truck Info Section */}
-            <div ref={truckCardRef} className="glass-premium glass-glossy p-2 rounded-[40px] shadow-2xl overflow-hidden border-white/20">
+            <div ref={truckCardRef} className="glass-premium glass-glossy p-2 rounded-4xl shadow-2xl overflow-hidden border-white/20">
               <TruckHeader truck={truck} />
 
               {/* Custom Detail Strip */}
@@ -298,7 +298,7 @@ export default function TruckDetails() {
                     {/* Info adresse - Cliquable */}
                     <button
                       onClick={() => setShowMap(!showMap)}
-                      className="w-full flex items-start gap-4 p-5 rounded-[24px] glass-premium border-white/20 hover:border-primary/30 transition-all shadow-lg hover:shadow-xl group"
+                      className="w-full flex items-start gap-4 p-5 rounded-3xl glass-premium border-white/20 hover:border-primary/30 transition-all shadow-lg hover:shadow-xl group"
                     >
                       <div className="p-3 rounded-2xl glass-premium border-white/30 text-primary shadow-lg group-hover:scale-110 transition-transform">
                         <MapPin className="h-5 w-5" />
@@ -319,7 +319,7 @@ export default function TruckDetails() {
                     {truck.location.lat && truck.location.lng && (
                       <div className={`grid transition-all duration-500 ease-in-out ${showMap ? 'grid-rows-[1fr] opacity-100 mt-6' : 'grid-rows-[0fr] opacity-0'}`}>
                         <div className="overflow-hidden">
-                          <div className="relative rounded-[24px] overflow-hidden shadow-2xl border-2 border-white/30">
+                          <div className="relative rounded-3xl overflow-hidden shadow-2xl border-2 border-white/30">
                             <iframe
                               src={`https://www.google.com/maps?q=${truck.location.lat},${truck.location.lng}&hl=fr&z=16&output=embed`}
                               className="w-full h-100 border-0"
@@ -353,7 +353,7 @@ export default function TruckDetails() {
                       <div
                         key={src + idx}
                         onClick={() => setZoomedImage(src)}
-                        className="group relative snap-start shrink-0 w-60 sm:w-70 aspect-16/10 overflow-hidden rounded-[28px] glass-premium border-white/40 shadow-lg cursor-zoom-in transition-all duration-500 hover:scale-[1.02] hover:shadow-xl"
+                        className="group relative snap-start shrink-0 w-60 sm:w-70 aspect-16/10 overflow-hidden rounded-3xl glass-premium border-white/40 shadow-lg cursor-zoom-in transition-all duration-500 hover:scale-[1.02] hover:shadow-xl"
                       >
                         <img
                           src={src}
@@ -376,7 +376,7 @@ export default function TruckDetails() {
 
             {/* Section Avis clients */}
             {reviews.length > 0 && (
-              <section id="reviews-section" className="glass-premium glass-glossy p-6 sm:p-8 rounded-[40px] shadow-2xl border-white/20">
+              <section id="reviews-section" className="glass-premium glass-glossy p-6 sm:p-8 rounded-4xl shadow-2xl border-white/20">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <div className="h-7 w-1.5 bg-amber-500/30 rounded-full" />
@@ -440,7 +440,7 @@ export default function TruckDetails() {
                 <h2 className="text-3xl font-black tracking-tighter uppercase text-gray-900 dark:text-white">La Carte du Chef</h2>
               </div>
               {!hasMenu ? (
-                <div className="p-20 text-center glass-premium border-dashed border-white/20 rounded-[40px]">
+                <div className="p-20 text-center glass-premium border-dashed border-white/20 rounded-4xl">
                   <p className="text-muted-foreground font-black italic text-lg tracking-tight">
                     Le menu de ce camion est en cours de mise à jour... <br />
                     Revenez dans quelques minutes !
@@ -449,7 +449,7 @@ export default function TruckDetails() {
               ) : (
                 <div className="grid gap-8">
                   {!canOrder && (
-                    <div className="p-8 text-center glass-premium border-amber-500/30 rounded-[32px] bg-amber-50/5">
+                    <div className="p-8 text-center glass-premium border-amber-500/30 rounded-4xl bg-amber-50/5">
                       {isPaused && (
                         <>
                           <p className="text-lg font-black text-amber-500 mb-2">☕ Pause en cours</p>

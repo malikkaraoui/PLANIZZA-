@@ -346,7 +346,7 @@ export default function Dashboard() {
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
           {/* Mes Commandes */}
           <Link to={ROUTES.myOrders} className="group">
-            <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[28px] hover:scale-[1.02] hover:shadow-2xl transition-all duration-300 h-full">
+            <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl hover:scale-[1.02] hover:shadow-2xl transition-all duration-300 h-full">
               <div className="flex items-start justify-between mb-4">
                 <div className="p-3 rounded-2xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
                   <Receipt className="h-7 w-7 text-primary" />
@@ -368,7 +368,7 @@ export default function Dashboard() {
 
           {/* Mon Profil */}
           <Link to="/mon-compte" className="group">
-            <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[28px] hover:scale-[1.02] hover:shadow-2xl transition-all duration-300 h-full relative">
+            <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl hover:scale-[1.02] hover:shadow-2xl transition-all duration-300 h-full relative">
               {isProfileIncomplete && (
                 <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 border-2 border-white shadow-lg flex items-center justify-center animate-pulse">
                   <span className="text-xs font-bold text-white">!</span>
@@ -397,7 +397,7 @@ export default function Dashboard() {
 
       {/* Ma Livraison - Section unifiée */}
       <section>
-        <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-[32px]">
+        <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-4xl">
           <div className="flex items-start justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-2xl bg-primary/10">
@@ -429,7 +429,7 @@ export default function Dashboard() {
                 <button
                   type="button"
                   onClick={() => setWantsDelivery(false)}
-                  className={`group relative overflow-hidden rounded-[24px] p-5 transition-all duration-300 ${
+                  className={`group relative overflow-hidden rounded-3xl p-5 transition-all duration-300 ${
                     !wantsDelivery
                       ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-[1.02]'
                       : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
@@ -465,7 +465,7 @@ export default function Dashboard() {
                 <button
                   type="button"
                   onClick={() => setWantsDelivery(true)}
-                  className={`group relative overflow-hidden rounded-[24px] p-5 transition-all duration-300 ${
+                  className={`group relative overflow-hidden rounded-3xl p-5 transition-all duration-300 ${
                     wantsDelivery
                       ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-[1.02]'
                       : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'

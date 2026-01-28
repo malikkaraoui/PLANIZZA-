@@ -515,7 +515,7 @@ export default function PizzaioloProfile() {
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Link
             to={ROUTES.pizzaioloLive}
-            className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px] hover:border-primary/50 transition-all group"
+            className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl hover:border-primary/50 transition-all group"
           >
             <div className="flex items-center gap-3">
               <div className="relative">
@@ -536,7 +536,7 @@ export default function PizzaioloProfile() {
 
           <Link
             to={ROUTES.pizzaioloOrders}
-            className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px] hover:border-primary/50 transition-all group"
+            className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl hover:border-primary/50 transition-all group"
           >
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-2xl bg-blue-500/10 group-hover:bg-blue-500/20 transition">
@@ -551,7 +551,7 @@ export default function PizzaioloProfile() {
 
           <Link
             to={ROUTES.pizzaioloStats}
-            className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px] hover:border-primary/50 transition-all group"
+            className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl hover:border-primary/50 transition-all group"
           >
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-2xl bg-purple-500/10 group-hover:bg-purple-500/20 transition">
@@ -566,7 +566,7 @@ export default function PizzaioloProfile() {
 
           <Link
             to={ROUTES.pizzaioloMenu}
-            className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px] hover:border-primary/50 transition-all group"
+            className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl hover:border-primary/50 transition-all group"
           >
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-2xl bg-emerald-500/10 group-hover:bg-emerald-500/20 transition">
@@ -582,7 +582,7 @@ export default function PizzaioloProfile() {
       )}
 
       {!truckId ? (
-        <Card className="glass-premium glass-glossy border-white/20 p-12 rounded-[32px] text-center">
+        <Card className="glass-premium glass-glossy border-white/20 p-12 rounded-4xl text-center">
           <div className="inline-flex p-6 rounded-3xl bg-orange-500/10 mb-6">
             <Pizza className="h-16 w-16 text-orange-500" />
           </div>
@@ -596,7 +596,7 @@ export default function PizzaioloProfile() {
         // MODE VISUALISATION - DASHBOARD MODERNE
         <div className="space-y-6">
           {/* Header avec actions rapides */}
-          <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px]">
+          <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 {logoUrl && (
@@ -679,7 +679,7 @@ export default function PizzaioloProfile() {
             {/* Colonne gauche - Infos principales (2/3) */}
             <div className="lg:col-span-2 space-y-6">
               {/* Informations générales */}
-              <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px]">
+              <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
                 <h3 className="text-lg font-black mb-4">Informations générales</h3>
                 <div className="space-y-4">
                   {truckDescription && (
@@ -728,7 +728,7 @@ export default function PizzaioloProfile() {
 
               {/* Horaires d'ouverture compact */}
               {openingHours && (
-                <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px]">
+                <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
                   <h3 className="text-lg font-black mb-4 flex items-center gap-2">
                     <Clock className="h-5 w-5" />
                     Horaires d'ouverture
@@ -758,7 +758,7 @@ export default function PizzaioloProfile() {
               )}
 
               {/* Livraison compacte */}
-              <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px]">
+              <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
                 <h3 className="text-lg font-black mb-4">🚴 Plateformes de livraison</h3>
                 <div className="flex gap-3">
                   <button
@@ -786,7 +786,7 @@ export default function PizzaioloProfile() {
 
               {/* Photos compactes */}
               {(logoUrl || photoUrl) && (
-                <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px]">
+                <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
                   <h3 className="text-lg font-black mb-4 flex items-center gap-2">
                     <ImageIcon className="h-5 w-5" />
                     Visuels
@@ -821,7 +821,7 @@ export default function PizzaioloProfile() {
             <div className="space-y-6">
               {/* QR Code compact */}
               {(truckSlug || truckId) && (
-                <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px]">
+                <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
                   <h3 className="text-lg font-black mb-4 text-center">📱 QR Code</h3>
                   
                   <div className="flex justify-center mb-4" ref={qrCodeRef}>
@@ -860,7 +860,7 @@ export default function PizzaioloProfile() {
 
               {/* Carte */}
               {location?.address && location?.lat && location?.lng && (
-                <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px]">
+                <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
                   <h3 className="text-lg font-black mb-4 flex items-center gap-2">
                     <MapPin className="h-5 w-5" />
                     Localisation
@@ -885,7 +885,7 @@ export default function PizzaioloProfile() {
         </div>
       ) : (
         // MODE ÉDITION
-        <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-[32px]">
+        <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-4xl">
           <div className="flex items-start justify-between mb-8">
             <div className="flex items-center gap-4">
               <div className="p-4 rounded-2xl bg-orange-500/10">

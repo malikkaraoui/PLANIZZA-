@@ -23,7 +23,7 @@ export default function TruckHeader({ truck }) {
   const statusText = getOpeningStatusText(truck.openingHours);
 
   return (
-    <div className="relative isolate overflow-hidden rounded-[38px]">
+    <div className="relative isolate overflow-hidden rounded-4xl">
       {/* Photo derrière le texte (liquid glass) */}
       {hero && (
         <img
@@ -39,7 +39,7 @@ export default function TruckHeader({ truck }) {
       <div className="absolute inset-0 -z-10 backdrop-blur-[2px]" />
       <div className="absolute -top-10 -right-10 -z-10 h-40 w-40 bg-primary/20 blur-3xl" />
 
-      <div className="glass-premium glass-glossy border-white/25 rounded-[34px] p-8">
+      <div className="glass-premium glass-glossy border-white/25 rounded-4xl p-8">
         <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-start">
           <div className="flex items-start gap-5 min-w-0">
               {/* Logo */}

@@ -196,7 +196,7 @@ export function PizzaioloMenuItemList({ items = [], onDelete, onSetAvailability,
                 return (
                   <Card
                     key={item.id}
-                    className={`self-start overflow-hidden rounded-[24px] border border-slate-200/70 shadow-sm transition-shadow hover:shadow-md ${
+                    className={`self-start overflow-hidden rounded-3xl border border-slate-200/70 shadow-sm transition-shadow hover:shadow-md ${
                       available ? 'bg-white' : 'opacity-75'
                     } ${
                       flashItemId === item.id

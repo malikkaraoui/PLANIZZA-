@@ -106,7 +106,7 @@ export default function MenuItemCard({ item = {}, onAdd, isDisabled = false }) {
 
   return (
     <Card
-      className={`group glass-premium glass-glossy overflow-hidden border-white/30 transition-all duration-500 rounded-[28px] h-48 ${
+      className={`group glass-premium glass-glossy overflow-hidden border-white/30 transition-all duration-500 rounded-3xl h-48 ${
         !isAvailable
           ? 'opacity-50 grayscale pointer-events-none'
           : 'hover:shadow-[0_26px_56px_-20px_rgba(0,0,0,0.20)]'

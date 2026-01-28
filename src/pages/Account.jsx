@@ -472,7 +472,7 @@ export default function Account() {
       )}
 
       {/* Compte - Informations basiques */}
-      <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-[32px]">
+      <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-4xl">
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-xl font-black tracking-tight">{isGuest ? 'Session temporaire' : 'Compte Google'}</h2>
@@ -483,7 +483,7 @@ export default function Account() {
 
       {/* Informations personnelles */}
       {!isEditing ? (
-        <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-[32px]">
+        <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-4xl">
           <div className="flex items-start justify-between mb-6">
             <div>
               <h2 className="text-2xl font-black tracking-tight">Informations personnelles</h2>
@@ -531,7 +531,7 @@ export default function Account() {
                 <button
                   onClick={() => handleToggleDeliveryPreference(false)}
                   disabled={savingDeliveryPref}
-                  className={`group relative overflow-hidden rounded-[28px] p-6 transition-all duration-300 ${
+                  className={`group relative overflow-hidden rounded-3xl p-6 transition-all duration-300 ${
                     !wantsDelivery
                       ? 'bg-primary text-white shadow-xl shadow-primary/30'
                       : 'glass-premium border-white/20 opacity-50 hover:opacity-100 hover:scale-[1.02]'
@@ -567,7 +567,7 @@ export default function Account() {
                 <button
                   onClick={() => handleToggleDeliveryPreference(true)}
                   disabled={savingDeliveryPref}
-                  className={`group relative overflow-hidden rounded-[28px] p-6 transition-all duration-300 ${
+                  className={`group relative overflow-hidden rounded-3xl p-6 transition-all duration-300 ${
                     wantsDelivery
                       ? 'bg-primary text-white shadow-xl shadow-primary/30'
                       : 'glass-premium border-white/20 opacity-50 hover:opacity-100 hover:scale-[1.02]'
@@ -603,7 +603,7 @@ export default function Account() {
           </div>
         </Card>
       ) : (
-        <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-[32px]">
+        <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-4xl">
           <div className="flex items-start justify-between mb-6">
             <div>
               <h2 className="text-2xl font-black tracking-tight">Modifier mes informations</h2>
@@ -668,7 +668,7 @@ export default function Account() {
                 <button
                   type="button"
                   onClick={() => setWantsDelivery(false)}
-                  className={`group relative overflow-hidden rounded-[28px] p-6 transition-all duration-300 ${
+                  className={`group relative overflow-hidden rounded-3xl p-6 transition-all duration-300 ${
                     !wantsDelivery
                       ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-[1.02]'
                       : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
@@ -704,7 +704,7 @@ export default function Account() {
                 <button
                   type="button"
                   onClick={() => setWantsDelivery(true)}
-                  className={`group relative overflow-hidden rounded-[28px] p-6 transition-all duration-300 ${
+                  className={`group relative overflow-hidden rounded-3xl p-6 transition-all duration-300 ${
                     wantsDelivery
                       ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-[1.02]'
                       : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
@@ -762,7 +762,7 @@ export default function Account() {
         {/* Se déconnecter ou Créer compte */}
         {!isGuest ? (
           <button onClick={onSignOut} disabled={signingOut} className="group text-left">
-            <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[28px] hover:scale-[1.02] hover:shadow-2xl transition-all duration-300 h-full">
+            <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl hover:scale-[1.02] hover:shadow-2xl transition-all duration-300 h-full">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-2xl bg-orange-500/10 group-hover:bg-orange-500/20 transition-colors">
                   <span className="text-3xl">🚪</span>
@@ -776,7 +776,7 @@ export default function Account() {
           </button>
         ) : (
           <Link to={ROUTES.register} className="group">
-            <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[28px] hover:scale-[1.02] hover:shadow-2xl transition-all duration-300 h-full">
+            <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl hover:scale-[1.02] hover:shadow-2xl transition-all duration-300 h-full">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-2xl bg-emerald-500/10 group-hover:bg-emerald-500/20 transition-colors">
                   <UserPlus className="h-7 w-7 text-emerald-500" />
@@ -810,7 +810,7 @@ export default function Account() {
       {/* Modal upgrade compte pour guest */}
       {showEmailPrompt && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300 p-4">
-          <div className="glass-premium glass-glossy border-white/30 rounded-[32px] p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-300">
+          <div className="glass-premium glass-glossy border-white/30 rounded-4xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-300">
             <div className="text-center mb-6">
               <div className="w-16 h-16 bg-linear-to-br from-primary to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/30">
                 <UserPlus className="h-8 w-8 text-white" />
@@ -887,7 +887,7 @@ export default function Account() {
       {/* Modal de confirmation suppression */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300 p-4">
-          <div className="glass-premium glass-glossy border-red-500/30 rounded-[32px] p-8 max-w-md w-full shadow-2xl shadow-red-500/20 animate-in zoom-in-95 duration-300">
+          <div className="glass-premium glass-glossy border-red-500/30 rounded-4xl p-8 max-w-md w-full shadow-2xl shadow-red-500/20 animate-in zoom-in-95 duration-300">
             <div className="text-center mb-6">
               <div className="w-16 h-16 bg-linear-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-red-500/30">
                 <Trash2 className="h-8 w-8 text-white" />

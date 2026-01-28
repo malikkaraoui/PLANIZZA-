@@ -462,7 +462,7 @@ export default function PizzaioloOrders() {
 
   if (!truckId) {
     return (
-      <Card className="glass-premium glass-glossy border-white/20 p-12 rounded-[32px] text-center">
+      <Card className="glass-premium glass-glossy border-white/20 p-12 rounded-4xl text-center">
         <div className="space-y-4">
           <div className="inline-flex p-6 rounded-3xl bg-orange-500/10">
             <Pizza className="h-16 w-16 text-orange-500" />
@@ -513,7 +513,7 @@ export default function PizzaioloOrders() {
       )}
 
       {/* Filtres des commandes */}
-      <Card className={`glass-premium glass-glossy border-white/20 rounded-[24px] transition-all duration-300 ${
+      <Card className={`glass-premium glass-glossy border-white/20 rounded-3xl transition-all duration-300 ${
         filtersVisible ? 'p-6' : 'p-3'
       }`}>
         <div className={`flex items-center justify-between ${filtersVisible ? 'mb-4' : ''}`}>
@@ -700,12 +700,12 @@ export default function PizzaioloOrders() {
         </h2>
 
         {ordersLoading ? (
-          <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-[32px] text-center">
+          <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-4xl text-center">
             <Pizza className="h-8 w-8 text-primary animate-spin mx-auto mb-4" />
             <p className="text-muted-foreground">Chargement...</p>
           </Card>
         ) : filteredActiveOrders.length === 0 ? (
-          <Card className="glass-premium glass-glossy border-white/20 p-12 rounded-[32px] text-center">
+          <Card className="glass-premium glass-glossy border-white/20 p-12 rounded-4xl text-center">
             <div className="inline-flex p-6 rounded-3xl bg-primary/10 mb-4">
               <Pizza className="h-12 w-12 text-primary" />
             </div>
@@ -960,7 +960,7 @@ export default function PizzaioloOrders() {
 
       {/* Historique: pop-up type ticket de caisse */}
       <Dialog open={!!selectedHistoryOrder} onOpenChange={() => setSelectedHistoryOrder(null)}>
-        <DialogContent className="max-w-xl glass-premium glass-glossy border-white/20 rounded-[28px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-xl glass-premium glass-glossy border-white/20 rounded-4xl max-h-[90vh] overflow-y-auto">
           {selectedHistoryOrder ? (
             <>
               <DialogHeader>

@@ -96,7 +96,7 @@ export default function CartSidebar({
 
   const footerPadding = compact ? 'p-6 pt-4 space-y-4' : 'p-8 pt-6 space-y-6';
   const totalClass = compact ? 'text-2xl' : 'text-3xl';
-  const ctaHeight = compact ? 'h-14 rounded-[22px]' : 'h-16 rounded-[24px]';
+  const ctaHeight = compact ? 'h-14 rounded-3xl' : 'h-16 rounded-3xl';
   const ctaText = compact ? 'text-xs' : 'text-sm';
   const scrollGutterRight = compact ? 'pr-3' : 'pr-4';
 
@@ -106,7 +106,7 @@ export default function CartSidebar({
   return (
     <Card
       style={{ maxHeight: maxCardHeight }}
-      className={`glass-premium glass-glossy rounded-[32px] border-white/30 shadow-xl relative overflow-hidden flex flex-col transition-all duration-300 ${className}`}>
+      className={`glass-premium glass-glossy rounded-4xl border-white/30 shadow-xl relative overflow-hidden flex flex-col transition-all duration-300 ${className}`}>
       <div className="absolute top-0 right-0 -z-10 w-24 h-24 bg-primary/8 rounded-full blur-2xl" />
 
       {/* Header panier - fixe */}
@@ -149,7 +149,7 @@ export default function CartSidebar({
                     {section.items.map((it) => (
                       <div
                         key={it.id}
-                        className="group flex items-center justify-between gap-3 p-3 rounded-[24px] glass-premium hover:bg-white/10 transition-all border-white/10 shadow-sm relative overflow-hidden"
+                        className="group flex items-center justify-between gap-3 p-3 rounded-3xl glass-premium hover:bg-white/10 transition-all border-white/10 shadow-sm relative overflow-hidden"
                       >
                         <div className="flex-1 min-w-0">
                           <div className="font-black text-sm tracking-tight truncate group-hover:text-primary transition-colors pr-8">

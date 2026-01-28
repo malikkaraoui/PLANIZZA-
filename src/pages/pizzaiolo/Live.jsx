@@ -262,7 +262,7 @@ export default function PizzaioloLive() {
 
   if (truckIdError || menuError) {
     return (
-      <Card className="glass-premium glass-glossy border-white/20 p-12 rounded-[32px] text-center">
+      <Card className="glass-premium glass-glossy border-white/20 p-12 rounded-4xl text-center">
         <h2 className="text-2xl font-black mb-2">Erreur de chargement</h2>
         <p className="text-muted-foreground">
           {truckIdError ? 'Impossible de déterminer votre camion.' : 'Impossible de charger le menu.'}
@@ -281,7 +281,7 @@ export default function PizzaioloLive() {
 
   if (!truckId) {
     return (
-      <Card className="glass-premium glass-glossy border-white/20 p-12 rounded-[32px] text-center">
+      <Card className="glass-premium glass-glossy border-white/20 p-12 rounded-4xl text-center">
         <h2 className="text-2xl font-black mb-2">Aucun camion associé</h2>
         <p className="text-muted-foreground">Créez d'abord votre camion.</p>
       </Card>
@@ -314,7 +314,7 @@ export default function PizzaioloLive() {
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Menu */}
         <div className="lg:col-span-2 space-y-4">
-          <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px]">
+          <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
             
             {customizingPizza ? (
               /* Vue Personnalisation Pizza */
@@ -396,7 +396,7 @@ export default function PizzaioloLive() {
                       setSelectedCategory(next);
                       setCompactCategoryHeader(false);
                     }}
-                    className={`w-full glass-premium glass-glossy rounded-[24px] transition-all group ${
+                    className={`w-full glass-premium glass-glossy rounded-3xl transition-all group ${
                       selectedCategory === 'pizza' ? 'border-2 border-orange-500' : 'border-white/20'
                     } ${
                       selectedCategory === 'pizza' && compactCategoryHeader
@@ -539,7 +539,7 @@ export default function PizzaioloLive() {
                       setSelectedCategory(next);
                       setCompactCategoryHeader(false);
                     }}
-                    className={`w-full glass-premium glass-glossy rounded-[24px] transition-all group ${
+                    className={`w-full glass-premium glass-glossy rounded-3xl transition-all group ${
                       selectedCategory === 'boisson' ? 'border-2 border-blue-500' : 'border-white/20'
                     } ${
                       selectedCategory === 'boisson' && compactCategoryHeader
@@ -671,7 +671,7 @@ export default function PizzaioloLive() {
                       setSelectedCategory(next);
                       setCompactCategoryHeader(false);
                     }}
-                    className={`w-full glass-premium glass-glossy rounded-[24px] transition-all group ${
+                    className={`w-full glass-premium glass-glossy rounded-3xl transition-all group ${
                       selectedCategory === 'dessert' ? 'border-2 border-pink-500' : 'border-white/20'
                     } ${
                       selectedCategory === 'dessert' && compactCategoryHeader
@@ -752,7 +752,7 @@ export default function PizzaioloLive() {
 
         {/* Panier */}
         <div className="space-y-4">
-          <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px] sticky top-6">
+          <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl sticky top-6">
             <div className="flex items-center gap-2 mb-4">
               <ShoppingCart className="h-5 w-5 text-primary" />
               <h2 className="text-xl font-black">Panier</h2>

@@ -32,7 +32,7 @@ export default function RecommendedTrucks() {
                         to={ROUTES.truck(truck.slug || truck.id)}
                         state={{ from: `${location.pathname}${location.search}` }}
                         aria-label={`Voir le camion ${truck.name}`}
-                        className="group relative block w-56 glass-premium glass-glossy rounded-[32px] p-4 transition-all duration-500 hover:scale-105 hover:-translate-y-2 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.3)] border-white/20 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary/60"
+                        className="group relative block w-56 glass-premium glass-glossy rounded-4xl p-4 transition-all duration-500 hover:scale-105 hover:-translate-y-2 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.3)] border-white/20 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary/60"
                     >
                         {/* Photo */}
                         <div className="relative aspect-square overflow-hidden rounded-2xl mb-5 shadow-inner">

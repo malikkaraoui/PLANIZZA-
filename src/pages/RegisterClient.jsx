@@ -84,7 +84,7 @@ export default function RegisterClient() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12">
-      <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-[32px] max-w-md w-full">
+      <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-4xl max-w-md w-full">
         <div className="text-center mb-8">
           <div className="inline-flex p-6 rounded-3xl bg-orange-500/10 mb-4">
             <Pizza className="h-16 w-16 text-orange-500" />

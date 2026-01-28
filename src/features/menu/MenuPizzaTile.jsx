@@ -181,7 +181,7 @@ export default function MenuPizzaTile({
 
   return (
     <Card
-      className={`group self-start glass-premium glass-glossy overflow-hidden border-white/30 transition-all rounded-[32px] ${
+      className={`group self-start glass-premium glass-glossy overflow-hidden border-white/30 transition-all rounded-4xl ${
         !isAvailable
           ? 'opacity-50 grayscale pointer-events-none'
           : 'hover:shadow-[0_26px_56px_-20px_rgba(0,0,0,0.20)]'

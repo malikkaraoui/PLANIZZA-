@@ -55,7 +55,7 @@ export default function PausedTruckWatcher() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl border-2 border-orange-500/20 animate-in zoom-in slide-in-from-bottom-4 duration-500">
+      <div className="bg-white rounded-4xl p-8 max-w-md w-full shadow-2xl border-2 border-orange-500/20 animate-in zoom-in slide-in-from-bottom-4 duration-500">
         <div className="text-center space-y-6">
           {/* Icône animée */}
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-orange-100 animate-bounce">

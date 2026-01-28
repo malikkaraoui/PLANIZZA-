@@ -394,7 +394,7 @@ export default function Cart() {
           {/* Retrait au camion */}
           <button
             onClick={() => setDeliveryMethod('pickup')}
-            className={`group relative overflow-hidden rounded-[22px] p-4 transition-all duration-300 ${
+            className={`group relative overflow-hidden rounded-3xl p-4 transition-all duration-300 ${
               deliveryMethod === 'pickup'
                 ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-[1.02]'
                 : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
@@ -429,7 +429,7 @@ export default function Cart() {
           {/* Livraison à domicile */}
           <button
             onClick={() => setDeliveryMethod('delivery')}
-            className={`group relative overflow-hidden rounded-[22px] p-4 transition-all duration-300 ${
+            className={`group relative overflow-hidden rounded-3xl p-4 transition-all duration-300 ${
               deliveryMethod === 'delivery'
                 ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-[1.02]'
                 : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'

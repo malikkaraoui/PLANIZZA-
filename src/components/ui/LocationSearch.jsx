@@ -30,8 +30,8 @@ export default function LocationSearch({
 
   // Rayons de bordures dynamiques
   const borderRadiusClasses = isHero
-    ? (isOpen ? 'rounded-t-[28px] rounded-b-[16px]' : 'rounded-[28px]')
-    : (isOpen ? 'rounded-t-[24px] rounded-b-[12px]' : 'rounded-[24px]');
+    ? (isOpen ? 'rounded-t-[28px] rounded-b-[16px]' : 'rounded-3xl')
+    : (isOpen ? 'rounded-t-[24px] rounded-b-[12px]' : 'rounded-3xl');
 
   const heightClass = isHero ? 'h-20' : 'h-16';
   const paddingX = isHero ? 'px-6' : 'px-5';
@@ -40,7 +40,7 @@ export default function LocationSearch({
     <div className={`relative group w-full text-left ${className}`} data-location-search-root>
       {/* Glow extérieur (uniquement en hero ou selon envie) */}
       {isHero && (
-        <div className="absolute -inset-1 bg-linear-to-r from-primary to-orange-500 rounded-[32px] blur opacity-10 group-hover:opacity-30 transition duration-1000"></div>
+        <div className="absolute -inset-1 bg-linear-to-r from-primary to-orange-500 rounded-4xl blur opacity-10 group-hover:opacity-30 transition duration-1000"></div>
       )}
 
       <div

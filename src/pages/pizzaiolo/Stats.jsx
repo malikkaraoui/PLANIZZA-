@@ -457,7 +457,7 @@ export default function PizzaioloStats() {
       </div>
 
       {/* Section Envoi Comptable - Toujours visible */}
-      <Card className="glass-premium glass-glossy border-2 border-emerald-500/30 p-6 rounded-[24px] relative overflow-hidden">
+      <Card className="glass-premium glass-glossy border-2 border-emerald-500/30 p-6 rounded-3xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-linear-to-bl from-emerald-500/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/2" />
 
         <div className="relative">
@@ -533,7 +533,7 @@ export default function PizzaioloStats() {
 
       {/* Si aucune commande, afficher la présentation des fonctionnalités */}
       {!hasOrders && (
-        <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-[24px]">
+        <Card className="glass-premium glass-glossy border-white/20 p-8 rounded-3xl">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-linear-to-br from-orange-500 to-red-500 mb-4">
               <TrendingUp className="h-10 w-10 text-white" />
@@ -615,7 +615,7 @@ export default function PizzaioloStats() {
         <>
 
       {/* Filtres */}
-      <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px]">
+      <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
         <div className="flex items-center gap-2 mb-4">
           <Filter className="h-5 w-5 text-primary" />
           <h2 className="text-lg font-black tracking-tight">Filtres</h2>
@@ -772,7 +772,7 @@ export default function PizzaioloStats() {
       {/* Graphiques */}
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Graphique CA / Commandes */}
-        <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px]">
+        <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
           <div className="flex items-center justify-between mb-6">
             <div 
               className="flex items-center gap-2 cursor-pointer hover:opacity-70 transition-opacity select-none"
@@ -862,7 +862,7 @@ export default function PizzaioloStats() {
         </Card>
 
         {/* Graphique Performance */}
-        <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-[24px]">
+        <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
           <div className="flex items-center gap-2 mb-6">
             <Clock className="h-5 w-5 text-orange-500" />
             <h2 className="text-xl font-black tracking-tight">Performance</h2>
