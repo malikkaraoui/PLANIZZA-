@@ -40,12 +40,10 @@ export default function PizzaioloDashboard() {
     }
   }, [user?.uid, loading, truckId, location.pathname, navigate]);
 
+  // Pendant le chargement, on retourne null pour éviter le flash
+  // Le Suspense parent gère l'affichage du loader
   if (loading || (!truckId && !error)) {
-    return (
-      <div className="mx-auto max-w-6xl px-4 py-10">
-        <p className="text-gray-600">Chargement...</p>
-      </div>
-    );
+    return null;
   }
 
   if (error) {

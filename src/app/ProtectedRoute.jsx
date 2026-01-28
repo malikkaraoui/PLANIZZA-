@@ -33,13 +33,9 @@ export default function ProtectedRoute({ children, requireClient = false, requir
     });
   }, [location.pathname, requireClient, requirePizzaiolo, authLoading, isAuthenticated, isClient, isPizzaiolo, clientLoading, pizzaioloLoading]);
 
-  // Chargement de l'auth
+  // Chargement de l'auth - on retourne null pour éviter le flash
   if (authLoading) {
-    return (
-      <div className="mx-auto max-w-6xl px-4 py-10">
-        <div className="text-gray-600">Chargement…</div>
-      </div>
-    );
+    return null;
   }
 
   // Pas connecté -> login
@@ -51,11 +47,7 @@ export default function ProtectedRoute({ children, requireClient = false, requir
   if (requireClient) {
     if (clientLoading) {
       devLog('[ProtectedRoute] Chargement profil client...');
-      return (
-        <div className="mx-auto max-w-6xl px-4 py-10">
-          <div className="text-gray-600">Chargement du profil…</div>
-        </div>
-      );
+      return null;
     }
 
     // Pas de profil client -> rediriger vers création profil client
@@ -70,11 +62,7 @@ export default function ProtectedRoute({ children, requireClient = false, requir
   // Route pizzaiolo : vérifier qu'on a un profil pizzaiolo
   if (requirePizzaiolo) {
     if (pizzaioloLoading) {
-      return (
-        <div className="mx-auto max-w-6xl px-4 py-10">
-          <div className="text-gray-600">Chargement du profil…</div>
-        </div>
-      );
+      return null;
     }
 
     // Pas de profil pizzaiolo -> rediriger vers onboarding pro

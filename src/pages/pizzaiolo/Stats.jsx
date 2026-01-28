@@ -447,7 +447,7 @@ export default function PizzaioloStats() {
 
   return (
     <div className="space-y-8">
-      <BackButton />
+      <BackButton to="/pro/truck" />
 
       <div>
         <h1 className="text-4xl font-black tracking-tight">Statistiques</h1>

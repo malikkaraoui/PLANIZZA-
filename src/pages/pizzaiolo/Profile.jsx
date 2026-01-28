@@ -503,7 +503,7 @@ export default function PizzaioloProfile() {
   return (
     <div className="space-y-8">
       {/* Bouton retour */}
-      <BackButton />
+      <BackButton to="/pro/truck" />
 
       {/* Section Stripe Connect en priorité */}
       {truckId && (

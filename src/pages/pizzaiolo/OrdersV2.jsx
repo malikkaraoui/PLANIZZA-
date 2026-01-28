@@ -304,7 +304,7 @@ export default function PizzaioloOrdersV2() {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6">
       <div className="mb-6">
-        <BackButton />
+        <BackButton to="/pro/truck" />
       </div>
       
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">

@@ -483,7 +483,7 @@ export default function PizzaioloOrders() {
     <div className="space-y-8">
       {/* En-tête compact: Retour + titre sur une seule ligne */}
       <div className="flex items-center gap-3">
-        <BackButton />
+        <BackButton to="/pro/truck" />
         <h1 className="text-xl sm:text-2xl font-black tracking-tight">Commandes</h1>
       </div>
 

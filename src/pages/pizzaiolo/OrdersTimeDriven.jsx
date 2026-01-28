@@ -498,6 +498,9 @@ export default function OrdersPageTimeDriven() {
 
   const busy = Boolean(loadingTruckId || ordersLoading || mutating);
 
+  // DEBUG: Afficher l'état de busy et ses composants
+  devLog('[OrdersTimeDriven] busy state:', { busy, loadingTruckId, ordersLoading, mutating, truckId });
+
   const runAction = async (row, action) => {
     if (!row?.legacy?.id) return;
 
@@ -592,7 +595,7 @@ export default function OrdersPageTimeDriven() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-3 md:px-4 py-4 md:py-6">
-      <BackButton className="mb-3 md:mb-4" />
+      <BackButton to="/pro/truck" className="mb-3 md:mb-4" />
       
       <div className="mb-3 md:mb-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="min-w-0">

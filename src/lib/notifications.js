@@ -25,7 +25,7 @@ export const notify = {
       created: `Commande confirmée chez ${truckName}`,
       received: `📋 ${truckName} a reçu votre commande`,
       accepted: `👨‍🍳 ${truckName} prépare votre pizza...`,
-      delivered: `Votre commande est prête !`,
+      delivered: `🍕 Votre commande est prête ! Venez la chercher`,
       cancelled: `Commande annulée`,
     };
     const type = status === 'cancelled' ? 'error' : status === 'delivered' ? 'success' : 'info';

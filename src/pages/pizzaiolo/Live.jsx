@@ -301,7 +301,7 @@ export default function PizzaioloLive() {
             Annuler
           </button>
         ) : (
-          <BackButton />
+          <BackButton to="/pro/truck" />
         )}
         
         <h1 className="text-3xl font-black tracking-tight">

@@ -4,6 +4,7 @@ import { db, isFirebaseConfigured } from '../../../lib/firebase';
 import { rtdbPaths } from '../../../lib/rtdbPaths';
 import { coalesceMs } from '../../../lib/timestamps';
 import { notifyPizzaiolo } from '../../../lib/notifications';
+import { devLog } from '../../../lib/devLog';
 
 /**
  * Hook pour récupérer les commandes d'un camion spécifique
@@ -22,12 +23,24 @@ export function useTruckOrders(truckId, options = {}) {
   const isFirstLoadRef = useRef(true);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      devLog('[useTruckOrders] not enabled, skipping');
+      return;
+    }
 
-    queueMicrotask(() => {
-      setLoading(true);
-      setError(null);
-    });
+    devLog('[useTruckOrders] effect start, setting loading=true');
+    setLoading(true);
+    setError(null);
+
+    // Timeout de sécurité pour éviter un loading infini
+    const LOAD_TIMEOUT_MS = 10000;
+    let cancelled = false;
+    const timeoutId = setTimeout(() => {
+      if (cancelled) return;
+      devLog('[useTruckOrders] timeout reached, setting loading=false');
+      setLoading(false);
+      setError(new Error('Timeout lors du chargement des commandes.'));
+    }, LOAD_TIMEOUT_MS);
 
     const ordersRef = ref(db, rtdbPaths.ordersRoot());
     const ordersQuery = query(ordersRef, orderByChild('truckId'), equalTo(truckId));
@@ -35,6 +48,9 @@ export function useTruckOrders(truckId, options = {}) {
     const unsubscribe = onValue(
       ordersQuery,
       (snapshot) => {
+        if (cancelled) return;
+        clearTimeout(timeoutId);
+        devLog('[useTruckOrders] snapshot received');
         if (snapshot.exists()) {
           const data = snapshot.val();
           const ordersArray = Object.entries(data)
@@ -81,14 +97,23 @@ export function useTruckOrders(truckId, options = {}) {
         setError(null);
       },
       (err) => {
+        if (cancelled) return;
+        clearTimeout(timeoutId);
         console.error('[useTruckOrders] Erreur:', err);
         setError(err);
         setLoading(false);
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+      unsubscribe();
+    };
   }, [enabled, truckId]);
+
+  // DEBUG
+  devLog('[useTruckOrders] return:', { enabled, loading, ordersCount: orders.length, truckId });
 
   return enabled ? { orders, loading, error } : { orders: [], loading: false, error: null };
 }

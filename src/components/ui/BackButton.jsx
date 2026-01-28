@@ -5,15 +5,18 @@ import { ChevronLeft } from 'lucide-react';
  * Bouton retour unifié pour tout le site
  * @param {Object} props
  * @param {string} props.label - Texte du bouton (défaut: "Retour")
+ * @param {string} props.to - Destination fixe (sinon navigate(-1))
  * @param {string} props.className - Classes CSS additionnelles
- * @param {Function} props.onClick - Handler personnalisé (sinon navigate(-1))
+ * @param {Function} props.onClick - Handler personnalisé (prioritaire sur `to`)
  */
-export default function BackButton({ label = 'Retour', className = '', onClick }) {
+export default function BackButton({ label = 'Retour', to, className = '', onClick }) {
   const navigate = useNavigate();
 
   const handleClick = () => {
     if (onClick) {
       onClick();
+    } else if (to) {
+      navigate(to);
     } else {
       navigate(-1);
     }

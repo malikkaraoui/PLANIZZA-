@@ -390,8 +390,9 @@ export default function OrderTracking() {
           </div>
         </div>
 
-        {/* Section notation UX - visible dès la prise en charge */}
-        {(currentStatus === 'accepted' || currentStatus === 'delivered') && (
+        {/* Section notation UX - visible uniquement après remise (HANDOFF/DONE) */}
+        {/* Le client peut noter/commenter seulement après avoir reçu sa pizza */}
+        {(order.v2?.kitchenStatus === 'HANDOFF' || order.v2?.kitchenStatus === 'DONE') && (
           <div className="mt-6 bg-white border border-gray-200 shadow-sm rounded-2xl p-5">
             {(ratingSubmitted || order.uxRating) ? (
               <div className="flex items-center justify-between">
@@ -405,7 +406,7 @@ export default function OrderTracking() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-4">
                   <p className="text-sm font-medium text-gray-700">
-                    Votre expérience ?
+                    Vous avez goûté ? Donnez votre avis !
                   </p>
                   <div className="flex items-center gap-2">
                     <StarRating value={uxRating} onChange={setUxRating} size="sm" />
