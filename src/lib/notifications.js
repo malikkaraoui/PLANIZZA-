@@ -178,14 +178,19 @@ export const notifyPizzaiolo = {
   },
 
   // --- Avis ---
-  newReview: (score, hasComment) => {
+  newReview: (score, hasComment, navigate) => {
     const stars = '⭐'.repeat(score);
     const message = hasComment
       ? `Nouvel avis ${stars} avec commentaire`
       : `Nouvel avis ${stars}`;
-    toast.info(message, {
+    let shownId;
+    shownId = toast.info(message, {
       ...defaultOptions,
       autoClose: 5000,
+      onClick: () => {
+        if (shownId) toast.dismiss(shownId);
+        if (navigate) navigate('/pro/avis');
+      },
     });
   },
 

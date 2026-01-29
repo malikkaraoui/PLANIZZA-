@@ -2617,6 +2617,12 @@ exports.onUxRatingCreated = functions
     }
 
     const truckId = orderSnap.val();
+
+    // Recuperer le prenom du client depuis la commande
+    const customerSnap = await admin.database().ref(`orders/${orderId}/customerName`).get();
+    const fullName = customerSnap.exists() ? customerSnap.val() : null;
+    const customerName = fullName ? fullName.split(" ")[0] : null;
+
     const ratingRef = admin.database().ref(`public/trucks/${truckId}/rating`);
     const reviewRef = admin.database().ref(`public/trucks/${truckId}/reviews/${orderId}`);
 
@@ -2625,6 +2631,7 @@ exports.onUxRatingCreated = functions
       score: newScore,
       comment: ratingData.comment || null,
       submittedAt: ratingData.submittedAt || Date.now(),
+      customerName: customerName || null,
     };
     await reviewRef.set(reviewData);
 

@@ -10,6 +10,7 @@ import { notifyPizzaiolo } from '../../../lib/notifications';
  * @param {string} truckId - ID du camion
  */
 export function usePizzaioloReviewNotifications(truckId) {
+  const navigate = useNavigate();
   const previousReviewIdsRef = useRef(new Set());
   const isFirstLoadRef = useRef(true);
 
@@ -45,7 +46,7 @@ export function usePizzaioloReviewNotifications(truckId) {
               // Nouvel avis !
               const score = review.score || 0;
               const hasComment = Boolean(review.comment);
-              notifyPizzaiolo.newReview(score, hasComment);
+              notifyPizzaiolo.newReview(score, hasComment, navigate);
             }
           }
         }
@@ -62,7 +63,7 @@ export function usePizzaioloReviewNotifications(truckId) {
     );
 
     return () => unsubscribe();
-  }, [truckId]);
+  }, [truckId, navigate]);
 }
 
 /**

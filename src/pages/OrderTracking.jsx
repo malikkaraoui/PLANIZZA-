@@ -431,9 +431,9 @@ export default function OrderTracking() {
                     <input
                       type="text"
                       value={uxComment}
-                      onChange={(e) => setUxComment(e.target.value.slice(0, 100))}
-                      placeholder="Un commentaire ? (100 car. max)"
-                      maxLength={100}
+                      onChange={(e) => setUxComment(e.target.value.slice(0, 200))}
+                      placeholder="Un commentaire ? (200 car. max)"
+                      maxLength={200}
                       className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                     />
                     <Button

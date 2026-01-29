@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ref, get, set, push, update, remove } from 'firebase/database';
 import { ref as storageRef, deleteObject } from 'firebase/storage';
-import { Pause, Play, Pizza, Edit2, ArrowLeft, Trash2, Radio, ListOrdered, Utensils, TrendingUp, X, Heart, Clock, Zap, MapPin, Image as ImageIcon, Download, LogOut } from 'lucide-react';
+import { Pause, Play, Pizza, Edit2, ArrowLeft, Trash2, Radio, ListOrdered, Utensils, TrendingUp, X, Heart, Clock, Zap, MapPin, Image as ImageIcon, Download, LogOut, MessageSquare } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import QRCode from 'react-qr-code';
@@ -514,7 +514,7 @@ export default function PizzaioloProfile() {
 
       {/* Navigation rapide */}
       {truckId && (
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
           <Link
             to={ROUTES.pizzaioloLive}
             className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl hover:border-primary/50 transition-all group"
@@ -577,6 +577,21 @@ export default function PizzaioloProfile() {
               <div>
                 <h3 className="font-black text-lg">Menu</h3>
                 <p className="text-xs text-muted-foreground">Gérer mes pizzas</p>
+              </div>
+            </div>
+          </Link>
+
+          <Link
+            to={ROUTES.pizzaioloReviews}
+            className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl hover:border-primary/50 transition-all group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-yellow-500/10 group-hover:bg-yellow-500/20 transition">
+                <MessageSquare className="h-6 w-6 text-yellow-500" />
+              </div>
+              <div>
+                <h3 className="font-black text-lg">Avis</h3>
+                <p className="text-xs text-muted-foreground">Répondre aux clients</p>
               </div>
             </div>
           </Link>
