@@ -3,6 +3,22 @@
 Toutes les modifications notables du projet sont documentees ici.
 Format base sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
+## [1.1.0] - 2026-01-29
+
+### Ajouts
+- Page avis pizzaiolo avec reponses aux commentaires et affichage public
+- Lien dashboard Express Stripe personnalise par pizzaiolo (createLoginLink)
+- Etape "ready" entre accepted et delivered dans le suivi commande
+- Page custom AuthAction (verification email, reset password)
+- Validation mot de passe robuste et email verification
+
+### Corrections
+- Fix transfert Stripe Connect : chemin DB corrige (public/trucks + ownerId)
+- Fix double toast nouvelle commande pizzaiolo
+- Fix CORS preview channels et notifications ready/delivered
+- Fix affichage notation apres status delivered
+- Ajout VITE_STRIPE_PUBLISHABLE_KEY aux workflows CI
+
 ## [1.0.0] - 2026-01-28
 
 Baseline de production. Premiere version taguee.
