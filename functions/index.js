@@ -165,7 +165,7 @@ async function assertPizzaioloOwnsTruck({ uid, truckId }) {
   const [pizzSnap, truckSnap, publicTruckSnap] = await Promise.all([
     admin.database().ref(`pizzaiolos/${uid}/truckId`).get(),
     admin.database().ref(`trucks/${truckId}/ownerUid`).get(),
-    admin.database().ref(`public/trucks/${truckId}/ownerUid`).get(),
+    admin.database().ref(`public/trucks/${truckId}/ownerId`).get(),
   ]);
 
   const pizzTruckId = pizzSnap.exists() ? pizzSnap.val() : null;
@@ -885,8 +885,8 @@ exports.createCheckoutSession = onRequest(
         const truckIdForConnect = order.truckId;
 
         if (truckIdForConnect) {
-          // 1. Récupérer l'ownerUid du truck
-          const truckSnap = await admin.database().ref(`trucks/${truckIdForConnect}/ownerUid`).get();
+          // 1. Récupérer l'ownerId du truck
+          const truckSnap = await admin.database().ref(`public/trucks/${truckIdForConnect}/ownerId`).get();
           const ownerUid = truckSnap.val();
 
           if (ownerUid) {
@@ -2317,7 +2317,7 @@ exports.createConnectedAccount = onCall(
     }
 
     // Récupérer le slug du truck pour l'URL Stripe
-    const truckSnap = await admin.database().ref(`trucks/${truckId}`).get();
+    const truckSnap = await admin.database().ref(`public/trucks/${truckId}`).get();
     let businessUrl = `${FRONTEND_URL}`;
     if (truckSnap.exists()) {
       const truckData = truckSnap.val();
