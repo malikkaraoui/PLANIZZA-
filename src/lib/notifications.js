@@ -25,10 +25,11 @@ export const notify = {
       created: `Commande confirmée chez ${truckName}`,
       received: `📋 ${truckName} a reçu votre commande`,
       accepted: `👨‍🍳 ${truckName} prépare votre pizza...`,
-      delivered: `🍕 Votre commande est prête ! Venez la chercher`,
+      ready: `🍕 Votre commande est prête ! Venez la chercher`,
+      delivered: `🤝 Commande remise ! N'hésitez pas à laisser un avis`,
       cancelled: `Commande annulée`,
     };
-    const type = status === 'cancelled' ? 'error' : status === 'delivered' ? 'success' : 'info';
+    const type = status === 'cancelled' ? 'error' : (status === 'ready' || status === 'delivered') ? 'success' : 'info';
 
     // Empêche les doublons (ex: double event / double listener) en réutilisant le même toastId.
     // Format stable: une notification par (commande, statut).
@@ -177,14 +178,19 @@ export const notifyPizzaiolo = {
   },
 
   // --- Avis ---
-  newReview: (score, hasComment) => {
+  newReview: (score, hasComment, navigate) => {
     const stars = '⭐'.repeat(score);
     const message = hasComment
       ? `Nouvel avis ${stars} avec commentaire`
       : `Nouvel avis ${stars}`;
-    toast.info(message, {
+    let shownId;
+    shownId = toast.info(message, {
       ...defaultOptions,
       autoClose: 5000,
+      onClick: () => {
+        if (shownId) toast.dismiss(shownId);
+        if (navigate) navigate('/pro/avis');
+      },
     });
   },
 

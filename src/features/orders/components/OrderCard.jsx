@@ -27,6 +27,7 @@ export function OrderCard({
   remaining,
   estimatedDeliveryTime,
   onAccept,
+  onReady,
   onDeliver,
   onMarkPaid,
   onClick,
@@ -202,7 +203,23 @@ export function OrderCard({
               Prendre
             </span>
           </Button>
-        ) : (
+        ) : order.status === 'accepted' ? (
+          <Button
+            onClick={(e) => {
+              e.stopPropagation();
+              onReady?.(order.id);
+            }}
+            disabled={updating}
+            className="group h-8 w-8 lg:h-7 lg:w-7 hover:w-24 focus-visible:w-24 lg:hover:w-20 lg:focus-visible:w-20 overflow-hidden rounded-lg bg-amber-500 hover:bg-amber-600 text-white transition-[width] duration-200 ease-out px-0 hover:px-3 focus-visible:px-3 flex items-center justify-center hover:justify-start focus-visible:justify-start gap-0 hover:gap-2 focus-visible:gap-2"
+            aria-label="Marquer comme prête"
+            title="Prêt"
+          >
+            <CheckCircle className="h-4 w-4 shrink-0" />
+            <span className="hidden group-hover:inline group-focus-visible:inline text-[11px] font-black whitespace-nowrap">
+              Prêt
+            </span>
+          </Button>
+        ) : order.status === 'ready' ? (
           !(order.source === 'manual' && order.payment?.paymentStatus !== 'paid') ? (
             <Button
               onClick={(e) => {
@@ -211,16 +228,16 @@ export function OrderCard({
               }}
               disabled={updating}
               className="group h-8 w-8 lg:h-7 lg:w-7 hover:w-28 focus-visible:w-28 lg:hover:w-24 lg:focus-visible:w-24 overflow-hidden rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white transition-[width] duration-200 ease-out px-0 hover:px-3 focus-visible:px-3 flex items-center justify-center hover:justify-start focus-visible:justify-start gap-0 hover:gap-2 focus-visible:gap-2"
-              aria-label={order.deliveryMethod === 'delivery' ? 'Marquer comme livré' : 'Marquer comme délivré'}
-              title={order.deliveryMethod === 'delivery' ? 'Livré' : 'Délivré'}
+              aria-label="Marquer comme remise"
+              title="Remettre"
             >
               <CheckCircle className="h-4 w-4 shrink-0" />
               <span className="hidden group-hover:inline group-focus-visible:inline text-[11px] font-black whitespace-nowrap">
-                Délivrer
+                Remettre
               </span>
             </Button>
           ) : null
-        )}
+        ) : null}
       </div>
 
       {/* Pastille paiement (preview) */}

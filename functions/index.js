@@ -113,9 +113,16 @@ const ALLOWED_ORIGINS = [
   "http://127.0.0.1:3000",
 ];
 
+function isAllowedOrigin(origin) {
+  if (!origin) return false;
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  // Preview channels Firebase Hosting (ex: planizza-ac827--dev-xxxxx.web.app)
+  return /^https:\/\/planizza-ac827--.+\.web\.app$/.test(origin);
+}
+
 function setCors(req, res) {
   const origin = req.headers.origin;
-  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+  if (isAllowedOrigin(origin)) {
     res.set("Access-Control-Allow-Origin", origin);
     res.set("Access-Control-Allow-Credentials", "true");
   }
@@ -158,7 +165,7 @@ async function assertPizzaioloOwnsTruck({ uid, truckId }) {
   const [pizzSnap, truckSnap, publicTruckSnap] = await Promise.all([
     admin.database().ref(`pizzaiolos/${uid}/truckId`).get(),
     admin.database().ref(`trucks/${truckId}/ownerUid`).get(),
-    admin.database().ref(`public/trucks/${truckId}/ownerUid`).get(),
+    admin.database().ref(`public/trucks/${truckId}/ownerId`).get(),
   ]);
 
   const pizzTruckId = pizzSnap.exists() ? pizzSnap.val() : null;
@@ -878,8 +885,8 @@ exports.createCheckoutSession = onRequest(
         const truckIdForConnect = order.truckId;
 
         if (truckIdForConnect) {
-          // 1. Récupérer l'ownerUid du truck
-          const truckSnap = await admin.database().ref(`trucks/${truckIdForConnect}/ownerUid`).get();
+          // 1. Récupérer l'ownerId du truck
+          const truckSnap = await admin.database().ref(`public/trucks/${truckIdForConnect}/ownerId`).get();
           const ownerUid = truckSnap.val();
 
           if (ownerUid) {
@@ -2310,7 +2317,7 @@ exports.createConnectedAccount = onCall(
     }
 
     // Récupérer le slug du truck pour l'URL Stripe
-    const truckSnap = await admin.database().ref(`trucks/${truckId}`).get();
+    const truckSnap = await admin.database().ref(`public/trucks/${truckId}`).get();
     let businessUrl = `${FRONTEND_URL}`;
     if (truckSnap.exists()) {
       const truckData = truckSnap.val();
@@ -2413,6 +2420,56 @@ exports.createOnboardingLink = onCall(
         message: error?.message?.substring(0, 100),
       });
       throw new HttpsError("internal", "Erreur lors de la création du lien d'onboarding");
+    }
+  }
+);
+
+/**
+ * Génère un lien de connexion au dashboard Express Stripe pour un pizzaiolo.
+ * Le compte doit être actif (onboarding terminé).
+ */
+exports.createStripeDashboardLink = onCall(
+  {
+    region: "us-central1",
+    secrets: [STRIPE_SECRET_KEY],
+  },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Vous devez être connecté");
+    }
+
+    const uid = request.auth.uid;
+
+    const pizzaioloRef = admin.database().ref(`pizzaiolos/${uid}`);
+    const pizzaioloSnap = await pizzaioloRef.get();
+
+    if (!pizzaioloSnap.exists()) {
+      throw new HttpsError("not-found", "Profil pizzaiolo introuvable");
+    }
+
+    const accountId = pizzaioloSnap.val()?.stripeAccountId;
+    if (!accountId) {
+      throw new HttpsError("failed-precondition", "Aucun compte Stripe associé");
+    }
+
+    const stripeSecret = (STRIPE_SECRET_KEY.value() || "").trim();
+    const stripeClient = stripe(stripeSecret);
+
+    try {
+      const loginLink = await stripeClient.accounts.createLoginLink(accountId);
+
+      console.log(`[PLANIZZA][createStripeDashboardLink] Lien créé pour ${hashUid(uid)}`);
+
+      return {
+        url: loginLink.url,
+      };
+    } catch (error) {
+      console.error("[PLANIZZA][createStripeDashboardLink] Erreur Stripe:", {
+        uid: hashUid(uid),
+        type: error?.type,
+        message: error?.message?.substring(0, 100),
+      });
+      throw new HttpsError("internal", "Erreur lors de la création du lien dashboard");
     }
   }
 );
@@ -2610,6 +2667,12 @@ exports.onUxRatingCreated = functions
     }
 
     const truckId = orderSnap.val();
+
+    // Recuperer le prenom du client depuis la commande
+    const customerSnap = await admin.database().ref(`orders/${orderId}/customerName`).get();
+    const fullName = customerSnap.exists() ? customerSnap.val() : null;
+    const customerName = fullName ? fullName.split(" ")[0] : null;
+
     const ratingRef = admin.database().ref(`public/trucks/${truckId}/rating`);
     const reviewRef = admin.database().ref(`public/trucks/${truckId}/reviews/${orderId}`);
 
@@ -2618,6 +2681,7 @@ exports.onUxRatingCreated = functions
       score: newScore,
       comment: ratingData.comment || null,
       submittedAt: ratingData.submittedAt || Date.now(),
+      customerName: customerName || null,
     };
     await reviewRef.set(reviewData);
 

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { MapPin, Pizza, X, Star, MessageCircle } from 'lucide-react';
+import { MapPin, Pizza, X, Star, MessageCircle, ChevronDown } from 'lucide-react';
 import TruckHeader from '../features/trucks/TruckHeader';
 import { useTruck } from '../features/trucks/hooks/useTruck';
 import { useReviews } from '../features/trucks/hooks/useReviews';
@@ -16,6 +16,101 @@ import { Card, CardContent } from '../components/ui/Card';
 import { isCurrentlyOpen } from '../lib/openingHours';
 import StickyCartBar from '../features/cart/StickyCartBar';
 import BackButton from '../components/ui/BackButton';
+
+function ReviewsSection({ reviews, truck }) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (reviews.length === 0) return null;
+
+  const preview = reviews[0];
+
+  return (
+    <section id="reviews-section" className="glass-premium glass-glossy p-6 sm:p-8 rounded-4xl shadow-2xl border-white/20">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full text-left"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="h-7 w-1.5 bg-amber-500/30 rounded-full" />
+            <h2 className="text-sm font-black tracking-widest uppercase">Avis clients</h2>
+            <span className="text-xs font-bold text-muted-foreground/60">({truck.ratingCount || reviews.length})</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {truck.ratingAvg > 0 && (
+              <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-amber-500/10">
+                <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+                <span className="font-black text-sm">{truck.ratingAvg.toFixed(1)}</span>
+              </div>
+            )}
+            <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${expanded ? 'rotate-180' : ''}`} />
+          </div>
+        </div>
+      </button>
+
+      {/* Preview : 1 seul avis */}
+      {!expanded && (
+        <button onClick={() => setExpanded(true)} className="w-full text-left">
+          <ReviewItem review={preview} truckName={truck.name} />
+          {reviews.length > 1 && (
+            <p className="text-xs text-center text-muted-foreground/50 mt-3 font-bold">
+              Voir les {reviews.length} avis
+            </p>
+          )}
+        </button>
+      )}
+
+      {/* Liste complete */}
+      {expanded && (
+        <div className="space-y-4 max-h-[480px] overflow-y-auto pr-1">
+          {reviews.map((review) => (
+            <ReviewItem key={review.id} review={review} truckName={truck.name} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ReviewItem({ review, truckName }) {
+  return (
+    <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-1">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <Star
+              key={star}
+              className={`h-3.5 w-3.5 ${
+                star <= review.score
+                  ? 'text-amber-500 fill-amber-500'
+                  : 'text-muted-foreground/20'
+              }`}
+            />
+          ))}
+        </div>
+        <span className="text-[10px] font-medium text-muted-foreground/50">
+          {review.submittedAt
+            ? new Date(review.submittedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+            : ''}
+        </span>
+      </div>
+      {review.customerName && (
+        <p className="text-xs font-bold text-muted-foreground/60 mb-1">{review.customerName}</p>
+      )}
+      {review.comment ? (
+        <p className="text-sm text-muted-foreground/80 font-medium leading-relaxed">"{review.comment}"</p>
+      ) : (
+        <p className="text-xs text-muted-foreground/40 italic">Aucun commentaire</p>
+      )}
+      {review.reply?.text && (
+        <div className="mt-3 pl-3 border-l-2 border-orange-500/30">
+          <p className="text-[10px] font-bold text-orange-500/70 mb-0.5">Réponse de {truckName || 'le pizzaiolo'}</p>
+          <p className="text-sm text-muted-foreground/70 font-medium leading-relaxed">{review.reply.text}</p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function TruckDetails() {
   const { truckId: slugOrId } = useParams();
@@ -375,63 +470,7 @@ export default function TruckDetails() {
             </div>
 
             {/* Section Avis clients */}
-            {reviews.length > 0 && (
-              <section id="reviews-section" className="glass-premium glass-glossy p-6 sm:p-8 rounded-4xl shadow-2xl border-white/20">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="h-7 w-1.5 bg-amber-500/30 rounded-full" />
-                    <h2 className="text-sm font-black tracking-widest uppercase">Avis clients</h2>
-                    <span className="text-xs font-bold text-muted-foreground/60">({truck.ratingCount || reviews.length})</span>
-                  </div>
-                  {truck.ratingAvg > 0 && (
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10">
-                      <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
-                      <span className="font-black text-sm">{truck.ratingAvg.toFixed(1)}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-4">
-                  {reviews.map((review) => (
-                    <div
-                      key={review.id}
-                      className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-white/20 transition-colors"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-1">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star
-                              key={star}
-                              className={`h-3.5 w-3.5 ${
-                                star <= review.score
-                                  ? 'text-amber-500 fill-amber-500'
-                                  : 'text-muted-foreground/20'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-[10px] font-medium text-muted-foreground/50">
-                          {review.submittedAt
-                            ? new Date(review.submittedAt).toLocaleDateString('fr-FR', {
-                                day: 'numeric',
-                                month: 'short',
-                              })
-                            : ''}
-                        </span>
-                      </div>
-                      {review.comment && (
-                        <p className="text-sm text-muted-foreground/80 font-medium leading-relaxed">
-                          "{review.comment}"
-                        </p>
-                      )}
-                      {!review.comment && (
-                        <p className="text-xs text-muted-foreground/40 italic">Aucun commentaire</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
+            <ReviewsSection reviews={reviews} truck={truck} />
 
             {/* Menu Section */}
             <section className="space-y-12">

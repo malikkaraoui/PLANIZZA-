@@ -31,6 +31,7 @@ export const ROUTES = {
   pizzaioloOrdersV2: '/pro/commandes-v2',
   pizzaioloStats: '/pro/stats',
   pizzaioloLive: '/pro/live',
+  pizzaioloReviews: '/pro/avis',
   stripeOnboarding: '/pro/onboarding',
 
   // Partenaires / Pro

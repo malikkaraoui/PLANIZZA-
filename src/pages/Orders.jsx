@@ -98,21 +98,23 @@ export default function Orders() {
   }
 
   const filteredOrders = orders.filter((order) => {
-    if (filter === 'active') return ['received', 'accepted'].includes(order.status);
+    if (filter === 'active') return ['received', 'accepted', 'ready'].includes(order.status);
     if (filter === 'completed') return ['delivered', 'cancelled'].includes(order.status);
     return true;
   });
 
   const statusLabels = {
     received: 'Non prise en charge',
-    accepted: 'Prise en charge',
-    delivered: 'Délivrée',
+    accepted: 'En préparation',
+    ready: 'Prête !',
+    delivered: 'Remise',
     cancelled: 'Annulée',
   };
 
   const statusColors = {
     received: 'bg-orange-500',
     accepted: 'bg-blue-500',
+    ready: 'bg-amber-500',
     delivered: 'bg-emerald-500',
     cancelled: 'bg-red-500',
   };

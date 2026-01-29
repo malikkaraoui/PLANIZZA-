@@ -24,6 +24,7 @@ const PizzaioloOrders = lazy(() => import('../pages/pizzaiolo/OrdersTimeDriven')
 const PizzaioloOrdersV2 = lazy(() => import('../pages/pizzaiolo/OrdersV2'));
 const PizzaioloStats = lazy(() => import('../pages/pizzaiolo/Stats'));
 const PizzaioloLive = lazy(() => import('../pages/pizzaiolo/Live'));
+const PizzaioloReviews = lazy(() => import('../pages/pizzaiolo/Reviews'));
 const PizzaioloStart = lazy(() => import('../pages/pizzaiolo/Start'));
 const CreateTruck = lazy(() => import('../pages/pizzaiolo/CreateTruck'));
 const StripeOnboarding = lazy(() => import('../pages/pizzaiolo/StripeOnboarding'));
@@ -128,6 +129,7 @@ export const router = createBrowserRouter([
           { path: 'commandes-v2', element: wrap(<PizzaioloOrdersV2 />) },
           { path: 'stats', element: wrap(<PizzaioloStats />) },
           { path: 'live', element: wrap(<PizzaioloLive />) },
+          { path: 'avis', element: wrap(<PizzaioloReviews />) },
         ],
       },
 

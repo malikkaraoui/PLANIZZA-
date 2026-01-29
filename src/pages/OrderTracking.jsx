@@ -14,7 +14,8 @@ const STEPS = [
   { key: 'created', label: 'Confirmée', icon: '✅' },
   { key: 'received', label: 'Reçue', icon: '📋' },
   { key: 'accepted', label: 'En préparation', icon: '👨‍🍳' },
-  { key: 'delivered', label: 'Prête !', icon: '🍕' },
+  { key: 'ready', label: 'Prête !', icon: '🍕' },
+  { key: 'delivered', label: 'Remise', icon: '🤝' },
 ];
 
 export default function OrderTracking() {
@@ -128,13 +129,9 @@ export default function OrderTracking() {
     );
   }
 
-  // Utiliser le kitchenStatus V2 pour déterminer si la commande est prête
-  // READY en V2 = pizza prête, mais le status V1 reste 'accepted' jusqu'au HANDOFF
-  const kitchenStatus = order.v2?.kitchenStatus;
-  const isReady = kitchenStatus === 'READY' || kitchenStatus === 'HANDOFF' || kitchenStatus === 'DONE';
-
-  // Si READY en V2, on considère la commande comme 'delivered' pour l'affichage
-  const currentStatus = isReady ? 'delivered' : (order.status || 'created');
+  // Mapper le statut pour l'affichage client
+  // Le statut legacy est maintenant synchronise : ready = prete, delivered = remise
+  const currentStatus = order.status || 'created';
   const timeline = order.timeline || {};
   const currentStepIndex = STEPS.findIndex((s) => s.key === currentStatus);
   const desiredTime = typeof order.pickupTime === 'string' && order.pickupTime.length > 0
@@ -306,8 +303,9 @@ export default function OrderTracking() {
                 {currentStatus === 'created' && '✅ Confirmée'}
                 {currentStatus === 'received' && '📋 Reçue'}
                 {currentStatus === 'accepted' && '👨‍🍳 En préparation'}
-                {currentStatus === 'delivered' && '🍕 Prête !'}
-                {!['created', 'received', 'accepted', 'delivered'].includes(currentStatus) && '⏳ En attente...'}
+                {currentStatus === 'ready' && '🍕 Prête !'}
+                {currentStatus === 'delivered' && '🤝 Remise'}
+                {!['created', 'received', 'accepted', 'ready', 'delivered'].includes(currentStatus) && '⏳ En attente...'}
               </p>
             </div>
           </div>
@@ -398,7 +396,7 @@ export default function OrderTracking() {
 
         {/* Section notation UX - visible uniquement après remise (HANDOFF/DONE) */}
         {/* Le client peut noter/commenter seulement après avoir reçu sa pizza */}
-        {(order.v2?.kitchenStatus === 'HANDOFF' || order.v2?.kitchenStatus === 'DONE') && (
+        {(order.status === 'delivered' || order.v2?.kitchenStatus === 'HANDOFF' || order.v2?.kitchenStatus === 'DONE') && (
           <div className="mt-6 bg-white border border-gray-200 shadow-sm rounded-2xl p-5">
             {(ratingSubmitted || order.uxRating) ? (
               <div className="flex items-center justify-between">
@@ -433,9 +431,9 @@ export default function OrderTracking() {
                     <input
                       type="text"
                       value={uxComment}
-                      onChange={(e) => setUxComment(e.target.value.slice(0, 100))}
-                      placeholder="Un commentaire ? (100 car. max)"
-                      maxLength={100}
+                      onChange={(e) => setUxComment(e.target.value.slice(0, 200))}
+                      placeholder="Un commentaire ? (200 car. max)"
+                      maxLength={200}
                       className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                     />
                     <Button
