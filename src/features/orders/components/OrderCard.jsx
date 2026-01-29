@@ -1,4 +1,4 @@
-import { Clock, User, CheckCircle, ChefHat, CreditCard, GripVertical, ChevronDown, ChevronUp } from 'lucide-react';
+import { Clock, User, CheckCircle, ChefHat, CreditCard, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
@@ -60,19 +60,15 @@ export function OrderCard({
       : '';
 
   const items = Array.isArray(order.items) ? order.items : [];
-  const totalQty = items.reduce((sum, it) => sum + Number(it.qty || 0), 0);
-  const calzoneQty = items.reduce(
-    (sum, it) => sum + (/calzone/i.test(String(it.name || '')) ? Number(it.qty || 0) : 0),
-    0
-  );
-  const pizzaLikeQty = Math.max(0, totalQty - calzoneQty);
 
   const createdAtMs = coalesceMs(order?.createdAt, order?.createdAtClient, 0) || 0;
   const acceptedAtMs = toMs(order?.timeline?.acceptedAt);
   const readyAtMs = toMs(order?.timeline?.readyAt);
   const deliveredAtMs = toMs(order?.timeline?.deliveredAt);
 
-  const handleToggle = () => {
+  const handleToggle = (e) => {
+    // Ignorer si c'est un drag (déplacement > 5px)
+    if (e?.defaultPrevented) return;
     onToggleExpanded?.();
     if (!onToggleExpanded) onClick?.();
   };
@@ -86,7 +82,7 @@ export function OrderCard({
         order.source === 'manual' 
           ? 'border-purple-500/50 bg-purple-500/5' 
           : 'border-white/20'
-      } relative p-3 pb-12 pr-20 sm:p-4 sm:pb-14 sm:pr-24 lg:p-2.5 lg:pb-11 lg:pr-20 rounded-4xl transition-all ${leftBorderClass} ${topBorderClass} ${
+      } relative p-3 pb-12 pr-12 sm:p-4 sm:pb-14 sm:pr-16 lg:p-2.5 lg:pb-11 lg:pr-12 rounded-4xl transition-all ${leftBorderClass} ${topBorderClass} ${
         remaining?.isLate ? 'border-red-500/50' : ''
       }`}
       onClick={handleToggle}
@@ -99,26 +95,14 @@ export function OrderCard({
         }
       }}
     >
-      {/* Poignée de drag (réordonnancement) */}
-      <button
-        type="button"
-        data-dnd-handle
-        onClick={(e) => e.stopPropagation()}
-        className="absolute right-2 top-2 lg:right-1 lg:top-1 inline-flex items-center justify-center h-8 w-8 lg:h-7 lg:w-7 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 active:bg-white/15 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing"
-        aria-label="Réordonner la commande"
-        title="Glisser pour réordonner"
-      >
-        <GripVertical className="h-4 w-4 lg:h-3.5 lg:w-3.5" />
-      </button>
-
       {/* Bouton expand/collapse */}
       <button
         type="button"
         onClick={(e) => {
           e.stopPropagation();
-          handleToggle();
+          handleToggle(e);
         }}
-        className="absolute right-11 top-2 lg:right-9 lg:top-1 inline-flex items-center justify-center h-8 w-8 lg:h-7 lg:w-7 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 active:bg-white/15 text-muted-foreground hover:text-foreground"
+        className="absolute right-2 top-2 lg:right-1 lg:top-1 inline-flex items-center justify-center h-8 w-8 lg:h-7 lg:w-7 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 active:bg-white/15 text-muted-foreground hover:text-foreground z-10"
         aria-label={expanded ? 'Réduire les détails' : 'Afficher les détails'}
         title={expanded ? 'Réduire' : 'Détails'}
       >
@@ -135,20 +119,25 @@ export function OrderCard({
             </span>
           </div>
 
-          <div className="mt-2 flex items-center gap-3 text-sm lg:text-xs font-black text-muted-foreground">
-            <span className="inline-flex items-center gap-2">
-              {pizzaLikeQty > 0 ? (
-                <span>
-                  {pizzaLikeQty} <span aria-label="pizzas">🍕</span>
-                </span>
-              ) : null}
-              {calzoneQty > 0 ? (
-                <span>
-                  {calzoneQty} <span aria-label="calzones">🥟</span>
-                </span>
-              ) : null}
-              {pizzaLikeQty === 0 && calzoneQty === 0 ? <span>—</span> : null}
-            </span>
+          {/* Liste des articles (toujours visible) */}
+          <div className="mt-1.5 space-y-0.5">
+            {items.length > 0 ? items.map((item, idx) => (
+              <div key={idx} className="text-sm lg:text-xs font-black text-foreground/90 truncate">
+                <span className="text-primary">{item.qty}x</span> {item.name}
+                {item.removedIngredients?.length > 0 ? (
+                  <span className="text-red-400 font-bold text-[10px] ml-1">
+                    -{item.removedIngredients.map(i => typeof i === 'string' ? i : i.name).join(', ')}
+                  </span>
+                ) : null}
+                {item.addedIngredients?.length > 0 ? (
+                  <span className="text-emerald-400 font-bold text-[10px] ml-1">
+                    +{item.addedIngredients.map(i => typeof i === 'string' ? i : i.name).join(', ')}
+                  </span>
+                ) : null}
+              </div>
+            )) : (
+              <div className="text-sm lg:text-xs font-black text-muted-foreground">—</div>
+            )}
           </div>
 
           {/* Heure estimée (à gauche, sous le nombre de pizzas) */}
