@@ -209,7 +209,7 @@ export default function StripeConnectStatus({ userId }) {
                 const createDashboardLink = httpsCallable(functions, 'createStripeDashboardLink');
                 const result = await createDashboardLink({});
                 if (result.data?.url) {
-                  window.open(result.data.url, '_blank');
+                  window.location.href = result.data.url;
                 }
               } catch (err) {
                 console.error('[StripeConnect] Erreur dashboard:', err);
