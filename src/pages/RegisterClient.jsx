@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendEmailVerification } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { useClientProfile } from '../features/users/hooks/useClientProfile';
 import { Button } from '../components/ui/Button';
@@ -8,6 +8,8 @@ import { Input } from '../components/ui/Input';
 import Card from '../components/ui/Card';
 import PhoneInputWithPrefix from '../components/ui/PhoneInputWithPrefix';
 import { Pizza, Eye, EyeOff } from 'lucide-react';
+import PasswordStrengthIndicator from '../components/ui/PasswordStrengthIndicator';
+import { isPasswordValid } from '../lib/passwordValidation';
 
 export default function RegisterClient() {
   const navigate = useNavigate();
@@ -28,12 +30,21 @@ export default function RegisterClient() {
 
   const handleEmailRegister = async (e) => {
     e.preventDefault();
+    if (!isPasswordValid(password)) {
+      setError('Le mot de passe ne remplit pas tous les critères de sécurité.');
+      return;
+    }
     setError('');
     setLoading(true);
 
     try {
       // 1. Créer le compte Firebase Auth
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCred = await createUserWithEmailAndPassword(auth, email, password);
+
+      // Envoyer l'email de vérification
+      try {
+        await sendEmailVerification(userCred.user);
+      } catch { /* non bloquant */ }
       
       // 2. Attendre que Firebase Auth soit complètement initialisé
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -138,6 +149,7 @@ export default function RegisterClient() {
                 )}
               </button>
             </div>
+            <PasswordStrengthIndicator password={password} />
           </div>
 
           <div>
@@ -154,7 +166,7 @@ export default function RegisterClient() {
 
           <Button
             type="submit"
-            disabled={loading}
+            disabled={loading || !isPasswordValid(password)}
             className="w-full rounded-2xl h-12 font-bold bg-orange-500 hover:bg-orange-600"
           >
             {loading ? 'Inscription...' : 'Créer mon compte'}

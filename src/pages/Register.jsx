@@ -5,7 +5,8 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   linkWithCredential,
-  EmailAuthProvider
+  EmailAuthProvider,
+  sendEmailVerification
 } from 'firebase/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
@@ -15,6 +16,8 @@ import { upsertUserProfile } from '../lib/userProfile';
 import { UserPlus, Chrome } from 'lucide-react';
 import BackButton from '../components/ui/BackButton';
 import { useAuth } from '../app/providers/AuthProvider';
+import PasswordStrengthIndicator from '../components/ui/PasswordStrengthIndicator';
+import { isPasswordValid } from '../lib/passwordValidation';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -86,6 +89,10 @@ export default function Register() {
       );
       return;
     }
+    if (!isPasswordValid(password)) {
+      setError('Le mot de passe ne remplit pas tous les critères de sécurité.');
+      return;
+    }
     setError('');
     setLoading(true);
     try {
@@ -104,6 +111,11 @@ export default function Register() {
       }
 
       await upsertUserProfile(finalUser);
+
+      // Envoyer l'email de vérification
+      try {
+        await sendEmailVerification(finalUser);
+      } catch { /* non bloquant */ }
 
       // Rediriger vers l'orderId si fourni, sinon mon-compte
       const orderId = location.state?.orderId;
@@ -168,13 +180,14 @@ export default function Register() {
               <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                 Mot de passe
               </label>
-              <Input 
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
-                type="password" 
+              <Input
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                type="password"
                 placeholder="••••••••"
-                required 
+                required
               />
+              <PasswordStrengthIndicator password={password} />
             </div>
 
             {error && (
@@ -191,7 +204,7 @@ export default function Register() {
               </div>
             )}
 
-            <Button className="w-full" type="submit" disabled={loading || !isFirebaseConfigured}>
+            <Button className="w-full" type="submit" disabled={loading || !isFirebaseConfigured || !isPasswordValid(password)}>
               <UserPlus className="mr-2 h-4 w-4" />
               {loading ? 'Inscription…' : "S'inscrire"}
             </Button>

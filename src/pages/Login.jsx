@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup, sendPasswordResetEmail } from 'firebase/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
@@ -16,9 +16,22 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [resetMode, setResetMode] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetSent, setResetSent] = useState(false);
+  const [resetError, setResetError] = useState('');
   const emailRef = useRef(null);
   const passwordRef = useRef(null);
   const formRef = useRef(null);
+
+  // Redirection vers /auth/action si Firebase envoie un lien de reset/verify sur /login
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const mode = params.get('mode');
+    if (mode === 'resetPassword' || mode === 'verifyEmail') {
+      navigate(`/auth/action${location.search}`, { replace: true });
+    }
+  }, [location.search, navigate]);
 
   // Détection du paramètre pizzaiolo pour afficher un message de reconnexion
   const searchParams = new URLSearchParams(location.search);
@@ -104,6 +117,29 @@ export default function Login() {
     }
   };
 
+  const onResetPassword = async (e) => {
+    e.preventDefault();
+    if (!resetEmail.trim()) {
+      setResetError('Entrez votre adresse email.');
+      return;
+    }
+    setResetError('');
+    try {
+      const actionCodeSettings = {
+        url: `${window.location.origin}/auth/action`,
+        handleCodeInApp: false,
+      };
+      await sendPasswordResetEmail(auth, resetEmail.trim(), actionCodeSettings);
+      setResetSent(true);
+    } catch (err) {
+      if (err.code === 'auth/user-not-found') {
+        setResetError('Aucun compte trouvé avec cet email.');
+      } else {
+        setResetError(err?.message || 'Erreur lors de l\'envoi.');
+      }
+    }
+  };
+
   // Détection de l'auto-remplissage par gestionnaire de mots de passe
   // pour soumettre automatiquement le formulaire (sans friction)
   useEffect(() => {
@@ -159,6 +195,7 @@ export default function Login() {
 
   return (
     <div className="container mx-auto max-w-lg px-4 py-12">
+      <div inert={resetMode || undefined}>
       <BackButton className="mb-4" />
       <Card>
         <CardHeader>
@@ -208,13 +245,20 @@ export default function Login() {
               </label>
               <Input
                 ref={passwordRef}
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
-                type="password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                type="password"
                 placeholder="••••••••"
                 autoComplete="current-password"
-                required 
+                required
               />
+              <button
+                type="button"
+                onClick={() => { setResetMode(true); setResetEmail(email); }}
+                className="text-xs text-primary hover:underline font-medium mt-1"
+              >
+                Mot de passe oublié ?
+              </button>
             </div>
 
             {error && (
@@ -258,6 +302,54 @@ export default function Login() {
           </Button>
         </CardContent>
       </Card>
+      </div>
+
+      {/* Modal mot de passe oublié */}
+      {resetMode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setResetMode(false)}>
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold mb-1">Mot de passe oublié</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Entrez votre email, vous recevrez un lien de réinitialisation.
+            </p>
+
+            {resetSent ? (
+              <div className="space-y-4">
+                <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-700 font-medium">
+                  Email envoyé ! Vérifiez votre boîte de réception.
+                </div>
+                <Button className="w-full" onClick={() => { setResetMode(false); setResetSent(false); }}>
+                  Fermer
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={onResetPassword} className="space-y-4">
+                <Input
+                  type="email"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  placeholder="votre@email.com"
+                  required
+                  autoFocus
+                />
+                {resetError && (
+                  <div className="rounded-lg bg-destructive/15 p-3 text-sm text-destructive">
+                    {resetError}
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" className="flex-1" onClick={() => setResetMode(false)}>
+                    Annuler
+                  </Button>
+                  <Button type="submit" className="flex-1">
+                    Envoyer
+                  </Button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
