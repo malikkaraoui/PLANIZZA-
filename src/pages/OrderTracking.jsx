@@ -14,7 +14,8 @@ const STEPS = [
   { key: 'created', label: 'Confirmée', icon: '✅' },
   { key: 'received', label: 'Reçue', icon: '📋' },
   { key: 'accepted', label: 'En préparation', icon: '👨‍🍳' },
-  { key: 'delivered', label: 'Prête !', icon: '🍕' },
+  { key: 'ready', label: 'Prête !', icon: '🍕' },
+  { key: 'delivered', label: 'Remise', icon: '🤝' },
 ];
 
 export default function OrderTracking() {
@@ -306,8 +307,9 @@ export default function OrderTracking() {
                 {currentStatus === 'created' && '✅ Confirmée'}
                 {currentStatus === 'received' && '📋 Reçue'}
                 {currentStatus === 'accepted' && '👨‍🍳 En préparation'}
-                {currentStatus === 'delivered' && '🍕 Prête !'}
-                {!['created', 'received', 'accepted', 'delivered'].includes(currentStatus) && '⏳ En attente...'}
+                {currentStatus === 'ready' && '🍕 Prête !'}
+                {currentStatus === 'delivered' && '🤝 Remise'}
+                {!['created', 'received', 'accepted', 'ready', 'delivered'].includes(currentStatus) && '⏳ En attente...'}
               </p>
             </div>
           </div>

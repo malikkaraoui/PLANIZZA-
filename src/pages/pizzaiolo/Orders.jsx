@@ -34,6 +34,7 @@ import {
 const STATUS_CONFIG = {
   received: { label: 'Non prise en charge', color: 'bg-orange-500', icon: Clock },
   accepted: { label: 'Prise en charge', color: 'bg-blue-500', icon: ChefHat },
+  ready: { label: 'Prête', color: 'bg-amber-500', icon: CheckCircle },
   delivered: { label: 'Délivrée', color: 'bg-green-600', icon: CheckCircle },
   cancelled: { label: 'Annulée', color: 'bg-red-500', icon: Package },
   lost: { label: 'Perdue', color: 'bg-gray-600', icon: Package },
@@ -323,6 +324,21 @@ export default function PizzaioloOrders() {
       clearOptimisticStatus(orderId);
       const statusSuffix = result?.status ? ` (HTTP ${result.status})` : '';
       setMessage(`❌ Impossible de prendre en charge${statusSuffix}. ${result?.error || updateError || ''}`.trim());
+    }
+  };
+
+  // Marquer comme prête
+  const handleReady = async (orderId) => {
+    console.log('[Orders] Clic sur Prêt, orderId:', orderId);
+    applyOptimisticStatus(orderId, 'ready');
+    const result = await updateStatus(orderId, 'ready');
+    console.log('[Orders] Résultat:', result);
+    if (result?.ok) {
+      setMessage('✅ Commande prête.');
+    } else {
+      clearOptimisticStatus(orderId);
+      const statusSuffix = result?.status ? ` (HTTP ${result.status})` : '';
+      setMessage(`❌ Impossible de marquer prête${statusSuffix}. ${result?.error || updateError || ''}`.trim());
     }
   };
 
@@ -745,6 +761,7 @@ export default function PizzaioloOrders() {
                       remaining={remaining}
                       estimatedDeliveryTime={estimatedTimeFormatted}
                       onAccept={handleAccept}
+                      onReady={handleReady}
                       onDeliver={handleDeliver}
                       onMarkPaid={handleMarkPaid}
                       expanded={expandedOrderId === order.id}
@@ -788,6 +805,7 @@ export default function PizzaioloOrders() {
                       remaining={remaining}
                       estimatedDeliveryTime={estimatedTimeFormatted}
                       onAccept={handleAccept}
+                      onReady={handleReady}
                       onDeliver={handleDeliver}
                       onMarkPaid={handleMarkPaid}
                       expanded={expandedOrderId === order.id}
@@ -831,6 +849,7 @@ export default function PizzaioloOrders() {
                       remaining={remaining}
                       estimatedDeliveryTime={estimatedTimeFormatted}
                       onAccept={handleAccept}
+                      onReady={handleReady}
                       onDeliver={handleDeliver}
                       onMarkPaid={handleMarkPaid}
                       expanded={expandedOrderId === order.id}
@@ -874,6 +893,7 @@ export default function PizzaioloOrders() {
                       remaining={remaining}
                       estimatedDeliveryTime={estimatedTimeFormatted}
                       onAccept={handleAccept}
+                      onReady={handleReady}
                       onDeliver={handleDeliver}
                       onMarkPaid={handleMarkPaid}
                       expanded={expandedOrderId === order.id}
