@@ -396,7 +396,7 @@ export default function OrderTracking() {
 
         {/* Section notation UX - visible uniquement après remise (HANDOFF/DONE) */}
         {/* Le client peut noter/commenter seulement après avoir reçu sa pizza */}
-        {(order.v2?.kitchenStatus === 'HANDOFF' || order.v2?.kitchenStatus === 'DONE') && (
+        {(order.status === 'delivered' || order.v2?.kitchenStatus === 'HANDOFF' || order.v2?.kitchenStatus === 'DONE') && (
           <div className="mt-6 bg-white border border-gray-200 shadow-sm rounded-2xl p-5">
             {(ratingSubmitted || order.uxRating) ? (
               <div className="flex items-center justify-between">
