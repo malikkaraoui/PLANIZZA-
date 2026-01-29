@@ -1,26 +1,21 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { ref, query, orderByChild, equalTo, onValue } from 'firebase/database';
 import { db, isFirebaseConfigured } from '../../../lib/firebase';
 import { rtdbPaths } from '../../../lib/rtdbPaths';
 import { coalesceMs } from '../../../lib/timestamps';
-import { notifyPizzaiolo } from '../../../lib/notifications';
 import { devLog } from '../../../lib/devLog';
 
 /**
  * Hook pour récupérer les commandes d'un camion spécifique
  * @param {string} truckId - ID du camion
- * @param {object} [options] - Options du hook
- * @param {Function} [options.navigate] - Fonction de navigation (pour notifications cliquables)
+ * @param {string} truckId - ID du camion
  * @returns {object} { orders, loading, error }
  */
-export function useTruckOrders(truckId, options = {}) {
-  const { navigate } = options;
+export function useTruckOrders(truckId) {
   const enabled = Boolean(isFirebaseConfigured && db && truckId);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState(null);
-  const previousOrderIdsRef = useRef(new Set());
-  const isFirstLoadRef = useRef(true);
 
   useEffect(() => {
     if (!enabled) {
@@ -68,30 +63,9 @@ export function useTruckOrders(truckId, options = {}) {
               return bMs - aMs;
             }); // Plus récentes en premier
 
-          // Détecter les nouvelles commandes (pas au premier chargement)
-          if (!isFirstLoadRef.current) {
-            const currentIds = new Set(ordersArray.map((o) => o.id));
-            for (const order of ordersArray) {
-              if (!previousOrderIdsRef.current.has(order.id) && order.status === 'received') {
-                // Nouvelle commande !
-                const customerName = order.customerName || 'Client';
-                const total = ((order.totalCents || 0) / 100).toFixed(2);
-                notifyPizzaiolo.newOrder(customerName, total, order.id, navigate);
-              }
-            }
-            previousOrderIdsRef.current = currentIds;
-          } else {
-            // Premier chargement: mémoriser les IDs existants sans notifier
-            previousOrderIdsRef.current = new Set(ordersArray.map((o) => o.id));
-            isFirstLoadRef.current = false;
-          }
-
           setOrders(ordersArray);
         } else {
           setOrders([]);
-          if (isFirstLoadRef.current) {
-            isFirstLoadRef.current = false;
-          }
         }
         setLoading(false);
         setError(null);

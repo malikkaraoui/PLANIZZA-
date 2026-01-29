@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Clock, User, Pizza, CheckCircle, ChefHat, Package, ArrowLeft, Filter, Store, Bike, CreditCard, X, Calendar } from 'lucide-react';
 import { ref, get, set } from 'firebase/database';
 import { db } from '../../lib/firebase';
@@ -44,7 +44,6 @@ const TVA_RATE = 0.10; // 10% TVA restauration
 
 export default function PizzaioloOrders() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const { isVisible: isScrolledUp } = useScrollDirection(10);
 
   const {
@@ -58,7 +57,7 @@ export default function PizzaioloOrders() {
   const { nowMs: currentTime } = useServerNow({ tickMs: 1000 });
   const [pizzaPerHour, setPizzaPerHour] = useState(30); // Cadence du pizzaiolo
   const [_openingHours, setOpeningHours] = useState(null); // Horaires d'ouverture
-  const { orders, loading: ordersLoading } = useTruckOrders(truckId, { navigate });
+  const { orders, loading: ordersLoading } = useTruckOrders(truckId);
   const { updateStatus, loading: updating, error: updateError } = useUpdateOrderStatus();
 
   const [message, setMessage] = useState('');
