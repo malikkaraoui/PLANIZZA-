@@ -113,9 +113,16 @@ const ALLOWED_ORIGINS = [
   "http://127.0.0.1:3000",
 ];
 
+function isAllowedOrigin(origin) {
+  if (!origin) return false;
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  // Preview channels Firebase Hosting (ex: planizza-ac827--dev-xxxxx.web.app)
+  return /^https:\/\/planizza-ac827--.+\.web\.app$/.test(origin);
+}
+
 function setCors(req, res) {
   const origin = req.headers.origin;
-  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+  if (isAllowedOrigin(origin)) {
     res.set("Access-Control-Allow-Origin", origin);
     res.set("Access-Control-Allow-Credentials", "true");
   }

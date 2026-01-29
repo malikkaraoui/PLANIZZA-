@@ -129,13 +129,9 @@ export default function OrderTracking() {
     );
   }
 
-  // Utiliser le kitchenStatus V2 pour déterminer si la commande est prête
-  // READY en V2 = pizza prête, mais le status V1 reste 'accepted' jusqu'au HANDOFF
-  const kitchenStatus = order.v2?.kitchenStatus;
-  const isReady = kitchenStatus === 'READY' || kitchenStatus === 'HANDOFF' || kitchenStatus === 'DONE';
-
-  // Si READY en V2, on considère la commande comme 'delivered' pour l'affichage
-  const currentStatus = isReady ? 'delivered' : (order.status || 'created');
+  // Mapper le statut pour l'affichage client
+  // Le statut legacy est maintenant synchronise : ready = prete, delivered = remise
+  const currentStatus = order.status || 'created';
   const timeline = order.timeline || {};
   const currentStepIndex = STEPS.findIndex((s) => s.key === currentStatus);
   const desiredTime = typeof order.pickupTime === 'string' && order.pickupTime.length > 0

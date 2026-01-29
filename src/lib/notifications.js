@@ -25,10 +25,11 @@ export const notify = {
       created: `Commande confirmée chez ${truckName}`,
       received: `📋 ${truckName} a reçu votre commande`,
       accepted: `👨‍🍳 ${truckName} prépare votre pizza...`,
-      delivered: `🍕 Votre commande est prête ! Venez la chercher`,
+      ready: `🍕 Votre commande est prête ! Venez la chercher`,
+      delivered: `🤝 Commande remise ! N'hésitez pas à laisser un avis`,
       cancelled: `Commande annulée`,
     };
-    const type = status === 'cancelled' ? 'error' : status === 'delivered' ? 'success' : 'info';
+    const type = status === 'cancelled' ? 'error' : (status === 'ready' || status === 'delivered') ? 'success' : 'info';
 
     // Empêche les doublons (ex: double event / double listener) en réutilisant le même toastId.
     // Format stable: une notification par (commande, statut).
