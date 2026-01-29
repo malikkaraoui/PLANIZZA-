@@ -2425,6 +2425,56 @@ exports.createOnboardingLink = onCall(
 );
 
 /**
+ * Génère un lien de connexion au dashboard Express Stripe pour un pizzaiolo.
+ * Le compte doit être actif (onboarding terminé).
+ */
+exports.createStripeDashboardLink = onCall(
+  {
+    region: "us-central1",
+    secrets: [STRIPE_SECRET_KEY],
+  },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Vous devez être connecté");
+    }
+
+    const uid = request.auth.uid;
+
+    const pizzaioloRef = admin.database().ref(`pizzaiolos/${uid}`);
+    const pizzaioloSnap = await pizzaioloRef.get();
+
+    if (!pizzaioloSnap.exists()) {
+      throw new HttpsError("not-found", "Profil pizzaiolo introuvable");
+    }
+
+    const accountId = pizzaioloSnap.val()?.stripeAccountId;
+    if (!accountId) {
+      throw new HttpsError("failed-precondition", "Aucun compte Stripe associé");
+    }
+
+    const stripeSecret = (STRIPE_SECRET_KEY.value() || "").trim();
+    const stripeClient = stripe(stripeSecret);
+
+    try {
+      const loginLink = await stripeClient.accounts.createLoginLink(accountId);
+
+      console.log(`[PLANIZZA][createStripeDashboardLink] Lien créé pour ${hashUid(uid)}`);
+
+      return {
+        url: loginLink.url,
+      };
+    } catch (error) {
+      console.error("[PLANIZZA][createStripeDashboardLink] Erreur Stripe:", {
+        uid: hashUid(uid),
+        type: error?.type,
+        message: error?.message?.substring(0, 100),
+      });
+      throw new HttpsError("internal", "Erreur lors de la création du lien dashboard");
+    }
+  }
+);
+
+/**
  * Webhook Stripe Connect - écoute les événements liés aux comptes connectés
  * Supporte les événements v2 (thin events) comme v2.core.account.updated
  */

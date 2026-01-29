@@ -15,6 +15,7 @@ export default function StripeConnectStatus({ userId }) {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
 
   // Écouter les changements du profil pizzaiolo en temps réel
   useEffect(() => {
@@ -199,16 +200,40 @@ export default function StripeConnectStatus({ userId }) {
               Vous pouvez recevoir des paiements de vos clients.
             </p>
           </div>
-          <a
-            href="https://dashboard.stripe.com/express"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-500 text-white font-bold text-sm hover:bg-emerald-600 transition"
+          <button
+            onClick={async () => {
+              if (!functions || dashboardLoading) return;
+              setDashboardLoading(true);
+              setError(null);
+              try {
+                const createDashboardLink = httpsCallable(functions, 'createStripeDashboardLink');
+                const result = await createDashboardLink({});
+                if (result.data?.url) {
+                  window.open(result.data.url, '_blank');
+                }
+              } catch (err) {
+                console.error('[StripeConnect] Erreur dashboard:', err);
+                setError(err.message || 'Erreur lors de l\'ouverture du dashboard');
+              } finally {
+                setDashboardLoading(false);
+              }
+            }}
+            disabled={dashboardLoading}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-500 text-white font-bold text-sm hover:bg-emerald-600 transition disabled:opacity-50"
           >
-            <ExternalLink className="h-4 w-4" />
+            {dashboardLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ExternalLink className="h-4 w-4" />
+            )}
             Voir mes revenus
-          </a>
+          </button>
         </div>
+        {error && (
+          <div className="mt-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+            <p className="text-xs text-red-600 font-medium">{error}</p>
+          </div>
+        )}
       </Card>
     );
   }
