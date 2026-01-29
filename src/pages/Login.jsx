@@ -60,7 +60,10 @@ export default function Login() {
     return null;
   };
 
-  const returnTo = getReturnTo();
+  const rawReturnTo = getReturnTo();
+  // Ignorer les routes pro si ce n'est pas un upgrade pizzaiolo
+  // pour éviter qu'un client soit redirigé vers l'espace pro après déconnexion d'un compte pro
+  const returnTo = (!isPizzaioloUpgrade && rawReturnTo?.startsWith('/pro/')) ? null : rawReturnTo;
 
   const onGoogleLogin = async () => {
     if (!isFirebaseConfigured || !auth) {
