@@ -171,7 +171,7 @@ export const notifyPizzaiolo = {
       onClick: () => {
         if (!navigate) return;
         // Route réelle côté app
-        const target = orderId ? `/pro/commandes-v2?orderId=${encodeURIComponent(orderId)}` : '/pro/commandes-v2';
+        const target = orderId ? `/pro/commandes?orderId=${encodeURIComponent(orderId)}` : '/pro/commandes';
         navigate(target);
       },
     });

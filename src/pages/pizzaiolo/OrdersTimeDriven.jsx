@@ -288,12 +288,14 @@ function OrderRow({ row, nowMs, busy, onAction, isHistory = false, onClick }) {
 
   const actionList = actionsFor(v2, legacy);
 
+  const isClickable = typeof onClick === 'function';
+
   return (
     <div 
       className={`rounded-2xl border border-white/10 bg-white/5 p-3 ${
-        isHistory ? 'cursor-pointer transition-colors hover:bg-white/10' : ''
+        isClickable ? 'cursor-pointer transition-colors hover:bg-white/10' : ''
       }`}
-      onClick={isHistory && onClick ? () => onClick(row) : undefined}
+      onClick={isClickable ? () => onClick(row) : undefined}
     >
       {/* Layout Mobile */}
       <div className="block md:hidden space-y-3">
@@ -643,6 +645,7 @@ export default function OrdersPageTimeDriven() {
                 nowMs={nowMs}
                 busy={busy}
                 onAction={(a) => runAction(row, a)}
+                onClick={setDetailOrder}
               />
             ),
           }))}
@@ -659,6 +662,7 @@ export default function OrdersPageTimeDriven() {
                 nowMs={nowMs}
                 busy={busy}
                 onAction={(a) => runAction(row, a)}
+                onClick={setDetailOrder}
               />
             ),
           }))}
@@ -675,6 +679,7 @@ export default function OrdersPageTimeDriven() {
                 nowMs={nowMs}
                 busy={busy}
                 onAction={(a) => runAction(row, a)}
+                onClick={setDetailOrder}
               />
             ),
           }))}

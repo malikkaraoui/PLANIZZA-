@@ -19,15 +19,14 @@ import { useServerNow } from '../../hooks/useServerNow';
 import { OrderCard } from '../../features/orders/components/OrderCard';
 import { OrderSection } from '../../features/orders/components/OrderSection';
 import BackButton from '../../components/ui/BackButton';
-import { ReorderableOrderList } from '../../features/orders/components/ReorderableOrderList';
-import { usePizzaioloOrderRanking } from '../../features/orders/hooks/usePizzaioloOrderRanking';
 import { coalesceMs, toMs } from '../../lib/timestamps';
 import { pizzaioloMarkOrderPaid } from '../../lib/ordersApi';
 import { useAutoDismissMessage } from '../../hooks/useAutoDismissMessage';
-import { 
-  getEstimatedDeliveryTime, 
-  formatDeliveryTime, 
-  groupOrdersByStatus 
+import { usePizzaioloOrderNotifications } from '../../features/pizzaiolo/hooks/usePizzaioloNotifications';
+import {
+  getEstimatedDeliveryTime,
+  formatDeliveryTime,
+  groupOrdersByStatus
 } from '../../features/orders/utils/deliveryTimeCalculator';
 
 // Statuts possibles (SIMPLIFIÉ)
@@ -51,6 +50,9 @@ export default function PizzaioloOrders() {
     loading: loadingTruckId,
     error: truckIdError,
   } = usePizzaioloTruckId(user?.uid);
+
+  // Notifications de nouvelles commandes
+  usePizzaioloOrderNotifications(truckId);
 
   const [loadingTruckDetails, setLoadingTruckDetails] = useState(false);
   const loadingTruck = loadingTruckId || loadingTruckDetails;
@@ -426,36 +428,6 @@ export default function PizzaioloOrders() {
   const baseAcceptedPaid = [...orderGroups.acceptedPaid].sort((a, b) => getCreatedAtMs(a) - getCreatedAtMs(b));
   const baseAcceptedUnpaid = [...orderGroups.acceptedUnpaid].sort((a, b) => getCreatedAtMs(a) - getCreatedAtMs(b));
 
-  // Rangement pizzaiolo (override) : localStorage + Firebase
-  const notAcceptedPaidRanking = usePizzaioloOrderRanking({
-    uid: user?.uid,
-    truckId,
-    groupKey: 'notAcceptedPaid',
-    baseIds: baseNotAcceptedPaid.map((o) => o.id),
-  });
-  const notAcceptedUnpaidRanking = usePizzaioloOrderRanking({
-    uid: user?.uid,
-    truckId,
-    groupKey: 'notAcceptedUnpaid',
-    baseIds: baseNotAcceptedUnpaid.map((o) => o.id),
-  });
-  const acceptedPaidRanking = usePizzaioloOrderRanking({
-    uid: user?.uid,
-    truckId,
-    groupKey: 'acceptedPaid',
-    baseIds: baseAcceptedPaid.map((o) => o.id),
-  });
-  const acceptedUnpaidRanking = usePizzaioloOrderRanking({
-    uid: user?.uid,
-    truckId,
-    groupKey: 'acceptedUnpaid',
-    baseIds: baseAcceptedUnpaid.map((o) => o.id),
-  });
-
-  const baseNotAcceptedPaidById = new Map(baseNotAcceptedPaid.map((o) => [o.id, o]));
-  const baseNotAcceptedUnpaidById = new Map(baseNotAcceptedUnpaid.map((o) => [o.id, o]));
-  const baseAcceptedPaidById = new Map(baseAcceptedPaid.map((o) => [o.id, o]));
-  const baseAcceptedUnpaidById = new Map(baseAcceptedUnpaid.map((o) => [o.id, o]));
 
   console.log('[PizzaioloOrders] Ordre base=chronologie + override pizzaiolo');
 
@@ -737,26 +709,15 @@ export default function PizzaioloOrders() {
               count={baseNotAcceptedPaid.length}
               color="green-500"
             >
-              <ReorderableOrderList
-                orderedIds={notAcceptedPaidRanking.orderedIds}
-                groupKey="notAcceptedPaid"
-                onOrderedIdsChange={notAcceptedPaidRanking.setManualOrder}
-                renderItem={(id) => {
-                  const order = baseNotAcceptedPaidById.get(id);
-                  if (!order) return null;
-
-                  const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.received;
-                  const elapsed = getElapsedTime(getCreatedAtMs(order));
+              {baseNotAcceptedPaid.map((order) => {
                   const remaining = getRemainingTime(order, pizzaPerHour);
-                  const estimatedTime = getEstimatedDeliveryTime(order, pizzaPerHour);
-                  const estimatedTimeFormatted = formatDeliveryTime(estimatedTime);
-
+                  const estimatedTimeFormatted = formatDeliveryTime(getEstimatedDeliveryTime(order, pizzaPerHour));
                   return (
                     <OrderCard
                       key={order.id}
                       order={order}
-                      statusConfig={statusConfig}
-                      elapsed={elapsed}
+                      statusConfig={STATUS_CONFIG[order.status] || STATUS_CONFIG.received}
+                      elapsed={getElapsedTime(getCreatedAtMs(order))}
                       remaining={remaining}
                       estimatedDeliveryTime={estimatedTimeFormatted}
                       onAccept={handleAccept}
@@ -771,8 +732,7 @@ export default function PizzaioloOrders() {
                       borderVariant="paid"
                     />
                   );
-                }}
-              />
+                })}
             </OrderSection>
 
             {/* Section 2: Commandes non prises en charge - NON PAYÉES */}
@@ -781,26 +741,15 @@ export default function PizzaioloOrders() {
               count={baseNotAcceptedUnpaid.length}
               color="orange-500"
             >
-              <ReorderableOrderList
-                orderedIds={notAcceptedUnpaidRanking.orderedIds}
-                groupKey="notAcceptedUnpaid"
-                onOrderedIdsChange={notAcceptedUnpaidRanking.setManualOrder}
-                renderItem={(id) => {
-                  const order = baseNotAcceptedUnpaidById.get(id);
-                  if (!order) return null;
-
-                  const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.received;
-                  const elapsed = getElapsedTime(getCreatedAtMs(order));
+              {baseNotAcceptedUnpaid.map((order) => {
                   const remaining = getRemainingTime(order, pizzaPerHour);
-                  const estimatedTime = getEstimatedDeliveryTime(order, pizzaPerHour);
-                  const estimatedTimeFormatted = formatDeliveryTime(estimatedTime);
-
+                  const estimatedTimeFormatted = formatDeliveryTime(getEstimatedDeliveryTime(order, pizzaPerHour));
                   return (
                     <OrderCard
                       key={order.id}
                       order={order}
-                      statusConfig={statusConfig}
-                      elapsed={elapsed}
+                      statusConfig={STATUS_CONFIG[order.status] || STATUS_CONFIG.received}
+                      elapsed={getElapsedTime(getCreatedAtMs(order))}
                       remaining={remaining}
                       estimatedDeliveryTime={estimatedTimeFormatted}
                       onAccept={handleAccept}
@@ -815,8 +764,7 @@ export default function PizzaioloOrders() {
                       borderVariant="unpaid"
                     />
                   );
-                }}
-              />
+                })}
             </OrderSection>
 
             {/* Section 3: Commandes prises en charge - PAYÉES */}
@@ -825,26 +773,15 @@ export default function PizzaioloOrders() {
               count={baseAcceptedPaid.length}
               color="green-500"
             >
-              <ReorderableOrderList
-                orderedIds={acceptedPaidRanking.orderedIds}
-                groupKey="acceptedPaid"
-                onOrderedIdsChange={acceptedPaidRanking.setManualOrder}
-                renderItem={(id) => {
-                  const order = baseAcceptedPaidById.get(id);
-                  if (!order) return null;
-
-                  const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.received;
-                  const elapsed = getElapsedTime(getCreatedAtMs(order));
+              {baseAcceptedPaid.map((order) => {
                   const remaining = getRemainingTime(order, pizzaPerHour);
-                  const estimatedTime = getEstimatedDeliveryTime(order, pizzaPerHour);
-                  const estimatedTimeFormatted = formatDeliveryTime(estimatedTime);
-
+                  const estimatedTimeFormatted = formatDeliveryTime(getEstimatedDeliveryTime(order, pizzaPerHour));
                   return (
                     <OrderCard
                       key={order.id}
                       order={order}
-                      statusConfig={statusConfig}
-                      elapsed={elapsed}
+                      statusConfig={STATUS_CONFIG[order.status] || STATUS_CONFIG.received}
+                      elapsed={getElapsedTime(getCreatedAtMs(order))}
                       remaining={remaining}
                       estimatedDeliveryTime={estimatedTimeFormatted}
                       onAccept={handleAccept}
@@ -859,8 +796,7 @@ export default function PizzaioloOrders() {
                       borderVariant="paid"
                     />
                   );
-                }}
-              />
+                })}
             </OrderSection>
 
             {/* Section 4: Commandes prises en charge - NON PAYÉES */}
@@ -869,26 +805,15 @@ export default function PizzaioloOrders() {
               count={baseAcceptedUnpaid.length}
               color="orange-500"
             >
-              <ReorderableOrderList
-                orderedIds={acceptedUnpaidRanking.orderedIds}
-                groupKey="acceptedUnpaid"
-                onOrderedIdsChange={acceptedUnpaidRanking.setManualOrder}
-                renderItem={(id) => {
-                  const order = baseAcceptedUnpaidById.get(id);
-                  if (!order) return null;
-
-                  const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.received;
-                  const elapsed = getElapsedTime(getCreatedAtMs(order));
+              {baseAcceptedUnpaid.map((order) => {
                   const remaining = getRemainingTime(order, pizzaPerHour);
-                  const estimatedTime = getEstimatedDeliveryTime(order, pizzaPerHour);
-                  const estimatedTimeFormatted = formatDeliveryTime(estimatedTime);
-
+                  const estimatedTimeFormatted = formatDeliveryTime(getEstimatedDeliveryTime(order, pizzaPerHour));
                   return (
                     <OrderCard
                       key={order.id}
                       order={order}
-                      statusConfig={statusConfig}
-                      elapsed={elapsed}
+                      statusConfig={STATUS_CONFIG[order.status] || STATUS_CONFIG.received}
+                      elapsed={getElapsedTime(getCreatedAtMs(order))}
                       remaining={remaining}
                       estimatedDeliveryTime={estimatedTimeFormatted}
                       onAccept={handleAccept}
@@ -903,8 +828,7 @@ export default function PizzaioloOrders() {
                       borderVariant="unpaid"
                     />
                   );
-                }}
-              />
+                })}
             </OrderSection>
           </div>
         )}
