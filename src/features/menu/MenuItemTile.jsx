@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
-import AddToCartButton from './AddToCartButton';
+import AddToCartButton from '../../components/ui/AddToCartButton';
 import { formatDrinkVolumeLabel } from './utils/formatDrinkVolumeLabel';
 
 function formatEUR(cents) {
@@ -151,7 +151,7 @@ export default function MenuItemTile({ item, onAdd, isDisabled = false }) {
                 }}
                 disabled={!isAvailable}
                 justAdded={justAdded}
-                mode="compactHover"
+                variant="compact"
                 className="shrink-0"
               />
             </div>

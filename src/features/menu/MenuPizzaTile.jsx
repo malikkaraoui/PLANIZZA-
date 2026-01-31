@@ -2,7 +2,7 @@ import { useMemo, useRef, useState, useEffect } from 'react';
 import { ChevronDown, Pencil } from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
-import AddToCartButton from './AddToCartButton';
+import AddToCartButton from '../../components/ui/AddToCartButton';
 
 function formatEUR(cents) {
   return (cents / 100).toFixed(2).replace('.', ',') + ' €';
@@ -238,20 +238,16 @@ export default function MenuPizzaTile({
                 : '—'}
             </div>
             {!open && (
-              <div className="group">
-                <AddToCartButton
-                  mode="compactHover"
-                  size="sm"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleAdd();
-                  }}
-                  disabled={!isAvailable}
-                  justAdded={justAdded}
-                  label="Ajouter"
-                />
-              </div>
+              <AddToCartButton
+                variant="compact"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleAdd();
+                }}
+                disabled={!isAvailable}
+                justAdded={justAdded}
+              />
             )}
           </div>
         </div>
@@ -263,6 +259,15 @@ export default function MenuPizzaTile({
               {item?.description && (
                 <div className="mt-1 text-[12px] font-medium text-muted-foreground/70 line-clamp-2">
                   {item.description}
+                </div>
+              )}
+              {sizes.length > 1 && !open && (
+                <div className="mt-1.5 flex items-center gap-1">
+                  {sizes.map((s) => (
+                    <span key={s.key} className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-orange-100 text-[9px] font-black text-orange-500">
+                      {s.key.toUpperCase()}
+                    </span>
+                  ))}
                 </div>
               )}
             </div>
@@ -342,13 +347,12 @@ export default function MenuPizzaTile({
                 className="group flex-shrink-0 h-10 w-10 rounded-xl text-[11px] font-black tracking-wide uppercase transition-all bg-linear-to-br from-orange-100 to-orange-200 hover:from-orange-500 hover:to-orange-600 text-orange-600 hover:text-white border border-orange-300 hover:border-orange-600 shadow-sm hover:shadow-md flex items-center justify-center"
                 title="Personnaliser"
               >
-                <Pencil className="h-4 w-4 transition-transform group-hover:scale-110" />
+                <Pencil className="h-4 w-4" />
               </button>
             )}
 
             <AddToCartButton
-              mode="expanded"
-              size="sm"
+              variant="full"
               justAdded={justAdded}
               disabled={!isAvailable}
               onClick={(e) => {
