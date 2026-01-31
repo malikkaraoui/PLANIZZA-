@@ -3,6 +3,8 @@
  */
 
 import { coalesceMs } from '../../../lib/timestamps';
+import { devLog, devWarn, devError } from '../../../lib/devLog';
+import { isOrderPaid } from './orderStatus';
 
 /**
  * Calcule l'heure de livraison prévue pour une commande
@@ -15,16 +17,16 @@ import { coalesceMs } from '../../../lib/timestamps';
  * @returns {number} Timestamp de l'heure de livraison prévue (ms)
  */
 export function getEstimatedDeliveryTime(order, pizzaPerHour = 30) {
-  console.log('[getEstimatedDeliveryTime]', {
-    orderId: order.id,
-    pickupTime: order.pickupTime,
+  devLog('[getEstimatedDeliveryTime]', {
+    orderId: order?.id,
+    pickupTime: order?.pickupTime,
     pizzaPerHour,
-    status: order.status
+    status: order?.status
   });
 
   // Sécurité : valeurs par défaut
   if (!order) {
-    console.warn('[getEstimatedDeliveryTime] Order manquant');
+    devWarn('[getEstimatedDeliveryTime] Order manquant');
     return Date.now();
   }
 
@@ -42,7 +44,7 @@ export function getEstimatedDeliveryTime(order, pizzaPerHour = 30) {
       );
       
       const timestamp = pickupDate.getTime();
-      console.log('[getEstimatedDeliveryTime] Manuel avec pickupTime:', {
+      devLog('[getEstimatedDeliveryTime] Manuel avec pickupTime:', {
         pickupTime: order.pickupTime,
         timestamp,
         formatted: pickupDate.toLocaleTimeString('fr-FR')
@@ -50,7 +52,7 @@ export function getEstimatedDeliveryTime(order, pizzaPerHour = 30) {
       
       return timestamp;
     } catch (error) {
-      console.error('[getEstimatedDeliveryTime] Erreur parsing pickupTime', error);
+      devError('[getEstimatedDeliveryTime] Erreur parsing pickupTime', error);
       // Fallback sur calcul automatique
     }
   }
@@ -65,7 +67,7 @@ export function getEstimatedDeliveryTime(order, pizzaPerHour = 30) {
     coalesceMs(order.timeline?.acceptedAt, order.createdAt, order.createdAtClient) || Date.now();
   const estimatedDeliveryTime = startTime + estimatedMs;
   
-  console.log('[getEstimatedDeliveryTime] Calculé:', {
+  devLog('[getEstimatedDeliveryTime] Calculé:', {
     totalPizzas,
     minutesPerPizza: minutesPerPizza.toFixed(2),
     estimatedMs: (estimatedMs / 1000 / 60).toFixed(2) + 'min',
@@ -84,7 +86,7 @@ export function getEstimatedDeliveryTime(order, pizzaPerHour = 30) {
  */
 export function formatDeliveryTime(timestamp) {
   if (!timestamp || typeof timestamp !== 'number') {
-    console.warn('[formatDeliveryTime] Timestamp invalide:', timestamp);
+    devWarn('[formatDeliveryTime] Timestamp invalide:', timestamp);
     return '--:--';
   }
 
@@ -92,7 +94,7 @@ export function formatDeliveryTime(timestamp) {
     const date = new Date(timestamp);
     return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   } catch (error) {
-    console.error('[formatDeliveryTime] Erreur formatage:', error);
+    devError('[formatDeliveryTime] Erreur formatage:', error);
     return '--:--';
   }
 }
@@ -106,11 +108,11 @@ export function formatDeliveryTime(timestamp) {
  */
 export function sortOrdersByDeliveryTime(orders, pizzaPerHour = 30) {
   if (!Array.isArray(orders)) {
-    console.warn('[sortOrdersByDeliveryTime] orders n\'est pas un array:', orders);
+    devWarn('[sortOrdersByDeliveryTime] orders n\'est pas un array:', orders);
     return [];
   }
 
-  console.log('[sortOrdersByDeliveryTime] Tri de', orders.length, 'commandes');
+  devLog('[sortOrdersByDeliveryTime] Tri de', orders.length, 'commandes');
 
   const sorted = [...orders].sort((a, b) => {
     const timeA = getEstimatedDeliveryTime(a, pizzaPerHour);
@@ -118,7 +120,7 @@ export function sortOrdersByDeliveryTime(orders, pizzaPerHour = 30) {
     return timeA - timeB; // Ordre chronologique croissant
   });
 
-  console.log('[sortOrdersByDeliveryTime] Résultat tri:', sorted.map(o => ({
+  devLog('[sortOrdersByDeliveryTime] Résultat tri:', sorted.map(o => ({
     id: o.id,
     time: formatDeliveryTime(getEstimatedDeliveryTime(o, pizzaPerHour))
   })));
@@ -134,7 +136,7 @@ export function sortOrdersByDeliveryTime(orders, pizzaPerHour = 30) {
  */
 export function groupOrdersByStatus(orders) {
   if (!Array.isArray(orders)) {
-    console.warn('[groupOrdersByStatus] orders n\'est pas un array:', orders);
+    devWarn('[groupOrdersByStatus] orders n\'est pas un array:', orders);
     return {
       notAcceptedPaid: [],
       notAcceptedUnpaid: [],
@@ -143,16 +145,14 @@ export function groupOrdersByStatus(orders) {
     };
   }
 
-  const isPaid = (o) => o?.payment?.paymentStatus === 'paid' || o?.v2?.paymentStatus === 'PAID';
-
   const groups = {
-    notAcceptedPaid: orders.filter((o) => o.status === 'received' && isPaid(o)),
-    notAcceptedUnpaid: orders.filter((o) => o.status === 'received' && !isPaid(o)),
-    acceptedPaid: orders.filter((o) => o.status === 'accepted' && isPaid(o)),
-    acceptedUnpaid: orders.filter((o) => o.status === 'accepted' && !isPaid(o))
+    notAcceptedPaid: orders.filter((o) => o.status === 'received' && isOrderPaid(o)),
+    notAcceptedUnpaid: orders.filter((o) => o.status === 'received' && !isOrderPaid(o)),
+    acceptedPaid: orders.filter((o) => o.status === 'accepted' && isOrderPaid(o)),
+    acceptedUnpaid: orders.filter((o) => o.status === 'accepted' && !isOrderPaid(o))
   };
 
-  console.log('[groupOrdersByStatus] Groupes:', {
+  devLog('[groupOrdersByStatus] Groupes:', {
     notAcceptedPaid: groups.notAcceptedPaid.length,
     notAcceptedUnpaid: groups.notAcceptedUnpaid.length,
     acceptedPaid: groups.acceptedPaid.length,
@@ -163,7 +163,7 @@ export function groupOrdersByStatus(orders) {
   // Vérification d'intégrité
   const totalGrouped = groups.notAcceptedPaid.length + groups.notAcceptedUnpaid.length + groups.acceptedPaid.length + groups.acceptedUnpaid.length;
   if (totalGrouped !== orders.length) {
-    console.error('[groupOrdersByStatus] ERREUR: Perte de commandes!', {
+    devError('[groupOrdersByStatus] ERREUR: Perte de commandes!', {
       original: orders.length,
       grouped: totalGrouped,
       diff: orders.length - totalGrouped

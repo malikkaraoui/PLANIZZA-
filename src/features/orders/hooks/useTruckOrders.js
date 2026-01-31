@@ -8,7 +8,6 @@ import { devLog } from '../../../lib/devLog';
 /**
  * Hook pour récupérer les commandes d'un camion spécifique
  * @param {string} truckId - ID du camion
- * @param {string} truckId - ID du camion
  * @returns {object} { orders, loading, error }
  */
 export function useTruckOrders(truckId) {
