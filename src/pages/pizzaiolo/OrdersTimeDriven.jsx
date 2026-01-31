@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Clock, Plus } from 'lucide-react';
 
 import { ROUTES } from '../../app/routes';
 import { useAuth } from '../../app/providers/AuthProvider';
@@ -16,6 +17,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import BackButton from '../../components/ui/BackButton';
+import ManualOrderForm from '../../features/orders/components/ManualOrderForm';
 
 const KITCHEN_STATUS_LABELS = Object.freeze({
   NEW: 'NOUVELLE',
@@ -245,14 +247,14 @@ function actionsFor(orderV2, legacy) {
 
 function TimeSection({ title, rows, emptyText }) {
   return (
-    <section className="rounded-2xl md:rounded-3xl border border-white/10 bg-black/20 p-2 md:p-3">
+    <section className="rounded-2xl md:rounded-3xl border border-border bg-muted/50 p-2 md:p-3">
       <div className="flex items-center justify-between gap-2 md:gap-3 px-1 md:px-2 py-1">
-        <div className="text-xs md:text-sm font-semibold text-white/90">{title}</div>
-        <Badge className="bg-white/10 text-white/80 text-[10px] md:text-xs">{rows.length}</Badge>
+        <div className="text-xs md:text-sm font-semibold text-foreground">{title}</div>
+        <Badge className="bg-muted text-muted-foreground text-[10px] md:text-xs">{rows.length}</Badge>
       </div>
       <div className="mt-2">
         {rows.length === 0 ? (
-          <div className="px-2 py-3 text-[10px] md:text-xs text-white/50">{emptyText}</div>
+          <div className="px-2 py-3 text-[10px] md:text-xs text-muted-foreground">{emptyText}</div>
         ) : (
           <div className="flex flex-col gap-1 md:gap-1">
             {rows.map((row) => row.render())}
@@ -270,6 +272,7 @@ function OrderRow({ row, nowMs, busy, onAction, isHistory = false, onClick }) {
   const promisedHm = formatHmFromMs(promisedMs);
   const timer = isHistory ? '' : getTimerLabel(v2.promisedAt, nowMs);
 
+  const orderNum = legacy?.orderNumber ? `#${legacy.orderNumber}` : '';
   const customer = legacy?.customerName || v2.customer?.name || 'Client';
   const itemsCount = Array.isArray(legacy?.items)
     ? legacy.items.reduce((sum, it) => sum + Number(it?.qty || 0), 0)
@@ -291,9 +294,9 @@ function OrderRow({ row, nowMs, busy, onAction, isHistory = false, onClick }) {
   const isClickable = typeof onClick === 'function';
 
   return (
-    <div 
-      className={`rounded-2xl border border-white/10 bg-white/5 p-3 ${
-        isClickable ? 'cursor-pointer transition-colors hover:bg-white/10' : ''
+    <div
+      className={`rounded-2xl border border-border bg-card p-3 ${
+        isClickable ? 'cursor-pointer transition-colors hover:bg-muted' : ''
       }`}
       onClick={isClickable ? () => onClick(row) : undefined}
     >
@@ -302,8 +305,8 @@ function OrderRow({ row, nowMs, busy, onAction, isHistory = false, onClick }) {
         {/* En-tête */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <div className="font-semibold text-white truncate">{customer}</div>
-            <div className="text-xs text-white/60 mt-0.5">{promisedHm} {!isHistory && `• ${timer}`}</div>
+            <div className="font-semibold text-foreground truncate">{orderNum && <span className="text-muted-foreground mr-1.5">{orderNum}</span>}{customer}</div>
+            <div className="text-xs text-muted-foreground mt-0.5">{promisedHm} {!isHistory && `• ${timer}`}</div>
           </div>
           <div>
             <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-semibold ${payClass}`}>
@@ -314,13 +317,13 @@ function OrderRow({ row, nowMs, busy, onAction, isHistory = false, onClick }) {
         
         {/* Infos */}
         <div className="flex items-center gap-3 text-xs">
-          <div className="rounded-lg bg-white/10 px-2 py-1 text-white/80">
+          <div className="rounded-lg bg-muted px-2 py-1 text-foreground">
             {kitchenStatusLabel(v2.kitchenStatus)}
           </div>
-          <div className="text-white/60">
+          <div className="text-muted-foreground">
             {fulfillmentLabel(v2.fulfillment)}
           </div>
-          <div className="text-white/60">
+          <div className="text-muted-foreground">
             {itemsCount} article{itemsCount > 1 ? 's' : ''}
           </div>
         </div>
@@ -334,7 +337,7 @@ function OrderRow({ row, nowMs, busy, onAction, isHistory = false, onClick }) {
                 size="sm"
                 variant={a.key === 'cancel' ? 'ghost' : 'secondary'}
                 className={`flex-1 min-w-25 h-9 rounded-xl text-xs ${
-                  a.key === 'cancel' ? 'text-white/70 hover:text-white' : ''
+                  a.key === 'cancel' ? 'text-muted-foreground hover:text-foreground' : ''
                 }`}
                 disabled={busy || Boolean(a.disabled)}
                 title={a.title}
@@ -351,23 +354,25 @@ function OrderRow({ row, nowMs, busy, onAction, isHistory = false, onClick }) {
       </div>
 
       {/* Layout Desktop */}
-      <div className="hidden md:grid md:grid-cols-[64px_88px_86px_76px_92px_1fr_86px_auto] items-center gap-2 text-[12px]">
-        <div className="font-mono text-white/90">{promisedHm}</div>
-        <div className="font-mono text-white/80">{isHistory ? '—' : timer}</div>
-        <div className="font-mono text-white/90">{kitchenStatusLabel(v2.kitchenStatus)}</div>
+      <div className="hidden md:grid md:grid-cols-[48px_64px_88px_86px_76px_92px_1fr_86px_auto] items-center gap-2 text-[12px]">
+        {orderNum && <div className="font-mono font-bold text-muted-foreground">{orderNum}</div>}
+        {!orderNum && <div />}
+        <div className="font-mono text-foreground">{promisedHm}</div>
+        <div className="font-mono text-muted-foreground">{isHistory ? '—' : timer}</div>
+        <div className="font-mono text-foreground">{kitchenStatusLabel(v2.kitchenStatus)}</div>
         <div>
           <span className={`inline-flex rounded-full px-2 py-0.5 font-mono text-[11px] ${payClass}`}>{paymentText}</span>
         </div>
-        <div className="font-mono text-white/80">{fulfillmentLabel(v2.fulfillment)}</div>
-        <div className="truncate font-mono text-white/90">{customer}</div>
-        <div className="font-mono text-white/70">items:{itemsCount}</div>
+        <div className="font-mono text-muted-foreground">{fulfillmentLabel(v2.fulfillment)}</div>
+        <div className="truncate font-mono text-foreground">{customer}</div>
+        <div className="font-mono text-muted-foreground">items:{itemsCount}</div>
         <div className="flex flex-wrap justify-end gap-1">
           {actionList.map((a) => (
             <Button
               key={a.key}
               size="sm"
               variant={a.key === 'cancel' ? 'ghost' : 'secondary'}
-              className={a.key === 'cancel' ? 'h-7 rounded-xl text-white/70 hover:text-white' : 'h-7 rounded-xl'}
+              className={a.key === 'cancel' ? 'h-7 rounded-xl text-muted-foreground hover:text-foreground' : 'h-7 rounded-xl'}
               disabled={busy || Boolean(a.disabled)}
               title={a.title}
               onClick={(e) => {
@@ -390,6 +395,7 @@ export default function OrdersPageTimeDriven() {
   const { orders, loading: ordersLoading, error: ordersError } = useTruckOrders(truckId);
   const { nowMs } = useServerNow({ tickMs: 1000 });
 
+  const [activeTab, setActiveTab] = useState('commandes');
   const [q, setQ] = useState('');
   const [mutating, setMutating] = useState(false);
   const [message, setMessage] = useState('');
@@ -564,7 +570,7 @@ export default function OrdersPageTimeDriven() {
   if (loadingTruckId) {
     return (
       <div className="mx-auto w-full max-w-6xl px-4 py-6">
-        <div className="rounded-3xl border border-white/10 bg-black/20 p-6 text-sm text-white/70">Chargement…</div>
+        <div className="rounded-3xl border border-border bg-muted/50 p-6 text-sm text-muted-foreground">Chargement…</div>
       </div>
     );
   }
@@ -582,8 +588,8 @@ export default function OrdersPageTimeDriven() {
   if (!truckId) {
     return (
       <div className="mx-auto w-full max-w-6xl px-4 py-6">
-        <div className="rounded-3xl border border-white/10 bg-black/20 p-6">
-          <div className="text-sm text-white/80">Vous devez d’abord créer un camion.</div>
+        <div className="rounded-3xl border border-border bg-muted/50 p-6">
+          <div className="text-sm text-muted-foreground">Vous devez d'abord créer un camion.</div>
           <div className="mt-3">
             <Link to={ROUTES.pizzaioloProfile}>
               <Button className="rounded-xl">Créer mon camion</Button>
@@ -597,12 +603,65 @@ export default function OrdersPageTimeDriven() {
   return (
     <div className="mx-auto w-full max-w-6xl px-3 md:px-4 py-4 md:py-6">
       <BackButton to="/pro/truck" className="mb-3 md:mb-4" />
-      
+
+      {/* Onglets */}
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={() => setActiveTab('commandes')}
+          className={`flex-1 py-3 px-4 rounded-2xl font-bold text-sm transition-all ${
+            activeTab === 'commandes'
+              ? 'bg-primary text-white shadow-lg'
+              : 'border border-border bg-card hover:bg-muted text-muted-foreground'
+          }`}
+        >
+          <span className="flex items-center justify-center gap-2">
+            <Clock className="h-4 w-4" />
+            Commandes
+          </span>
+        </button>
+        <button
+          onClick={() => setActiveTab('nouvelle')}
+          className={`flex-1 py-3 px-4 rounded-2xl font-bold text-sm transition-all ${
+            activeTab === 'nouvelle'
+              ? 'bg-emerald-500 text-white shadow-lg'
+              : 'border border-border bg-card hover:bg-muted text-muted-foreground'
+          }`}
+        >
+          <span className="flex items-center justify-center gap-2">
+            <Plus className="h-4 w-4" />
+            Nouvelle commande
+          </span>
+        </button>
+      </div>
+
+      {message ? (
+        <div
+          className={`mb-4 rounded-2xl border p-3 text-xs font-medium ${
+            message.startsWith('❌')
+              ? 'border-red-500/20 bg-red-950/40 text-red-100'
+              : 'border-emerald-500/20 bg-emerald-950/30 text-emerald-50'
+          }`}
+        >
+          {message}
+        </div>
+      ) : null}
+
+      {activeTab === 'nouvelle' ? (
+        <ManualOrderForm
+          truckId={truckId}
+          user={user}
+          onOrderCreated={(name) => {
+            setMessage(`✅ Commande créée pour ${name}`);
+            setActiveTab('commandes');
+          }}
+        />
+      ) : (<>
+
       <div className="mb-3 md:mb-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-base md:text-lg font-bold text-white">File d'attente (Temps)</div>
-          <div className="mt-1 text-[10px] md:text-xs text-white/60">
-            maintenant: {formatHmFromMs(nowMs)} <span className="hidden md:inline text-white/40">(tri global : promesse ↑)</span>
+          <div className="text-base md:text-lg font-bold text-foreground">File d'attente (Temps)</div>
+          <div className="mt-1 text-[10px] md:text-xs text-muted-foreground">
+            maintenant: {formatHmFromMs(nowMs)} <span className="hidden md:inline text-muted-foreground/60">(tri global : promesse ↑)</span>
           </div>
         </div>
 
@@ -621,18 +680,6 @@ export default function OrdersPageTimeDriven() {
           Erreur commandes: {String(ordersError?.message || ordersError)}
         </div>
       )) || null}
-
-      {message ? (
-        <div
-          className={`mb-4 rounded-2xl border p-3 text-xs ${
-            message.startsWith('❌')
-              ? 'border-red-500/20 bg-red-950/40 text-red-100'
-              : 'border-emerald-500/20 bg-emerald-950/30 text-emerald-50'
-          }`}
-        >
-          {message}
-        </div>
-      ) : null}
 
       <div className="grid gap-3">
         <TimeSection
@@ -687,9 +734,9 @@ export default function OrdersPageTimeDriven() {
         />
       </div>
 
-      <details className="mt-4 md:mt-6 rounded-2xl md:rounded-3xl border border-white/10 bg-black/20 p-2 md:p-3">
-        <summary className="cursor-pointer select-none px-2 py-1.5 md:py-1 text-xs md:text-sm font-semibold text-white/90">
-          Historique (DONE / CANCELED / EXPIRED) <span className="text-white/60">[{history.length}]</span>
+      <details className="mt-4 md:mt-6 rounded-2xl md:rounded-3xl border border-border bg-muted/50 p-2 md:p-3">
+        <summary className="cursor-pointer select-none px-2 py-1.5 md:py-1 text-xs md:text-sm font-semibold text-foreground">
+          Historique (DONE / CANCELED / EXPIRED) <span className="text-muted-foreground">[{history.length}]</span>
         </summary>
         <div className="mt-2 md:mt-3 space-y-2 md:space-y-3">
           {historyByDate.today.length > 0 && (
@@ -756,8 +803,8 @@ export default function OrdersPageTimeDriven() {
           )}
           
           {historyByDate.older.length > 0 && (
-            <details className="rounded-xl md:rounded-2xl border border-white/10 bg-white/5">
-              <summary className="cursor-pointer select-none px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-semibold text-white/50 hover:text-white/70">
+            <details className="rounded-xl md:rounded-2xl border border-border bg-card">
+              <summary className="cursor-pointer select-none px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-semibold text-muted-foreground hover:text-muted-foreground">
                 📅 Plus ancien ({historyByDate.older.length})
               </summary>
               <div className="flex flex-col gap-1 px-1 md:px-2 pb-2 pt-1">
@@ -777,12 +824,12 @@ export default function OrdersPageTimeDriven() {
           )}
           
           {history.length === 0 && (
-            <div className="px-2 py-3 text-[10px] md:text-xs text-white/50">Aucune commande dans l'historique.</div>
+            <div className="px-2 py-3 text-[10px] md:text-xs text-muted-foreground">Aucune commande dans l'historique.</div>
           )}
         </div>
       </details>
 
-      <div className="mt-4 text-xs text-white/40">
+      <div className="mt-4 text-xs text-muted-foreground/60">
         <Link className="underline" to={ROUTES.pizzaioloOrdersV2}>
           Voir /pro/commandes-v2
         </Link>
@@ -798,7 +845,7 @@ export default function OrdersPageTimeDriven() {
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              className="absolute top-3 right-3 md:top-4 md:right-4 flex h-9 w-9 md:h-8 md:w-8 items-center justify-center rounded-full bg-white/10 text-white/70 hover:bg-white/20 hover:text-white text-lg"
+              className="absolute top-3 right-3 md:top-4 md:right-4 flex h-9 w-9 md:h-8 md:w-8 items-center justify-center rounded-full bg-white/10 text-white/60 hover:bg-white/20 hover:text-white text-lg"
               onClick={() => setDetailOrder(null)}
             >
               ✕
@@ -807,25 +854,25 @@ export default function OrdersPageTimeDriven() {
             <div className="space-y-3 md:space-y-4">
               <div>
                 <div className="text-[10px] md:text-xs text-white/50">Commande</div>
-                <div className="text-lg md:text-xl font-bold text-white">#{detailOrder.legacy.id}</div>
+                <div className="text-lg md:text-xl font-bold text-white">#{detailOrder.legacy.orderNumber || detailOrder.legacy.id}</div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+              <div className="grid grid-cols-2 gap-3 md:gap-4">
                 <div>
                   <div className="text-[10px] md:text-xs text-white/50">Client</div>
-                  <div className="text-sm md:text-base text-white">{detailOrder.legacy.customerName || detailOrder.v2.customer?.name || 'Client'}</div>
+                  <div className="text-sm md:text-base font-medium text-white">{detailOrder.legacy.customerName || detailOrder.v2.customer?.name || 'Client'}</div>
                 </div>
                 <div>
                   <div className="text-[10px] md:text-xs text-white/50">Statut</div>
-                  <div className="text-sm md:text-base text-white">{kitchenStatusLabel(detailOrder.v2.kitchenStatus)}</div>
+                  <div className="text-sm md:text-base font-medium text-white">{kitchenStatusLabel(detailOrder.v2.kitchenStatus)}</div>
                 </div>
                 <div>
                   <div className="text-[10px] md:text-xs text-white/50">Paiement</div>
-                  <div className="text-sm md:text-base text-white">{paymentStatusLabel(detailOrder.v2.paymentStatus)}</div>
+                  <div className="text-sm md:text-base font-medium text-white">{paymentStatusLabel(detailOrder.v2.paymentStatus)}</div>
                 </div>
                 <div>
                   <div className="text-[10px] md:text-xs text-white/50">Type</div>
-                  <div className="text-sm md:text-base text-white">{fulfillmentLabel(detailOrder.v2.fulfillment)}</div>
+                  <div className="text-sm md:text-base font-medium text-white">{fulfillmentLabel(detailOrder.v2.fulfillment)}</div>
                 </div>
               </div>
 
@@ -840,17 +887,17 @@ export default function OrdersPageTimeDriven() {
                 <div className="mb-2 text-[10px] md:text-xs text-white/50">Articles</div>
                 <div className="space-y-2">
                   {(detailOrder.legacy.items || detailOrder.v2.items || []).map((item, idx) => (
-                    <div key={idx} className="flex justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-                      <div className="flex-1 min-w-0 mr-2">
-                        <div className="text-xs md:text-sm text-white truncate">{item.name}</div>
-                        {item.description && (
-                          <div className="text-[10px] md:text-xs text-white/50 truncate">{item.description}</div>
-                        )}
+                    <div key={idx} className="flex items-center justify-between rounded-xl border border-white/10 bg-white/10 px-3 py-2.5">
+                      <div className="flex items-center gap-3 flex-1 min-w-0 mr-2">
+                        <span className="text-base md:text-lg font-bold text-white shrink-0">×{item.qty || 1}</span>
+                        <div className="min-w-0">
+                          <div className="text-sm md:text-base font-semibold text-white">{item.name}</div>
+                          {item.description && (
+                            <div className="text-[10px] md:text-xs text-white/50">{item.description}</div>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-right shrink-0">
-                        <div className="text-xs md:text-sm text-white">×{item.qty || 1}</div>
-                        <div className="text-[10px] md:text-xs text-white/50">{((item.priceCents || 0) / 100).toFixed(2)}€</div>
-                      </div>
+                      <div className="text-sm md:text-base text-white/70 shrink-0">{((item.priceCents || 0) * (item.qty || 1) / 100).toFixed(2)}€</div>
                     </div>
                   ))}
                 </div>
@@ -870,25 +917,25 @@ export default function OrdersPageTimeDriven() {
 
               {detailOrder.v2.timestamps && Object.keys(detailOrder.v2.timestamps).length > 0 && (
                 <div>
-                  <div className="mb-2 text-[10px] md:text-xs text-white/50">Chronologie</div>
+                  <div className="mb-2 text-[10px] md:text-xs text-muted-foreground">Chronologie</div>
                   <div className="space-y-1 text-[10px] md:text-xs">
                     {detailOrder.v2.timestamps.acceptedAt && (
-                      <div className="text-white/70">Acceptée: {new Date(detailOrder.v2.timestamps.acceptedAt).toLocaleString('fr-FR')}</div>
+                      <div className="text-muted-foreground">Acceptée: {new Date(detailOrder.v2.timestamps.acceptedAt).toLocaleString('fr-FR')}</div>
                     )}
                     {detailOrder.v2.timestamps.startedAt && (
-                      <div className="text-white/70">Démarrée: {new Date(detailOrder.v2.timestamps.startedAt).toLocaleString('fr-FR')}</div>
+                      <div className="text-muted-foreground">Démarrée: {new Date(detailOrder.v2.timestamps.startedAt).toLocaleString('fr-FR')}</div>
                     )}
                     {detailOrder.v2.timestamps.readyAt && (
-                      <div className="text-white/70">Prête: {new Date(detailOrder.v2.timestamps.readyAt).toLocaleString('fr-FR')}</div>
+                      <div className="text-muted-foreground">Prête: {new Date(detailOrder.v2.timestamps.readyAt).toLocaleString('fr-FR')}</div>
                     )}
                     {detailOrder.v2.timestamps.handedOffAt && (
-                      <div className="text-white/70">Remise: {new Date(detailOrder.v2.timestamps.handedOffAt).toLocaleString('fr-FR')}</div>
+                      <div className="text-muted-foreground">Remise: {new Date(detailOrder.v2.timestamps.handedOffAt).toLocaleString('fr-FR')}</div>
                     )}
                     {detailOrder.v2.timestamps.completedAt && (
-                      <div className="text-white/70">Terminée: {new Date(detailOrder.v2.timestamps.completedAt).toLocaleString('fr-FR')}</div>
+                      <div className="text-muted-foreground">Terminée: {new Date(detailOrder.v2.timestamps.completedAt).toLocaleString('fr-FR')}</div>
                     )}
                     {detailOrder.v2.timestamps.canceledAt && (
-                      <div className="text-white/70">Annulée: {new Date(detailOrder.v2.timestamps.canceledAt).toLocaleString('fr-FR')}</div>
+                      <div className="text-muted-foreground">Annulée: {new Date(detailOrder.v2.timestamps.canceledAt).toLocaleString('fr-FR')}</div>
                     )}
                   </div>
                 </div>
@@ -897,6 +944,8 @@ export default function OrdersPageTimeDriven() {
           </div>
         </div>
       )}
+
+      </>)}
     </div>
   );
 }

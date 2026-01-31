@@ -163,7 +163,7 @@ export default function OrderTracking() {
           <div className="grid grid-cols-2 lg:grid-cols-6 gap-6">
             <div>
               <span className="text-gray-500 text-sm font-medium">Commande</span>
-              <p className="text-gray-900 font-mono text-lg font-bold">#{orderId.slice(0, 8)}</p>
+              <p className="text-gray-900 font-mono text-lg font-bold">#{order?.orderNumber || orderId.slice(0, 8)}</p>
             </div>
             <div>
               <span className="text-gray-500 text-sm font-medium">Heure</span>

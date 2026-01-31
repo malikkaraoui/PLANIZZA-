@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Store } from 'lucide-react';
+import { Store } from 'lucide-react';
 import { ref, query, orderByChild, equalTo, onValue, get } from 'firebase/database';
 import { db } from '../lib/firebase';
 import { useAuth } from '../app/providers/AuthProvider';
 import { ROUTES } from '../app/routes';
 import { formatCartItemName } from '../features/cart/utils/formatCartItemName';
+import { getOrderStatusColor, getOrderStatusLabel } from '../features/orders/utils/orderStatus';
+import { isClientVisibleOrder } from '../features/orders/utils/orderVisibility';
 import BackButton from '../components/ui/BackButton';
 
 export default function Orders() {
@@ -38,13 +40,8 @@ export default function Orders() {
           
           snap.forEach((child) => {
             const order = { id: child.key, ...child.val() };
-            
-            // ✅ FILTRER : Ne garder que les commandes VRAIMENT PAYÉES
-            // Exclure les commandes non payées (created ou pending sans confirmation)
-            if (order.status === 'created') return;
-            if (order.payment?.paymentStatus === 'pending' && order.status !== 'received') return;
-            if (order.payment?.paymentStatus !== 'paid' && !['received', 'accepted', 'delivered'].includes(order.status)) return;
-            
+            if (!isClientVisibleOrder(order)) return;
+
             data.push(order);
             if (order.truckId) truckIds.add(order.truckId);
           });
@@ -53,17 +50,25 @@ export default function Orders() {
           setOrders(data.slice(0, 5));
           
           // Charger les infos des camions
-          const trucksData = {};
-          for (const truckId of truckIds) {
-            try {
-              const truckSnap = await get(ref(db, `public/trucks/${truckId}`));
-              if (truckSnap.exists()) {
-                trucksData[truckId] = truckSnap.val();
+          const truckIdsArray = Array.from(truckIds);
+          const truckEntries = await Promise.all(
+            truckIdsArray.map(async (truckId) => {
+              try {
+                const truckSnap = await get(ref(db, `public/trucks/${truckId}`));
+                return truckSnap.exists() ? [truckId, truckSnap.val()] : null;
+              } catch (err) {
+                console.error(`Erreur chargement camion ${truckId}:`, err);
+                return null;
               }
-            } catch (err) {
-              console.error(`Erreur chargement camion ${truckId}:`, err);
-            }
-          }
+            })
+          );
+
+          const trucksData = truckEntries.reduce((acc, entry) => {
+            if (!entry) return acc;
+            acc[entry[0]] = entry[1];
+            return acc;
+          }, {});
+
           setTrucks(trucksData);
         }
         setLoading(false);
@@ -102,22 +107,6 @@ export default function Orders() {
     if (filter === 'completed') return ['delivered', 'cancelled'].includes(order.status);
     return true;
   });
-
-  const statusLabels = {
-    received: 'Non prise en charge',
-    accepted: 'En préparation',
-    ready: 'Prête !',
-    delivered: 'Remise',
-    cancelled: 'Annulée',
-  };
-
-  const statusColors = {
-    received: 'bg-orange-500',
-    accepted: 'bg-blue-500',
-    ready: 'bg-amber-500',
-    delivered: 'bg-emerald-500',
-    cancelled: 'bg-red-500',
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
@@ -163,9 +152,9 @@ export default function Orders() {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-xl font-bold text-gray-900">Commande #{order.id.slice(0, 8)}</h3>
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold text-white shadow-sm ${statusColors[order.status] || 'bg-gray-500'}`}>
-                          {statusLabels[order.status] || order.status}
+                        <h3 className="text-xl font-bold text-gray-900">Commande #{order.orderNumber || order.id.slice(0, 8)}</h3>
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold text-white shadow-sm ${getOrderStatusColor(order.status)}`}>
+                          {getOrderStatusLabel(order.status)}
                         </span>
                       </div>
                       

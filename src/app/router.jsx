@@ -128,7 +128,7 @@ export const router = createBrowserRouter([
           { path: 'commandes', element: wrap(<PizzaioloOrders />) },
           { path: 'commandes-v2', element: wrap(<PizzaioloOrdersV2 />) },
           { path: 'stats', element: wrap(<PizzaioloStats />) },
-          { path: 'live', element: wrap(<PizzaioloLive />) },
+          { path: 'live', element: <Navigate to="/pro/commandes" replace /> },
           { path: 'avis', element: wrap(<PizzaioloReviews />) },
         ],
       },

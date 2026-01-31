@@ -108,8 +108,10 @@ const ALLOWED_ORIGINS = [
   "https://planizza-ac827.web.app",
   "https://planizza-ac827.firebaseapp.com",
   "http://localhost:5173",
+  "http://localhost:5175",
   "http://localhost:3000",
   "http://127.0.0.1:5173",
+  "http://127.0.0.1:5175",
   "http://127.0.0.1:3000",
 ];
 
@@ -837,11 +839,17 @@ exports.createCheckoutSession = onRequest(
           return res.status(500).json({error: "internal"});
         }
 
+        // Generate sequential order number per truck
+        const counterRef = admin.database().ref(`truckCounters/${truckId}/orderNumber`);
+        const counterSnap = await counterRef.transaction((current) => (current || 0) + 1);
+        const orderNumber = counterSnap.snapshot.val();
+
         orderRef = newOrderRef;
         order = {
           status: "created",
           truckId,
           userUid: uid,
+          orderNumber,
           customerName: typeof customerName === "string" ? customerName.trim() : "Client",
           deliveryMethod: normalizedDeliveryMethod,
           deliveryCost,
@@ -1622,12 +1630,18 @@ exports.pizzaioloCreateManualOrder = onRequest(
       const orderId = newOrderRef.key;
       if (!orderId) return res.status(500).json({ error: "internal" });
 
+      // Generate sequential order number per truck
+      const counterRef = admin.database().ref(`truckCounters/${truckId}/orderNumber`);
+      const counterSnap = await counterRef.transaction((current) => (current || 0) + 1);
+      const orderNumber = counterSnap.snapshot.val();
+
       const orderLegacy = {
         truckId,
         uid,
         items: safeItems,
         totalCents: safeTotalCents,
         status: "received",
+        orderNumber,
         createdAt: rtdbServerTimestamp(),
         createdAtClient: nowMs,
         timeline: {},
