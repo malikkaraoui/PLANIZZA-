@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { MapPin, SlidersHorizontal, X, Search, Crosshair, Pizza } from 'lucide-react';
 import TruckCard from '../features/trucks/TruckCard';
 import { useTrucks } from '../features/trucks/hooks/useTrucks';
@@ -18,6 +18,7 @@ import RecommendedTrucks from '../features/trucks/RecommendedTrucks';
 const ALL_BADGES = ['Bio', 'Terroir', 'Sans gluten', 'Halal', 'Kasher', 'Sucré'];
 
 export default function TrucksNew() {
+  const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const q = useMemo(() => (searchParams.get('q') || '').trim(), [searchParams]);
@@ -418,6 +419,29 @@ export default function TrucksNew() {
               </div>
             </div>
           </div>
+
+          {/* Bandeau pizzaiolo - gratuité */}
+          <button
+            type="button"
+            onClick={() => navigate('/pro/inscription')}
+            className="group w-full rounded-2xl bg-gradient-to-r from-orange-500 to-orange-600 p-4 sm:p-5 text-white shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-xl">🍕</span>
+                <div className="text-left">
+                  <p className="font-bold text-base sm:text-lg">Vous êtes pizzaiolo ?</p>
+                  <p className="text-white/90 text-sm">Gérez vos commandes en ligne — <span className="font-black underline underline-offset-2">100% gratuit</span></p>
+                </div>
+              </div>
+              <span className="hidden sm:flex items-center gap-1 font-semibold text-sm bg-white/20 rounded-full px-4 py-2 group-hover:bg-white/30 transition-colors">
+                Commencer
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                </svg>
+              </span>
+            </div>
+          </button>
 
           <RecommendedTrucks />
         </div>
