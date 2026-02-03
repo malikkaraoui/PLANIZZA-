@@ -294,12 +294,12 @@ export default function OrderTracking() {
         </div>
 
         {/* Timeline */}
-        <div className="bg-white border border-gray-200 shadow-sm rounded-2xl p-8">
-          <div className="flex items-center justify-between mb-12">
-            <h2 className="text-2xl font-bold text-gray-900">Progression</h2>
+        <div className="bg-white border border-gray-200 shadow-sm rounded-2xl p-4 sm:p-8">
+          <div className="flex items-center justify-between mb-6 sm:mb-12">
+            <h2 className="text-lg sm:text-2xl font-bold text-gray-900">Progression</h2>
             <div className="text-right">
-              <p className="text-sm text-gray-500 font-medium">Statut actuel</p>
-              <p className="text-emerald-600 font-bold text-lg capitalize">
+              <p className="text-xs sm:text-sm text-gray-500 font-medium">Statut actuel</p>
+              <p className="text-emerald-600 font-bold text-sm sm:text-lg capitalize">
                 {currentStatus === 'created' && '✅ Confirmée'}
                 {currentStatus === 'received' && '📋 Reçue'}
                 {currentStatus === 'accepted' && '👨‍🍳 En préparation'}
@@ -312,7 +312,7 @@ export default function OrderTracking() {
 
           <div className="relative">
             {/* Barre de progression */}
-            <div className="absolute top-8 left-8 right-8 h-1 bg-gray-100 rounded-full overflow-hidden">
+            <div className="absolute top-5 sm:top-8 left-5 sm:left-8 right-5 sm:right-8 h-1 bg-gray-100 rounded-full overflow-hidden">
               <div
                 className="h-full bg-emerald-500 rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(16,185,129,0.3)]"
                 style={{
@@ -329,16 +329,16 @@ export default function OrderTracking() {
                 const timestamp = timeline[`${step.key}At`];
 
                 return (
-                  <div key={step.key} className="flex flex-col items-center" style={{ flex: 1 }}>
+                  <div key={step.key} className="flex flex-col items-center flex-1 min-w-0">
                     {/* Icône */}
                     <div
                       className={`
-                        w-16 h-16 rounded-full flex items-center justify-center text-2xl mb-4 transition-all duration-500
+                        w-10 h-10 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-base sm:text-2xl mb-2 sm:mb-4 transition-all duration-500
                         ${isCompleted
-                          ? 'bg-emerald-500 border-4 border-emerald-100 text-white shadow-md'
-                          : 'bg-white border-4 border-gray-100 text-gray-300'
+                          ? 'bg-emerald-500 border-2 sm:border-4 border-emerald-100 text-white shadow-md'
+                          : 'bg-white border-2 sm:border-4 border-gray-100 text-gray-300'
                         }
-                        ${isCurrent ? 'ring-4 ring-emerald-500/20 scale-110' : ''}
+                        ${isCurrent ? 'ring-2 sm:ring-4 ring-emerald-500/20 scale-105 sm:scale-110' : ''}
                       `}
                     >
                       {step.icon}
@@ -347,7 +347,7 @@ export default function OrderTracking() {
                     {/* Label */}
                     <p
                       className={`
-                        font-bold mb-2 transition-colors text-center text-sm
+                        font-bold mb-1 sm:mb-2 transition-colors text-center text-[10px] sm:text-sm px-0.5
                         ${isCompleted ? 'text-gray-900' : 'text-gray-400'}
                       `}
                     >
@@ -356,7 +356,7 @@ export default function OrderTracking() {
 
                     {/* Timestamp */}
                     {timestamp && (
-                      <p className="text-xs text-gray-400">
+                      <p className="text-[9px] sm:text-xs text-gray-400">
                         {new Date(timestamp).toLocaleTimeString('fr-FR', {
                           hour: '2-digit',
                           minute: '2-digit',
