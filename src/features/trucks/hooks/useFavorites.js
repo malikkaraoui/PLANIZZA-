@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ref, onValue, set, remove, serverTimestamp } from 'firebase/database';
 import { db } from '../../../lib/firebase';
 import { useAuth } from '../../../app/providers/AuthProvider';
@@ -10,6 +11,7 @@ import { notify } from '../../../lib/notifications';
  */
 export function useFavorites() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [favorites, setFavorites] = useState({});
   const [loading, setLoading] = useState(true);
 
@@ -46,7 +48,7 @@ export function useFavorites() {
   const toggleFavorite = useCallback(
     async (truckId, truckName) => {
       if (!user?.uid || !db) {
-        notify.profileIncomplete('Connectez-vous pour ajouter des favoris');
+        notify.profileIncomplete('Connectez-vous pour ajouter des favoris', navigate);
         return false;
       }
 
