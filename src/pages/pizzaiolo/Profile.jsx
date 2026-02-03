@@ -514,84 +514,84 @@ export default function PizzaioloProfile() {
 
       {/* Navigation rapide */}
       {truckId && (
-        <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           <Link
             to={ROUTES.pizzaioloLive}
-            className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl hover:border-primary/50 transition-all group"
+            className="glass-premium glass-glossy border-white/20 p-4 rounded-2xl hover:border-red-500/50 transition-all group"
           >
             <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="p-3 rounded-2xl bg-red-500/10 group-hover:bg-red-500/20 transition">
-                  <Radio className="h-6 w-6 text-red-500" />
+              <div className="relative shrink-0">
+                <div className="p-2.5 rounded-xl bg-red-500/10 group-hover:bg-red-500/20 transition">
+                  <Radio className="h-5 w-5 text-red-500" />
                 </div>
-                <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
                 </span>
               </div>
-              <div>
-                <h3 className="font-black text-lg">Live</h3>
-                <p className="text-xs text-muted-foreground">Prise de commande</p>
+              <div className="min-w-0">
+                <h3 className="font-bold text-sm leading-tight">Live</h3>
+                <p className="text-[11px] text-muted-foreground truncate">Prise de commande</p>
               </div>
             </div>
           </Link>
 
           <Link
             to={ROUTES.pizzaioloOrders}
-            className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl hover:border-primary/50 transition-all group"
+            className="glass-premium glass-glossy border-white/20 p-4 rounded-2xl hover:border-blue-500/50 transition-all group"
           >
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-blue-500/10 group-hover:bg-blue-500/20 transition">
-                <ListOrdered className="h-6 w-6 text-blue-500" />
+              <div className="shrink-0 p-2.5 rounded-xl bg-blue-500/10 group-hover:bg-blue-500/20 transition">
+                <ListOrdered className="h-5 w-5 text-blue-500" />
               </div>
-              <div>
-                <h3 className="font-black text-lg">Commandes</h3>
-                <p className="text-xs text-muted-foreground">Gestion en direct</p>
+              <div className="min-w-0">
+                <h3 className="font-bold text-sm leading-tight">Commandes</h3>
+                <p className="text-[11px] text-muted-foreground truncate">Gestion en direct</p>
               </div>
             </div>
           </Link>
 
           <Link
             to={ROUTES.pizzaioloStats}
-            className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl hover:border-primary/50 transition-all group"
+            className="glass-premium glass-glossy border-white/20 p-4 rounded-2xl hover:border-purple-500/50 transition-all group"
           >
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-purple-500/10 group-hover:bg-purple-500/20 transition">
-                <TrendingUp className="h-6 w-6 text-purple-500" />
+              <div className="shrink-0 p-2.5 rounded-xl bg-purple-500/10 group-hover:bg-purple-500/20 transition">
+                <TrendingUp className="h-5 w-5 text-purple-500" />
               </div>
-              <div>
-                <h3 className="font-black text-lg">Statistiques</h3>
-                <p className="text-xs text-muted-foreground">Analytics & CA</p>
+              <div className="min-w-0">
+                <h3 className="font-bold text-sm leading-tight">Statistiques</h3>
+                <p className="text-[11px] text-muted-foreground truncate">Analytics & CA</p>
               </div>
             </div>
           </Link>
 
           <Link
             to={ROUTES.pizzaioloMenu}
-            className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl hover:border-primary/50 transition-all group"
+            className="glass-premium glass-glossy border-white/20 p-4 rounded-2xl hover:border-emerald-500/50 transition-all group"
           >
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-emerald-500/10 group-hover:bg-emerald-500/20 transition">
-                <Utensils className="h-6 w-6 text-emerald-500" />
+              <div className="shrink-0 p-2.5 rounded-xl bg-emerald-500/10 group-hover:bg-emerald-500/20 transition">
+                <Utensils className="h-5 w-5 text-emerald-500" />
               </div>
-              <div>
-                <h3 className="font-black text-lg">Menu</h3>
-                <p className="text-xs text-muted-foreground">Gérer mes pizzas</p>
+              <div className="min-w-0">
+                <h3 className="font-bold text-sm leading-tight">Menu</h3>
+                <p className="text-[11px] text-muted-foreground truncate">Gérer mes pizzas</p>
               </div>
             </div>
           </Link>
 
           <Link
             to={ROUTES.pizzaioloReviews}
-            className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl hover:border-primary/50 transition-all group"
+            className="glass-premium glass-glossy border-white/20 p-4 rounded-2xl hover:border-yellow-500/50 transition-all group"
           >
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-yellow-500/10 group-hover:bg-yellow-500/20 transition">
-                <MessageSquare className="h-6 w-6 text-yellow-500" />
+              <div className="shrink-0 p-2.5 rounded-xl bg-yellow-500/10 group-hover:bg-yellow-500/20 transition">
+                <MessageSquare className="h-5 w-5 text-yellow-500" />
               </div>
-              <div>
-                <h3 className="font-black text-lg">Avis</h3>
-                <p className="text-xs text-muted-foreground">Répondre aux clients</p>
+              <div className="min-w-0">
+                <h3 className="font-bold text-sm leading-tight">Avis</h3>
+                <p className="text-[11px] text-muted-foreground truncate">Répondre aux clients</p>
               </div>
             </div>
           </Link>
@@ -632,17 +632,18 @@ export default function PizzaioloProfile() {
                 <Button
                   onClick={handleTogglePause}
                   disabled={isPauseUpdating}
-                  size="sm"
                   variant={isPaused ? "default" : "outline"}
-                  className={isPaused ? "bg-emerald-500 hover:bg-emerald-600 rounded-2xl font-bold" : "rounded-2xl font-bold"}
+                  className={isPaused
+                    ? "bg-emerald-500 hover:bg-emerald-600 rounded-2xl font-bold h-10 px-4"
+                    : "rounded-2xl font-bold h-10 px-4 border-amber-500/50 text-amber-600 hover:bg-amber-500/10 hover:border-amber-500"}
                 >
                   {isPauseUpdating ? '...' : isPaused ? (
-                    <><Play className="h-4 w-4 mr-2" />Relancer</>
+                    <><Play className="h-4 w-4 mr-2" />Reprendre</>
                   ) : (
                     <><Pause className="h-4 w-4 mr-2" />Pause</>
                   )}
                 </Button>
-                <Button onClick={() => setIsEditing(true)} variant="outline" className="rounded-2xl font-bold">
+                <Button onClick={() => setIsEditing(true)} variant="outline" className="rounded-2xl font-bold h-10 px-4">
                   <Edit2 className="h-4 w-4 mr-2" />Modifier
                 </Button>
               </div>
@@ -746,10 +747,21 @@ export default function PizzaioloProfile() {
               {/* Horaires d'ouverture */}
               {openingHours && (
                 <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
-                  <h3 className="text-lg font-black mb-4 flex items-center gap-2">
-                    <Clock className="h-5 w-5" />
-                    Horaires d'ouverture
-                  </h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-black flex items-center gap-2">
+                      <Clock className="h-5 w-5" />
+                      Horaires d'ouverture
+                    </h3>
+                    <Button
+                      onClick={() => setIsEditing(true)}
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl text-xs font-bold"
+                    >
+                      <Edit2 className="h-3.5 w-3.5 mr-1" />
+                      Modifier
+                    </Button>
+                  </div>
                   <div className="space-y-2">
                     {[
                       { key: 'monday', label: 'Lundi' },
@@ -787,33 +799,6 @@ export default function PizzaioloProfile() {
                 </Card>
               )}
 
-              {/* Livraison compacte */}
-              <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
-                <h3 className="text-lg font-black mb-4">🚴 Plateformes de livraison</h3>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => toggleDelivery('deliveroo')}
-                    className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl transition-all text-sm font-bold ${
-                      deliveryOptions.deliveroo
-                        ? 'bg-teal-500 text-white'
-                        : 'bg-white/5 border border-white/10 hover:border-teal-500/30'
-                    }`}
-                  >
-                    {deliveryOptions.deliveroo ? '✓' : '✕'} Deliveroo
-                  </button>
-                  <button
-                    onClick={() => toggleDelivery('uber')}
-                    className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl transition-all text-sm font-bold ${
-                      deliveryOptions.uber
-                        ? 'bg-gray-700 text-white'
-                        : 'bg-white/5 border border-white/10 hover:border-gray-500/30'
-                    }`}
-                  >
-                    {deliveryOptions.uber ? '✓' : '✕'} Uber Eats
-                  </button>
-                </div>
-              </Card>
-
               {/* Photos compactes */}
               {(logoUrl || photoUrl) && (
                 <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
@@ -845,15 +830,50 @@ export default function PizzaioloProfile() {
                   </div>
                 </Card>
               )}
+
             </div>
 
-            {/* Colonne droite - Carte et QR Code (1/3) */}
+            {/* Colonne droite - Localisation et QR Code (1/3) */}
             <div className="space-y-6">
-              {/* QR Code compact */}
+              {/* Localisation - affiché en premier */}
+              {location?.address && location?.lat && location?.lng && (
+                <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-black flex items-center gap-2">
+                      <MapPin className="h-5 w-5" />
+                      Localisation
+                    </h3>
+                    <Button
+                      onClick={() => setIsEditing(true)}
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl text-xs font-bold"
+                    >
+                      <Edit2 className="h-3.5 w-3.5 mr-1" />
+                      Modifier
+                    </Button>
+                  </div>
+                  <div className="rounded-2xl overflow-hidden border border-white/20">
+                    <iframe
+                      width="100%"
+                      height="200"
+                      frameBorder="0"
+                      style={{ border: 0 }}
+                      src={`https://www.google.com/maps?q=${location.lat},${location.lng}&z=15&output=embed`}
+                      allowFullScreen
+                    ></iframe>
+                  </div>
+                  <p className="text-xs text-muted-foreground font-medium mt-3">
+                    {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
+                  </p>
+                </Card>
+              )}
+
+              {/* QR Code */}
               {(truckSlug || truckId) && (
                 <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
                   <h3 className="text-lg font-black mb-4 text-center">📱 QR Code</h3>
-                  
+
                   <div className="flex justify-center mb-4" ref={qrCodeRef}>
                     <div className="relative p-3 bg-white rounded-2xl">
                       <QRCode
@@ -887,31 +907,26 @@ export default function PizzaioloProfile() {
                   )}
                 </Card>
               )}
-
-              {/* Carte */}
-              {location?.address && location?.lat && location?.lng && (
-                <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
-                  <h3 className="text-lg font-black mb-4 flex items-center gap-2">
-                    <MapPin className="h-5 w-5" />
-                    Localisation
-                  </h3>
-                  <div className="rounded-2xl overflow-hidden border border-white/20">
-                    <iframe
-                      width="100%"
-                      height="200"
-                      frameBorder="0"
-                      style={{ border: 0 }}
-                      src={`https://www.google.com/maps?q=${location.lat},${location.lng}&z=15&output=embed`}
-                      allowFullScreen
-                    ></iframe>
-                  </div>
-                  <p className="text-xs text-muted-foreground font-medium mt-3">
-                    {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
-                  </p>
-                </Card>
-              )}
             </div>
           </div>
+
+          {/* Plateformes de livraison - DÉSACTIVÉ TEMPORAIREMENT (tout en bas) */}
+          <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
+            <h3 className="text-lg font-black mb-4">🚴 Plateformes de livraison</h3>
+            <div className="flex gap-3">
+              <div className="relative flex-1 flex items-center justify-center gap-2 p-3 rounded-xl bg-white/5 border border-white/10 text-sm font-bold text-muted-foreground opacity-50 cursor-not-allowed">
+                <span>Deliveroo</span>
+                <span className="absolute -top-2 -right-2 px-2 py-0.5 rounded-full bg-amber-100 border border-amber-200 text-[9px] font-bold text-amber-700">BIENTÔT</span>
+              </div>
+              <div className="relative flex-1 flex items-center justify-center gap-2 p-3 rounded-xl bg-white/5 border border-white/10 text-sm font-bold text-muted-foreground opacity-50 cursor-not-allowed">
+                <span>Uber Eats</span>
+                <span className="absolute -top-2 -right-2 px-2 py-0.5 rounded-full bg-amber-100 border border-amber-200 text-[9px] font-bold text-amber-700">BIENTÔT</span>
+              </div>
+            </div>
+            <p className="mt-3 text-xs text-amber-600 font-medium text-center">
+              L'intégration avec les plateformes de livraison arrive bientôt&nbsp;!
+            </p>
+          </Card>
 
           {/* Actions compte */}
           <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
@@ -1201,26 +1216,31 @@ export default function PizzaioloProfile() {
               <div>
                 <label className="block text-sm font-bold mb-3">🚴 Plateformes de livraison</label>
                 <div className="grid grid-cols-2 gap-3">
-                  <label className={`flex items-center gap-3 p-4 rounded-2xl cursor-pointer transition-all ${deliveryOptions.deliveroo ? 'bg-teal-500/10 border-2 border-teal-500/30' : 'bg-white/5 border border-white/10 hover:border-white/20'}`}>
+                  <div className="relative flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/10 opacity-50 cursor-not-allowed">
                     <input
                       type="checkbox"
-                      checked={deliveryOptions.deliveroo}
-                      onChange={() => toggleDelivery('deliveroo')}
+                      checked={false}
+                      disabled
                       className="rounded w-5 h-5"
                     />
-                    <span className="text-sm font-bold">Deliveroo</span>
-                  </label>
+                    <span className="text-sm font-bold text-muted-foreground">Deliveroo</span>
+                    <span className="absolute -top-2 -right-2 px-2 py-0.5 rounded-full bg-amber-100 border border-amber-200 text-[9px] font-bold text-amber-700">BIENTÔT</span>
+                  </div>
 
-                  <label className={`flex items-center gap-3 p-4 rounded-2xl cursor-pointer transition-all ${deliveryOptions.uber ? 'bg-gray-500/10 border-2 border-gray-500/30' : 'bg-white/5 border border-white/10 hover:border-white/20'}`}>
+                  <div className="relative flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/10 opacity-50 cursor-not-allowed">
                     <input
                       type="checkbox"
-                      checked={deliveryOptions.uber}
-                      onChange={() => toggleDelivery('uber')}
+                      checked={false}
+                      disabled
                       className="rounded w-5 h-5"
                     />
-                    <span className="text-sm font-bold">Uber Eats</span>
-                  </label>
+                    <span className="text-sm font-bold text-muted-foreground">Uber Eats</span>
+                    <span className="absolute -top-2 -right-2 px-2 py-0.5 rounded-full bg-amber-100 border border-amber-200 text-[9px] font-bold text-amber-700">BIENTÔT</span>
+                  </div>
                 </div>
+                <p className="mt-2 text-xs text-amber-600 font-medium">
+                  L'intégration avec les plateformes de livraison arrive bientôt&nbsp;!
+                </p>
               </div>
             </div>
           </div>
