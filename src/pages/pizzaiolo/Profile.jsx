@@ -744,6 +744,72 @@ export default function PizzaioloProfile() {
                 </div>
               </Card>
 
+              {/* Visuels */}
+              {(logoUrl || photoUrl) && (
+                <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
+                  <h3 className="text-lg font-black mb-4 flex items-center gap-2">
+                    <ImageIcon className="h-5 w-5" />
+                    Visuels
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    {photoUrl && (
+                      <div>
+                        <p className="text-xs font-bold text-muted-foreground mb-2">Photo principale</p>
+                        <img
+                          src={photoUrl}
+                          alt={truckName}
+                          className="w-full h-32 object-cover rounded-2xl border border-white/20"
+                        />
+                      </div>
+                    )}
+                    {logoUrl && (
+                      <div>
+                        <p className="text-xs font-bold text-muted-foreground mb-2">Logo</p>
+                        <img
+                          src={logoUrl}
+                          alt={`Logo ${truckName}`}
+                          className="w-full h-32 object-contain rounded-2xl border border-white/20 bg-white/5 p-3"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              )}
+
+              {/* Localisation */}
+              {location?.address && location?.lat && location?.lng && (
+                <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-black flex items-center gap-2">
+                      <MapPin className="h-5 w-5" />
+                      Localisation
+                    </h3>
+                    <Button
+                      onClick={() => setIsEditing(true)}
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl text-xs font-bold"
+                    >
+                      <Edit2 className="h-3.5 w-3.5 mr-1" />
+                      Modifier
+                    </Button>
+                  </div>
+                  <div className="rounded-2xl overflow-hidden border border-white/20">
+                    <iframe
+                      width="100%"
+                      height="200"
+                      frameBorder="0"
+                      style={{ border: 0 }}
+                      src={`https://www.google.com/maps?q=${location.lat},${location.lng}&z=15&output=embed`}
+                      allowFullScreen
+                    ></iframe>
+                  </div>
+                  <p className="text-xs text-muted-foreground font-medium mt-3">
+                    {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
+                  </p>
+                </Card>
+              )}
+
               {/* Horaires d'ouverture */}
               {openingHours && (
                 <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
@@ -799,76 +865,10 @@ export default function PizzaioloProfile() {
                 </Card>
               )}
 
-              {/* Photos compactes */}
-              {(logoUrl || photoUrl) && (
-                <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
-                  <h3 className="text-lg font-black mb-4 flex items-center gap-2">
-                    <ImageIcon className="h-5 w-5" />
-                    Visuels
-                  </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    {photoUrl && (
-                      <div>
-                        <p className="text-xs font-bold text-muted-foreground mb-2">Photo principale</p>
-                        <img
-                          src={photoUrl}
-                          alt={truckName}
-                          className="w-full h-32 object-cover rounded-2xl border border-white/20"
-                        />
-                      </div>
-                    )}
-                    {logoUrl && (
-                      <div>
-                        <p className="text-xs font-bold text-muted-foreground mb-2">Logo</p>
-                        <img
-                          src={logoUrl}
-                          alt={`Logo ${truckName}`}
-                          className="w-full h-32 object-contain rounded-2xl border border-white/20 bg-white/5 p-3"
-                        />
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              )}
-
             </div>
 
-            {/* Colonne droite - Localisation et QR Code (1/3) */}
+            {/* Colonne droite - QR Code (1/3) */}
             <div className="space-y-6">
-              {/* Localisation - affiché en premier */}
-              {location?.address && location?.lat && location?.lng && (
-                <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-black flex items-center gap-2">
-                      <MapPin className="h-5 w-5" />
-                      Localisation
-                    </h3>
-                    <Button
-                      onClick={() => setIsEditing(true)}
-                      variant="outline"
-                      size="sm"
-                      className="rounded-xl text-xs font-bold"
-                    >
-                      <Edit2 className="h-3.5 w-3.5 mr-1" />
-                      Modifier
-                    </Button>
-                  </div>
-                  <div className="rounded-2xl overflow-hidden border border-white/20">
-                    <iframe
-                      width="100%"
-                      height="200"
-                      frameBorder="0"
-                      style={{ border: 0 }}
-                      src={`https://www.google.com/maps?q=${location.lat},${location.lng}&z=15&output=embed`}
-                      allowFullScreen
-                    ></iframe>
-                  </div>
-                  <p className="text-xs text-muted-foreground font-medium mt-3">
-                    {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
-                  </p>
-                </Card>
-              )}
-
               {/* QR Code */}
               {(truckSlug || truckId) && (
                 <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
