@@ -22,7 +22,7 @@ export default function Contact() {
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-500/10 border border-orange-500/20 mb-6">
               <Pizza className="h-4 w-4 text-orange-500" />
-              <span className="text-sm font-bold text-orange-600">Une question ? Une idee ?</span>
+              <span className="text-sm font-bold text-orange-600">Une question ? Une idée ?</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight mb-6">
@@ -30,8 +30,8 @@ export default function Contact() {
             </h1>
 
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto font-medium">
-              PLANIZZA est une aventure humaine avant tout. N'hesitez pas a me contacter
-              pour toute question, suggestion ou simplement pour echanger !
+              PLANIZZA est une aventure humaine avant tout. N'hésitez pas à me contacter
+              pour toute question, suggestion ou simplement pour échanger !
             </p>
           </div>
 
@@ -52,11 +52,11 @@ export default function Contact() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-black text-lg">WhatsApp</h3>
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-[10px] font-bold text-emerald-600 uppercase">Recommande</span>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-[10px] font-bold text-emerald-600 uppercase">Recommandé</span>
                     </div>
-                    <p className="text-sm text-muted-foreground mb-3">Reponse rapide garantie</p>
+                    <p className="text-sm text-muted-foreground mb-3">Réponse rapide garantie</p>
                     <div className="flex items-center gap-2 text-emerald-600 font-bold text-sm group-hover:gap-3 transition-all">
-                      <span>Demarrer une conversation</span>
+                      <span>Démarrer une conversation</span>
                       <ArrowRight className="h-4 w-4" />
                     </div>
                   </div>
@@ -64,7 +64,7 @@ export default function Contact() {
               </Card>
             </a>
 
-            {/* Telephone */}
+            {/* Téléphone */}
             <a href={`tel:${phone}`} className="group">
               <Card className="glass-premium glass-glossy border-blue-500/30 p-6 rounded-3xl h-full hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/10 transition-all">
                 <div className="flex items-start gap-4">
@@ -72,8 +72,8 @@ export default function Contact() {
                     <Phone className="h-6 w-6 text-blue-500" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-black text-lg mb-1">Telephone</h3>
-                    <p className="text-sm text-muted-foreground mb-3">Pour un echange direct</p>
+                    <h3 className="font-black text-lg mb-1">Téléphone</h3>
+                    <p className="text-sm text-muted-foreground mb-3">Pour un échange direct</p>
                     <div className="font-mono font-bold text-blue-600">
                       {phoneDisplay}
                     </div>
@@ -91,7 +91,7 @@ export default function Contact() {
                   </div>
                   <div className="flex-1">
                     <h3 className="font-black text-lg mb-1">Email</h3>
-                    <p className="text-sm text-muted-foreground mb-3">Pour les demandes detaillees</p>
+                    <p className="text-sm text-muted-foreground mb-3">Pour les demandes détaillées</p>
                     <div className="font-medium text-purple-600 break-all">
                       {email}
                     </div>
@@ -128,7 +128,7 @@ export default function Contact() {
           {/* Quick Actions */}
           <div className="mt-12 text-center">
             <p className="text-sm text-muted-foreground mb-4 font-medium">
-              Vous etes pizzaiolo ? Rejoignez l'aventure !
+              Vous êtes pizzaiolo ? Rejoignez l'aventure !
             </p>
             <Link to={ROUTES.becomePartner}>
               <Button className="rounded-2xl px-6 h-12 font-bold bg-orange-500 hover:bg-orange-600">
@@ -140,10 +140,10 @@ export default function Contact() {
 
           {/* FAQ rapide */}
           <div className="mt-16">
-            <h3 className="text-xl font-black text-center mb-8">Questions frequentes</h3>
+            <h3 className="text-xl font-black text-center mb-8">Questions fréquentes</h3>
             <div className="grid sm:grid-cols-2 gap-4 max-w-3xl mx-auto">
               <Card className="glass-premium border-white/10 p-5 rounded-2xl">
-                <h4 className="font-bold mb-2">Quels sont les delais de reponse ?</h4>
+                <h4 className="font-bold mb-2">Quels sont les délais de réponse ?</h4>
                 <p className="text-sm text-muted-foreground">
                   Via WhatsApp : quelques heures maximum. Par email : sous 24-48h.
                 </p>
@@ -151,7 +151,7 @@ export default function Contact() {
               <Card className="glass-premium border-white/10 p-5 rounded-2xl">
                 <h4 className="font-bold mb-2">Comment devenir pizzaiolo partenaire ?</h4>
                 <p className="text-sm text-muted-foreground">
-                  Inscrivez-vous gratuitement et creez votre profil en quelques minutes !
+                  Inscrivez-vous gratuitement et créez votre profil en quelques minutes !
                 </p>
               </Card>
               <Card className="glass-premium border-white/10 p-5 rounded-2xl">
@@ -161,9 +161,9 @@ export default function Contact() {
                 </p>
               </Card>
               <Card className="glass-premium border-white/10 p-5 rounded-2xl">
-                <h4 className="font-bold mb-2">Dans quelles villes etes-vous presents ?</h4>
+                <h4 className="font-bold mb-2">Dans quelles villes êtes-vous présents ?</h4>
                 <p className="text-sm text-muted-foreground">
-                  Nous sommes en pleine expansion ! Contactez-nous pour connaitre la couverture.
+                  Nous sommes en pleine expansion ! Contactez-nous pour connaître la couverture.
                 </p>
               </Card>
             </div>
