@@ -117,9 +117,9 @@ export default function Contact() {
                 <h2 className="text-2xl font-black tracking-tight mb-1">Malik KARAOUI</h2>
                 <p className="text-orange-500 font-bold mb-3">Fondateur de PLANIZZA</p>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Passionne de pizza et de tech, j'ai cree PLANIZZA pour connecter
-                  les amoureux de la vraie pizza artisanale avec les meilleurs pizzaiolos.
-                  Votre avis compte enormement pour faire evoluer la plateforme !
+                  Passionné de pizza et de tech, j'ai créé PLANIZZA pour connecter
+                  les amoureux de la vraie pizza artisanale aux meilleurs pizzaiolos.
+                  Votre avis compte énormément pour faire évoluer la plateforme !
                 </p>
               </div>
             </div>
