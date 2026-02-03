@@ -1056,6 +1056,42 @@ export default function PizzaioloProfile() {
             </div>
           </div>
 
+          {/* Badges & Spécialités - juste après infos de base comme en mode visu */}
+          <div className="glass-card p-6 rounded-3xl border border-white/10">
+            <h3 className="text-xl font-black tracking-tight mb-6 flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-purple-500/10">
+                <span className="text-xl">🏷️</span>
+              </div>
+              Badges & Spécialités
+            </h3>
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-bold mb-3">Caractéristiques</label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {[
+                    { key: 'bio', label: 'Bio', icon: '🌱', color: 'emerald' },
+                    { key: 'terroir', label: 'Terroir', icon: '🌾', color: 'amber' },
+                    { key: 'sansGluten', label: 'Sans gluten', icon: '🚫🌾', color: 'blue' },
+                    { key: 'halal', label: 'Halal', icon: '☪️', color: 'purple' },
+                    { key: 'kasher', label: 'Kasher', icon: '✡️', color: 'indigo' },
+                    { key: 'sucre', label: 'Sucré', icon: '🍰', color: 'pink' }
+                  ].map(({ key, label, icon, color }) => (
+                    <label key={key} className={`flex items-center gap-3 p-4 rounded-2xl cursor-pointer transition-all ${badges[key] ? `bg-${color}-500/10 border-2 border-${color}-500/30` : 'bg-white/5 border border-white/10 hover:border-white/20'}`}>
+                      <input
+                        type="checkbox"
+                        checked={badges[key]}
+                        onChange={() => toggleBadge(key)}
+                        className="rounded w-5 h-5"
+                      />
+                      <span className="text-lg">{icon}</span>
+                      <span className="text-sm font-bold">{label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Photos & Visuels */}
           <div className="glass-card p-6 rounded-3xl border border-white/10">
             <h3 className="text-xl font-black tracking-tight mb-6 flex items-center gap-3">
@@ -1179,70 +1215,39 @@ export default function PizzaioloProfile() {
             </div>
           </div>
 
-          {/* Badges & Options */}
+          {/* Plateformes de livraison - DÉSACTIVÉ TEMPORAIREMENT */}
           <div className="glass-card p-6 rounded-3xl border border-white/10">
             <h3 className="text-xl font-black tracking-tight mb-6 flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-purple-500/10">
-                <span className="text-xl">🏷️</span>
+              <div className="p-2 rounded-xl bg-amber-500/10">
+                <span className="text-xl">🚴</span>
               </div>
-              Badges & Spécialités
+              Plateformes de livraison
             </h3>
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-bold mb-3">Caractéristiques</label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {[
-                    { key: 'bio', label: 'Bio', icon: '🌱', color: 'emerald' },
-                    { key: 'terroir', label: 'Terroir', icon: '🌾', color: 'amber' },
-                    { key: 'sansGluten', label: 'Sans gluten', icon: '🚫🌾', color: 'blue' },
-                    { key: 'halal', label: 'Halal', icon: '☪️', color: 'purple' },
-                    { key: 'kasher', label: 'Kasher', icon: '✡️', color: 'indigo' },
-                    { key: 'sucre', label: 'Sucré', icon: '🍰', color: 'pink' }
-                  ].map(({ key, label, icon, color }) => (
-                    <label key={key} className={`flex items-center gap-3 p-4 rounded-2xl cursor-pointer transition-all ${badges[key] ? `bg-${color}-500/10 border-2 border-${color}-500/30` : 'bg-white/5 border border-white/10 hover:border-white/20'}`}>
-                      <input
-                        type="checkbox"
-                        checked={badges[key]}
-                        onChange={() => toggleBadge(key)}
-                        className="rounded w-5 h-5"
-                      />
-                      <span className="text-lg">{icon}</span>
-                      <span className="text-sm font-bold">{label}</span>
-                    </label>
-                  ))}
-                </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="relative flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/10 opacity-50 cursor-not-allowed">
+                <input
+                  type="checkbox"
+                  checked={false}
+                  disabled
+                  className="rounded w-5 h-5"
+                />
+                <span className="text-sm font-bold text-muted-foreground">Deliveroo</span>
+                <span className="absolute -top-2 -right-2 px-2 py-0.5 rounded-full bg-amber-100 border border-amber-200 text-[9px] font-bold text-amber-700">BIENTÔT</span>
               </div>
-
-              <div>
-                <label className="block text-sm font-bold mb-3">🚴 Plateformes de livraison</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="relative flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/10 opacity-50 cursor-not-allowed">
-                    <input
-                      type="checkbox"
-                      checked={false}
-                      disabled
-                      className="rounded w-5 h-5"
-                    />
-                    <span className="text-sm font-bold text-muted-foreground">Deliveroo</span>
-                    <span className="absolute -top-2 -right-2 px-2 py-0.5 rounded-full bg-amber-100 border border-amber-200 text-[9px] font-bold text-amber-700">BIENTÔT</span>
-                  </div>
-
-                  <div className="relative flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/10 opacity-50 cursor-not-allowed">
-                    <input
-                      type="checkbox"
-                      checked={false}
-                      disabled
-                      className="rounded w-5 h-5"
-                    />
-                    <span className="text-sm font-bold text-muted-foreground">Uber Eats</span>
-                    <span className="absolute -top-2 -right-2 px-2 py-0.5 rounded-full bg-amber-100 border border-amber-200 text-[9px] font-bold text-amber-700">BIENTÔT</span>
-                  </div>
-                </div>
-                <p className="mt-2 text-xs text-amber-600 font-medium">
-                  L'intégration avec les plateformes de livraison arrive bientôt&nbsp;!
-                </p>
+              <div className="relative flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/10 opacity-50 cursor-not-allowed">
+                <input
+                  type="checkbox"
+                  checked={false}
+                  disabled
+                  className="rounded w-5 h-5"
+                />
+                <span className="text-sm font-bold text-muted-foreground">Uber Eats</span>
+                <span className="absolute -top-2 -right-2 px-2 py-0.5 rounded-full bg-amber-100 border border-amber-200 text-[9px] font-bold text-amber-700">BIENTÔT</span>
               </div>
             </div>
+            <p className="mt-3 text-xs text-amber-600 font-medium">
+              L'intégration avec les plateformes de livraison arrive bientôt&nbsp;!
+            </p>
           </div>
 
           {message && (
