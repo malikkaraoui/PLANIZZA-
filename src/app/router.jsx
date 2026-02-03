@@ -28,6 +28,7 @@ const CreateTruck = lazy(() => import('../pages/pizzaiolo/CreateTruck'));
 const StripeOnboarding = lazy(() => import('../pages/pizzaiolo/StripeOnboarding'));
 const E2ETransitionContract = lazy(() => import('../pages/E2ETransitionContract'));
 const NotFound = lazy(() => import('../pages/NotFound'));
+const Contact = lazy(() => import('../pages/Contact'));
 
 import RootLayout from '../components/layout/RootLayout';
 import ProtectedRoute from './ProtectedRoute';
@@ -70,6 +71,7 @@ export const router = createBrowserRouter([
 
       // Partenaires / Pro
       { path: 'devenez_partenaire', element: wrap(<PizzaioloStart />) },
+      { path: 'contact', element: wrap(<Contact />) },
 
       // Legacy redirects (compat)
       { path: 'trucks', element: <Navigate to="/explore" replace /> },

@@ -36,6 +36,7 @@ export const ROUTES = {
 
   // Partenaires / Pro
   becomePartner: '/devenez_partenaire',
+  contact: '/contact',
 
   // Legacy (compat)
   legacyTrucks: '/trucks',
