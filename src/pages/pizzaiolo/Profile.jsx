@@ -77,6 +77,9 @@ export default function PizzaioloProfile() {
   // Cadence de travail
   const [pizzaPerHour, setPizzaPerHour] = useState(30);
 
+  // Fiscalité - TVA
+  const [tvaEnabled, setTvaEnabled] = useState(false);
+
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -318,7 +321,8 @@ export default function PizzaioloProfile() {
             setOpeningHours(truck.openingHours || DEFAULT_OPENING_HOURS);
             setPizzaPerHour(truck.capacity?.pizzaPerHour || 30);
             setTruckSlug(truck.slug || null);
-            
+            setTvaEnabled(truck.legal?.tvaEnabled || false);
+
             console.log('[PLANIZZA] Données camion chargées:', truck);
           }
         } else {
@@ -388,6 +392,12 @@ export default function PizzaioloProfile() {
         // Préserver les champs non gérés par ce formulaire (ex: ownerId, legal, siret, etc.)
         ...existingTruck,
 
+        // Mettre à jour legal avec tvaEnabled
+        legal: {
+          ...(existingTruck.legal || {}),
+          tvaEnabled,
+        },
+
         slug: finalSlug,
         name: nextName,
         description: truckDescription.trim(),
@@ -452,6 +462,7 @@ export default function PizzaioloProfile() {
         setOpeningHours(truck.openingHours || DEFAULT_OPENING_HOURS);
         setPizzaPerHour(truck.capacity?.pizzaPerHour || 30);
         setTruckSlug(truck.slug || null);
+        setTvaEnabled(truck.legal?.tvaEnabled || false);
       }
 
       // Basculer en mode visualisation
@@ -725,6 +736,13 @@ export default function PizzaioloProfile() {
                         </Badge>
                       </div>
                     )}
+
+                    <div>
+                      <p className="text-sm font-bold text-muted-foreground mb-1">Régime fiscal</p>
+                      <p className="text-sm font-medium">
+                        {tvaEnabled ? '🧾 Assujetti TVA (10%)' : '📋 Micro-entrepreneur'}
+                      </p>
+                    </div>
                   </div>
 
                   {/* Badges */}
@@ -1089,6 +1107,45 @@ export default function PizzaioloProfile() {
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Fiscalité */}
+          <div className="glass-card p-6 rounded-3xl border border-white/10">
+            <h3 className="text-xl font-black tracking-tight mb-6 flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-blue-500/10">
+                <span className="text-xl">🧾</span>
+              </div>
+              Fiscalité
+            </h3>
+            <div className="space-y-4">
+              <label className="flex items-center justify-between p-4 rounded-2xl cursor-pointer transition-all bg-white/5 border border-white/10 hover:border-white/20">
+                <div>
+                  <span className="text-sm font-bold block">Assujetti à la TVA</span>
+                  <span className="text-xs text-muted-foreground">
+                    Les micro-entrepreneurs ne sont pas assujettis. Les entreprises classiques le sont.
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={tvaEnabled}
+                  onChange={(e) => setTvaEnabled(e.target.checked)}
+                  className="rounded w-5 h-5"
+                />
+              </label>
+              {tvaEnabled ? (
+                <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                  <p className="text-xs text-blue-600 font-medium">
+                    Le ticket client affichera la décomposition HT + TVA (10%) + TTC
+                  </p>
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                  <p className="text-xs text-amber-600 font-medium">
+                    TVA non applicable, art. 293 B du CGI (micro-entrepreneur)
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
