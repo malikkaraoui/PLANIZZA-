@@ -5,6 +5,7 @@ import { Store, Send, CheckCircle } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { useAuth } from '../app/providers/AuthProvider';
 import { formatCartItemName } from '../features/cart/utils/formatCartItemName';
+import { useTruck } from '../features/trucks/hooks/useTruck';
 import BackButton from '../components/ui/BackButton';
 import StarRating from '../components/ui/StarRating';
 import { Button } from '../components/ui/Button';
@@ -25,6 +26,10 @@ export default function OrderTracking() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Charger les données du truck pour la TVA
+  const { truck } = useTruck(order?.truckId);
+  const tvaEnabled = truck?.legal?.tvaEnabled || false;
 
   // États pour la notation UX
   const [uxRating, setUxRating] = useState(0);
@@ -404,6 +409,40 @@ export default function OrderTracking() {
                 <p className="text-gray-900 font-bold text-lg">{((item.priceCents || 0) / 100).toFixed(2)} €</p>
               </div>
             ))}
+          </div>
+
+          {/* Récapitulatif avec ou sans TVA */}
+          <div className="mt-6 pt-4 border-t border-gray-200">
+            {tvaEnabled ? (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Total HT</span>
+                  <span className="text-gray-700 font-medium">
+                    {((order.totalCents || 0) / 1.10 / 100).toFixed(2)} €
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">TVA (10%)</span>
+                  <span className="text-gray-700 font-medium">
+                    {(((order.totalCents || 0) - (order.totalCents || 0) / 1.10) / 100).toFixed(2)} €
+                  </span>
+                </div>
+                <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-100">
+                  <span className="text-gray-900">Total TTC</span>
+                  <span className="text-gray-900">{((order.totalCents || 0) / 100).toFixed(2)} €</span>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-between text-lg font-bold">
+                  <span className="text-gray-900">Total</span>
+                  <span className="text-gray-900">{((order.totalCents || 0) / 100).toFixed(2)} €</span>
+                </div>
+                <p className="text-xs text-gray-400 mt-2 italic">
+                  TVA non applicable, art. 293 B du CGI
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>
