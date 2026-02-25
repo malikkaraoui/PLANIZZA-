@@ -15,6 +15,7 @@ export default function Footer() {
           <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8 text-sm font-medium text-muted-foreground">
             <Link to={ROUTES.explore} className="hover:text-primary transition-colors">Explorer</Link>
             <Link to={ROUTES.becomePartner} className="hover:text-primary transition-colors">Devenir Partenaire</Link>
+            <Link to={ROUTES.contact} className="hover:text-primary transition-colors">Contact</Link>
           </div>
 
           <div className="text-xs sm:text-sm text-muted-foreground opacity-70 text-center md:text-right">

@@ -36,14 +36,6 @@ export function OrderCard({
   updating = false,
   borderVariant = 'default'
 }) {
-  console.log('[OrderCard] Render', {
-    orderId: order.id,
-    status: order.status,
-    paymentStatus: order.payment?.paymentStatus,
-    borderVariant,
-    estimatedDeliveryTime
-  });
-
   // Déterminer les classes de bordure selon la variante
   const isAccepted = order.status === 'accepted';
   const leftBorderClass = isAccepted ? 'border-l-4 border-l-emerald-500' : 'border-l-4 border-l-orange-500';
@@ -73,7 +65,7 @@ export function OrderCard({
     if (!onToggleExpanded) onClick?.();
   };
 
-  const shortId = order?.id ? `#${String(order.id).slice(-6).toUpperCase()}` : '';
+  const shortId = order?.orderNumber ? `#${order.orderNumber}` : (order?.id ? `#${String(order.id).slice(-4).toUpperCase()}` : '');
 
   return (
     <Card

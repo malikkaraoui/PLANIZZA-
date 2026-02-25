@@ -3,6 +3,17 @@
 Toutes les modifications notables du projet sont documentees ici.
 Format base sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
+## [1.2.0] - 2026-01-31
+
+### Ajouts
+- Fusion page Live dans page Commandes : onglet "Nouvelle commande" pour prise de commande manuelle directement depuis /pro/commandes
+- Composant ManualOrderForm compact (grille + panier lateral)
+- Redirection /pro/live vers /pro/commandes
+
+### Corrections
+- Couleurs page commandes pizzaiolo corrigees (textes lisibles sur fond clair)
+- CORS : ajout localhost:5175 et 127.0.0.1:5175 dans les origins autorisees des Cloud Functions
+
 ## [1.1.0] - 2026-01-29
 
 ### Ajouts

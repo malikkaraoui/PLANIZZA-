@@ -1,10 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ref, onValue, update } from 'firebase/database';
-import { Bike, Store, Send, CheckCircle } from 'lucide-react';
+import { Store, Send, CheckCircle } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { useAuth } from '../app/providers/AuthProvider';
 import { formatCartItemName } from '../features/cart/utils/formatCartItemName';
+import { useTruck } from '../features/trucks/hooks/useTruck';
 import BackButton from '../components/ui/BackButton';
 import StarRating from '../components/ui/StarRating';
 import { Button } from '../components/ui/Button';
@@ -25,6 +26,10 @@ export default function OrderTracking() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Charger les données du truck pour la TVA
+  const { truck } = useTruck(order?.truckId);
+  const tvaEnabled = truck?.legal?.tvaEnabled || false;
 
   // États pour la notation UX
   const [uxRating, setUxRating] = useState(0);
@@ -163,7 +168,7 @@ export default function OrderTracking() {
           <div className="grid grid-cols-2 lg:grid-cols-6 gap-6">
             <div>
               <span className="text-gray-500 text-sm font-medium">Commande</span>
-              <p className="text-gray-900 font-mono text-lg font-bold">#{orderId.slice(0, 8)}</p>
+              <p className="text-gray-900 font-mono text-lg font-bold">#{order?.orderNumber || orderId.slice(0, 8)}</p>
             </div>
             <div>
               <span className="text-gray-500 text-sm font-medium">Heure</span>
@@ -210,96 +215,36 @@ export default function OrderTracking() {
             </div>
           </div>
 
-          {/* Méthode de livraison */}
+          {/* Méthode de récupération */}
           <div className="mt-8 pt-6 border-t border-gray-200">
             <span className="text-gray-500 text-sm font-medium block mb-3">🚚 Mode de récupération</span>
-            <div className="flex gap-4">
-              {/* Retrait au camion */}
-              <div
-                className={`flex-1 relative overflow-hidden rounded-2xl p-4 transition-all ${
-                  order.deliveryMethod !== 'delivery'
-                    ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                    : 'bg-gray-100 text-gray-400 opacity-50'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`p-3 rounded-xl ${
-                    order.deliveryMethod !== 'delivery' 
-                      ? 'bg-white/20' 
-                      : 'bg-gray-200'
-                  }`}>
-                    <Store className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <div className="font-bold text-sm">Retrait au camion</div>
-                    <div className={`text-xs mt-0.5 ${
-                      order.deliveryMethod !== 'delivery' 
-                        ? 'text-white/80' 
-                        : 'text-gray-400'
-                    }`}>
-                      Gratuit • 15-20 min
-                    </div>
-                  </div>
-                  {order.deliveryMethod !== 'delivery' && (
-                    <div className="ml-auto w-5 h-5 rounded-full bg-white flex items-center justify-center">
-                      <div className="w-2.5 h-2.5 rounded-full bg-primary" />
-                    </div>
-                  )}
+            {/* Retrait au camion - seul mode disponible */}
+            <div className="relative overflow-hidden rounded-2xl p-4 bg-primary text-white shadow-lg shadow-primary/20">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-xl bg-white/20">
+                  <Store className="h-5 w-5" />
                 </div>
-              </div>
-
-              {/* Livraison à domicile */}
-              <div
-                className={`flex-1 relative overflow-hidden rounded-2xl p-4 transition-all ${
-                  order.deliveryMethod === 'delivery'
-                    ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                    : 'bg-gray-100 text-gray-400 opacity-50'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`p-3 rounded-xl ${
-                    order.deliveryMethod === 'delivery' 
-                      ? 'bg-white/20' 
-                      : 'bg-gray-200'
-                  }`}>
-                    <Bike className="h-5 w-5" />
+                <div>
+                  <div className="font-bold text-sm">Retrait au camion</div>
+                  <div className="text-xs mt-0.5 text-white/80">
+                    Gratuit • 15-20 min
                   </div>
-                  <div>
-                    <div className="font-bold text-sm">Livraison à domicile</div>
-                    <div className={`text-xs mt-0.5 ${
-                      order.deliveryMethod === 'delivery' 
-                        ? 'text-white/80' 
-                        : 'text-gray-400'
-                    }`}>
-                      + 3,50€ • 30-40 min
-                    </div>
-                  </div>
-                  {order.deliveryMethod === 'delivery' && (
-                    <div className="ml-auto w-5 h-5 rounded-full bg-white flex items-center justify-center">
-                      <div className="w-2.5 h-2.5 rounded-full bg-primary" />
-                    </div>
-                  )}
+                </div>
+                <div className="ml-auto w-5 h-5 rounded-full bg-white flex items-center justify-center">
+                  <div className="w-2.5 h-2.5 rounded-full bg-primary" />
                 </div>
               </div>
             </div>
-
-            {/* Adresse de livraison si applicable */}
-            {order.deliveryMethod === 'delivery' && order.deliveryAddress && (
-              <div className="mt-4 p-4 bg-emerald-50 border border-emerald-100 rounded-xl">
-                <p className="text-sm font-medium text-emerald-900 mb-1">📍 Adresse de livraison</p>
-                <p className="text-sm text-emerald-700">{order.deliveryAddress}</p>
-              </div>
-            )}
           </div>
         </div>
 
         {/* Timeline */}
-        <div className="bg-white border border-gray-200 shadow-sm rounded-2xl p-8">
-          <div className="flex items-center justify-between mb-12">
-            <h2 className="text-2xl font-bold text-gray-900">Progression</h2>
+        <div className="bg-white border border-gray-200 shadow-sm rounded-2xl p-4 sm:p-8">
+          <div className="flex items-center justify-between mb-6 sm:mb-12">
+            <h2 className="text-lg sm:text-2xl font-bold text-gray-900">Progression</h2>
             <div className="text-right">
-              <p className="text-sm text-gray-500 font-medium">Statut actuel</p>
-              <p className="text-emerald-600 font-bold text-lg capitalize">
+              <p className="text-xs sm:text-sm text-gray-500 font-medium">Statut actuel</p>
+              <p className="text-emerald-600 font-bold text-sm sm:text-lg capitalize">
                 {currentStatus === 'created' && '✅ Confirmée'}
                 {currentStatus === 'received' && '📋 Reçue'}
                 {currentStatus === 'accepted' && '👨‍🍳 En préparation'}
@@ -312,7 +257,7 @@ export default function OrderTracking() {
 
           <div className="relative">
             {/* Barre de progression */}
-            <div className="absolute top-8 left-8 right-8 h-1 bg-gray-100 rounded-full overflow-hidden">
+            <div className="absolute top-5 sm:top-8 left-5 sm:left-8 right-5 sm:right-8 h-1 bg-gray-100 rounded-full overflow-hidden">
               <div
                 className="h-full bg-emerald-500 rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(16,185,129,0.3)]"
                 style={{
@@ -329,16 +274,16 @@ export default function OrderTracking() {
                 const timestamp = timeline[`${step.key}At`];
 
                 return (
-                  <div key={step.key} className="flex flex-col items-center" style={{ flex: 1 }}>
+                  <div key={step.key} className="flex flex-col items-center flex-1 min-w-0">
                     {/* Icône */}
                     <div
                       className={`
-                        w-16 h-16 rounded-full flex items-center justify-center text-2xl mb-4 transition-all duration-500
+                        w-10 h-10 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-base sm:text-2xl mb-2 sm:mb-4 transition-all duration-500
                         ${isCompleted
-                          ? 'bg-emerald-500 border-4 border-emerald-100 text-white shadow-md'
-                          : 'bg-white border-4 border-gray-100 text-gray-300'
+                          ? 'bg-emerald-500 border-2 sm:border-4 border-emerald-100 text-white shadow-md'
+                          : 'bg-white border-2 sm:border-4 border-gray-100 text-gray-300'
                         }
-                        ${isCurrent ? 'ring-4 ring-emerald-500/20 scale-110' : ''}
+                        ${isCurrent ? 'ring-2 sm:ring-4 ring-emerald-500/20 scale-105 sm:scale-110' : ''}
                       `}
                     >
                       {step.icon}
@@ -347,7 +292,7 @@ export default function OrderTracking() {
                     {/* Label */}
                     <p
                       className={`
-                        font-bold mb-2 transition-colors text-center text-sm
+                        font-bold mb-1 sm:mb-2 transition-colors text-center text-[10px] sm:text-sm px-0.5
                         ${isCompleted ? 'text-gray-900' : 'text-gray-400'}
                       `}
                     >
@@ -356,7 +301,7 @@ export default function OrderTracking() {
 
                     {/* Timestamp */}
                     {timestamp && (
-                      <p className="text-xs text-gray-400">
+                      <p className="text-[9px] sm:text-xs text-gray-400">
                         {new Date(timestamp).toLocaleTimeString('fr-FR', {
                           hour: '2-digit',
                           minute: '2-digit',
@@ -464,6 +409,40 @@ export default function OrderTracking() {
                 <p className="text-gray-900 font-bold text-lg">{((item.priceCents || 0) / 100).toFixed(2)} €</p>
               </div>
             ))}
+          </div>
+
+          {/* Récapitulatif avec ou sans TVA */}
+          <div className="mt-6 pt-4 border-t border-gray-200">
+            {tvaEnabled ? (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Total HT</span>
+                  <span className="text-gray-700 font-medium">
+                    {((order.totalCents || 0) / 1.10 / 100).toFixed(2)} €
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">TVA (10%)</span>
+                  <span className="text-gray-700 font-medium">
+                    {(((order.totalCents || 0) - (order.totalCents || 0) / 1.10) / 100).toFixed(2)} €
+                  </span>
+                </div>
+                <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-100">
+                  <span className="text-gray-900">Total TTC</span>
+                  <span className="text-gray-900">{((order.totalCents || 0) / 100).toFixed(2)} €</span>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-between text-lg font-bold">
+                  <span className="text-gray-900">Total</span>
+                  <span className="text-gray-900">{((order.totalCents || 0) / 100).toFixed(2)} €</span>
+                </div>
+                <p className="text-xs text-gray-400 mt-2 italic">
+                  TVA non applicable, art. 293 B du CGI
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>

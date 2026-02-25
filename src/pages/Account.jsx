@@ -522,84 +522,27 @@ export default function Account() {
               ) : (
                 <p className="text-gray-900 italic">Non renseignée</p>
               )}
+              <p className="mt-2 text-xs text-amber-600 font-medium">
+                La livraison à domicile arrive bientôt&nbsp;! Renseignez votre adresse dès maintenant.
+              </p>
             </div>
 
-            <div>
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">🚚 Méthode de récupération préférée</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Retrait au camion */}
-                <button
-                  onClick={() => handleToggleDeliveryPreference(false)}
-                  disabled={savingDeliveryPref}
-                  className={`group relative overflow-hidden rounded-3xl p-6 transition-all duration-300 ${
-                    !wantsDelivery
-                      ? 'bg-primary text-white shadow-xl shadow-primary/30'
-                      : 'glass-premium border-white/20 opacity-50 hover:opacity-100 hover:scale-[1.02]'
-                  } ${savingDeliveryPref ? 'cursor-wait' : 'cursor-pointer'}`}
-                >
-                  <div className="flex flex-col items-center gap-4 text-center">
-                    <div className={`p-4 rounded-2xl transition-all ${
-                      !wantsDelivery 
-                        ? 'bg-white/20' 
-                        : 'bg-primary/10'
-                    }`}>
-                      <Store className="h-8 w-8" />
-                    </div>
-                    <div>
-                      <div className="font-black text-lg tracking-tight">Retrait au camion</div>
-                      <div className={`text-sm mt-1 ${
-                        !wantsDelivery 
-                          ? 'text-white/80' 
-                          : 'text-muted-foreground'
-                      }`}>
-                        Gratuit • Prêt en 15-20 min
-                      </div>
-                    </div>
-                    {!wantsDelivery && (
-                      <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white flex items-center justify-center">
-                        <div className="w-3 h-3 rounded-full bg-primary" />
-                      </div>
-                    )}
-                  </div>
-                </button>
+            {/*
+              🚚 SECTION MÉTHODE DE RÉCUPÉRATION - DÉSACTIVÉE TEMPORAIREMENT
+              À réactiver quand la livraison Uber Eats sera implémentée
 
-                {/* Livraison à domicile */}
-                <button
-                  onClick={() => handleToggleDeliveryPreference(true)}
-                  disabled={savingDeliveryPref}
-                  className={`group relative overflow-hidden rounded-3xl p-6 transition-all duration-300 ${
-                    wantsDelivery
-                      ? 'bg-primary text-white shadow-xl shadow-primary/30'
-                      : 'glass-premium border-white/20 opacity-50 hover:opacity-100 hover:scale-[1.02]'
-                  } ${savingDeliveryPref ? 'cursor-wait' : 'cursor-pointer'}`}
-                >
-                  <div className="flex flex-col items-center gap-4 text-center">
-                    <div className={`p-4 rounded-2xl transition-all ${
-                      wantsDelivery 
-                        ? 'bg-white/20' 
-                        : 'bg-primary/10'
-                    }`}>
-                      <Bike className="h-8 w-8" />
-                    </div>
-                    <div>
-                      <div className="font-black text-lg tracking-tight">Livraison à domicile</div>
-                      <div className={`text-sm mt-1 ${
-                        wantsDelivery 
-                          ? 'text-white/80' 
-                          : 'text-muted-foreground'
-                      }`}>
-                        + 3,50€ • 30-40 min
-                      </div>
-                    </div>
-                    {wantsDelivery && (
-                      <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white flex items-center justify-center">
-                        <div className="w-3 h-3 rounded-full bg-primary" />
-                      </div>
-                    )}
-                  </div>
-                </button>
+              <div>
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">🚚 Méthode de récupération préférée</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <button onClick={() => handleToggleDeliveryPreference(false)} disabled={savingDeliveryPref} className={...}>
+                    Retrait au camion
+                  </button>
+                  <button onClick={() => handleToggleDeliveryPreference(true)} disabled={savingDeliveryPref} className={...}>
+                    Livraison à domicile
+                  </button>
+                </div>
               </div>
-            </div>
+            */}
           </div>
         </Card>
       ) : (
@@ -658,85 +601,27 @@ export default function Account() {
                 address={address}
                 onAddressChange={setAddress}
               />
+              <p className="mt-2 text-xs text-amber-600 font-medium">
+                La livraison à domicile arrive bientôt&nbsp;! Renseignez votre adresse dès maintenant.
+              </p>
             </div>
 
-            {/* Préférence de livraison */}
-            <div>
-              <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">🚚 Méthode de récupération par défaut</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Retrait au camion */}
-                <button
-                  type="button"
-                  onClick={() => setWantsDelivery(false)}
-                  className={`group relative overflow-hidden rounded-3xl p-6 transition-all duration-300 ${
-                    !wantsDelivery
-                      ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-[1.02]'
-                      : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
-                  }`}
-                >
-                  <div className="flex flex-col items-center gap-4 text-center">
-                    <div className={`p-4 rounded-2xl transition-all ${
-                      !wantsDelivery 
-                        ? 'bg-white/20' 
-                        : 'bg-primary/10 group-hover:bg-primary/20'
-                    }`}>
-                      <Store className="h-8 w-8" />
-                    </div>
-                    <div>
-                      <div className="font-black text-lg tracking-tight">Retrait au camion</div>
-                      <div className={`text-sm mt-1 ${
-                        !wantsDelivery 
-                          ? 'text-white/80' 
-                          : 'text-muted-foreground'
-                      }`}>
-                        Gratuit • Prêt en 15-20 min
-                      </div>
-                    </div>
-                    {!wantsDelivery && (
-                      <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white flex items-center justify-center">
-                        <div className="w-3 h-3 rounded-full bg-primary" />
-                      </div>
-                    )}
-                  </div>
-                </button>
+            {/*
+              🚚 SECTION MÉTHODE DE RÉCUPÉRATION EN MODE ÉDITION - DÉSACTIVÉE TEMPORAIREMENT
+              À réactiver quand la livraison Uber Eats sera implémentée
 
-                {/* Livraison à domicile */}
-                <button
-                  type="button"
-                  onClick={() => setWantsDelivery(true)}
-                  className={`group relative overflow-hidden rounded-3xl p-6 transition-all duration-300 ${
-                    wantsDelivery
-                      ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-[1.02]'
-                      : 'glass-premium border-white/20 hover:border-primary/30 hover:scale-[1.01]'
-                  }`}
-                >
-                  <div className="flex flex-col items-center gap-4 text-center">
-                    <div className={`p-4 rounded-2xl transition-all ${
-                      wantsDelivery 
-                        ? 'bg-white/20' 
-                        : 'bg-primary/10 group-hover:bg-primary/20'
-                    }`}>
-                      <Bike className="h-8 w-8" />
-                    </div>
-                    <div>
-                      <div className="font-black text-lg tracking-tight">Livraison à domicile</div>
-                      <div className={`text-sm mt-1 ${
-                        wantsDelivery 
-                          ? 'text-white/80' 
-                          : 'text-muted-foreground'
-                      }`}>
-                        + 3,50€ • 30-40 min
-                      </div>
-                    </div>
-                    {wantsDelivery && (
-                      <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white flex items-center justify-center">
-                        <div className="w-3 h-3 rounded-full bg-primary" />
-                      </div>
-                    )}
-                  </div>
-                </button>
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">🚚 Méthode de récupération par défaut</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <button type="button" onClick={() => setWantsDelivery(false)} className={...}>
+                    Retrait au camion
+                  </button>
+                  <button type="button" onClick={() => setWantsDelivery(true)} className={...}>
+                    Livraison à domicile
+                  </button>
+                </div>
               </div>
-            </div>
+            */}
 
             {message && (
               <div className={`p-4 rounded-2xl font-medium ${

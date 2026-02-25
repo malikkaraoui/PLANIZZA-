@@ -11,9 +11,7 @@ const OrderTracking = lazy(() => import('../pages/OrderTracking'));
 const Account = lazy(() => import('../pages/Account'));
 const Dashboard = lazy(() => import('../pages/Dashboard'));
 const Orders = lazy(() => import('../pages/Orders'));
-const Login = lazy(() => import('../pages/Login'));
-const Register = lazy(() => import('../pages/Register'));
-const RegisterClient = lazy(() => import('../pages/RegisterClient'));
+const Auth = lazy(() => import('../pages/Auth'));
 const AuthAction = lazy(() => import('../pages/AuthAction'));
 // RegisterPizzaiolo supprimé - fusionné dans CreateTruck
 
@@ -30,6 +28,7 @@ const CreateTruck = lazy(() => import('../pages/pizzaiolo/CreateTruck'));
 const StripeOnboarding = lazy(() => import('../pages/pizzaiolo/StripeOnboarding'));
 const E2ETransitionContract = lazy(() => import('../pages/E2ETransitionContract'));
 const NotFound = lazy(() => import('../pages/NotFound'));
+const Contact = lazy(() => import('../pages/Contact'));
 
 import RootLayout from '../components/layout/RootLayout';
 import ProtectedRoute from './ProtectedRoute';
@@ -72,6 +71,7 @@ export const router = createBrowserRouter([
 
       // Partenaires / Pro
       { path: 'devenez_partenaire', element: wrap(<PizzaioloStart />) },
+      { path: 'contact', element: wrap(<Contact />) },
 
       // Legacy redirects (compat)
       { path: 'trucks', element: <Navigate to="/explore" replace /> },
@@ -82,10 +82,10 @@ export const router = createBrowserRouter([
       { path: 'success', element: <Navigate to="/checkout/success" replace /> },
       { path: 'cancel', element: <Navigate to="/explore" replace /> },
 
-      // Auth
-      { path: 'login', element: wrap(<Login />) },
+      // Auth (page unifiée avec onglets)
+      { path: 'login', element: wrap(<Auth />) },
       { path: 'register', element: <Navigate to="/register/client" replace /> },
-      { path: 'register/client', element: wrap(<RegisterClient />) },
+      { path: 'register/client', element: wrap(<Auth />) },
       { path: 'auth/action', element: wrap(<AuthAction />) },
       // pro/inscription redirige vers le formulaire unifié de création camion
       { path: 'pro/inscription', element: <Navigate to="/pro/creer-camion" replace /> },
@@ -128,7 +128,7 @@ export const router = createBrowserRouter([
           { path: 'commandes', element: wrap(<PizzaioloOrders />) },
           { path: 'commandes-v2', element: wrap(<PizzaioloOrdersV2 />) },
           { path: 'stats', element: wrap(<PizzaioloStats />) },
-          { path: 'live', element: wrap(<PizzaioloLive />) },
+          { path: 'live', element: <Navigate to="/pro/commandes" replace /> },
           { path: 'avis', element: wrap(<PizzaioloReviews />) },
         ],
       },

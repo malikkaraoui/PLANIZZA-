@@ -77,6 +77,9 @@ export default function PizzaioloProfile() {
   // Cadence de travail
   const [pizzaPerHour, setPizzaPerHour] = useState(30);
 
+  // Fiscalité - TVA
+  const [tvaEnabled, setTvaEnabled] = useState(false);
+
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -318,7 +321,8 @@ export default function PizzaioloProfile() {
             setOpeningHours(truck.openingHours || DEFAULT_OPENING_HOURS);
             setPizzaPerHour(truck.capacity?.pizzaPerHour || 30);
             setTruckSlug(truck.slug || null);
-            
+            setTvaEnabled(truck.legal?.tvaEnabled || false);
+
             console.log('[PLANIZZA] Données camion chargées:', truck);
           }
         } else {
@@ -388,6 +392,12 @@ export default function PizzaioloProfile() {
         // Préserver les champs non gérés par ce formulaire (ex: ownerId, legal, siret, etc.)
         ...existingTruck,
 
+        // Mettre à jour legal avec tvaEnabled
+        legal: {
+          ...(existingTruck.legal || {}),
+          tvaEnabled,
+        },
+
         slug: finalSlug,
         name: nextName,
         description: truckDescription.trim(),
@@ -452,6 +462,7 @@ export default function PizzaioloProfile() {
         setOpeningHours(truck.openingHours || DEFAULT_OPENING_HOURS);
         setPizzaPerHour(truck.capacity?.pizzaPerHour || 30);
         setTruckSlug(truck.slug || null);
+        setTvaEnabled(truck.legal?.tvaEnabled || false);
       }
 
       // Basculer en mode visualisation
@@ -514,84 +525,84 @@ export default function PizzaioloProfile() {
 
       {/* Navigation rapide */}
       {truckId && (
-        <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           <Link
             to={ROUTES.pizzaioloLive}
-            className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl hover:border-primary/50 transition-all group"
+            className="glass-premium glass-glossy border-white/20 p-4 rounded-2xl hover:border-red-500/50 transition-all group"
           >
             <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="p-3 rounded-2xl bg-red-500/10 group-hover:bg-red-500/20 transition">
-                  <Radio className="h-6 w-6 text-red-500" />
+              <div className="relative shrink-0">
+                <div className="p-2.5 rounded-xl bg-red-500/10 group-hover:bg-red-500/20 transition">
+                  <Radio className="h-5 w-5 text-red-500" />
                 </div>
-                <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
                 </span>
               </div>
-              <div>
-                <h3 className="font-black text-lg">Live</h3>
-                <p className="text-xs text-muted-foreground">Prise de commande</p>
+              <div className="min-w-0">
+                <h3 className="font-bold text-sm leading-tight">Live</h3>
+                <p className="text-[11px] text-muted-foreground truncate">Prise de commande</p>
               </div>
             </div>
           </Link>
 
           <Link
             to={ROUTES.pizzaioloOrders}
-            className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl hover:border-primary/50 transition-all group"
+            className="glass-premium glass-glossy border-white/20 p-4 rounded-2xl hover:border-blue-500/50 transition-all group"
           >
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-blue-500/10 group-hover:bg-blue-500/20 transition">
-                <ListOrdered className="h-6 w-6 text-blue-500" />
+              <div className="shrink-0 p-2.5 rounded-xl bg-blue-500/10 group-hover:bg-blue-500/20 transition">
+                <ListOrdered className="h-5 w-5 text-blue-500" />
               </div>
-              <div>
-                <h3 className="font-black text-lg">Commandes</h3>
-                <p className="text-xs text-muted-foreground">Gestion en direct</p>
+              <div className="min-w-0">
+                <h3 className="font-bold text-sm leading-tight">Commandes</h3>
+                <p className="text-[11px] text-muted-foreground truncate">Gestion en direct</p>
               </div>
             </div>
           </Link>
 
           <Link
             to={ROUTES.pizzaioloStats}
-            className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl hover:border-primary/50 transition-all group"
+            className="glass-premium glass-glossy border-white/20 p-4 rounded-2xl hover:border-purple-500/50 transition-all group"
           >
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-purple-500/10 group-hover:bg-purple-500/20 transition">
-                <TrendingUp className="h-6 w-6 text-purple-500" />
+              <div className="shrink-0 p-2.5 rounded-xl bg-purple-500/10 group-hover:bg-purple-500/20 transition">
+                <TrendingUp className="h-5 w-5 text-purple-500" />
               </div>
-              <div>
-                <h3 className="font-black text-lg">Statistiques</h3>
-                <p className="text-xs text-muted-foreground">Analytics & CA</p>
+              <div className="min-w-0">
+                <h3 className="font-bold text-sm leading-tight">Statistiques</h3>
+                <p className="text-[11px] text-muted-foreground truncate">Analytics & CA</p>
               </div>
             </div>
           </Link>
 
           <Link
             to={ROUTES.pizzaioloMenu}
-            className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl hover:border-primary/50 transition-all group"
+            className="glass-premium glass-glossy border-white/20 p-4 rounded-2xl hover:border-emerald-500/50 transition-all group"
           >
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-emerald-500/10 group-hover:bg-emerald-500/20 transition">
-                <Utensils className="h-6 w-6 text-emerald-500" />
+              <div className="shrink-0 p-2.5 rounded-xl bg-emerald-500/10 group-hover:bg-emerald-500/20 transition">
+                <Utensils className="h-5 w-5 text-emerald-500" />
               </div>
-              <div>
-                <h3 className="font-black text-lg">Menu</h3>
-                <p className="text-xs text-muted-foreground">Gérer mes pizzas</p>
+              <div className="min-w-0">
+                <h3 className="font-bold text-sm leading-tight">Menu</h3>
+                <p className="text-[11px] text-muted-foreground truncate">Gérer mes pizzas</p>
               </div>
             </div>
           </Link>
 
           <Link
             to={ROUTES.pizzaioloReviews}
-            className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl hover:border-primary/50 transition-all group"
+            className="glass-premium glass-glossy border-white/20 p-4 rounded-2xl hover:border-yellow-500/50 transition-all group"
           >
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-yellow-500/10 group-hover:bg-yellow-500/20 transition">
-                <MessageSquare className="h-6 w-6 text-yellow-500" />
+              <div className="shrink-0 p-2.5 rounded-xl bg-yellow-500/10 group-hover:bg-yellow-500/20 transition">
+                <MessageSquare className="h-5 w-5 text-yellow-500" />
               </div>
-              <div>
-                <h3 className="font-black text-lg">Avis</h3>
-                <p className="text-xs text-muted-foreground">Répondre aux clients</p>
+              <div className="min-w-0">
+                <h3 className="font-bold text-sm leading-tight">Avis</h3>
+                <p className="text-[11px] text-muted-foreground truncate">Répondre aux clients</p>
               </div>
             </div>
           </Link>
@@ -632,17 +643,18 @@ export default function PizzaioloProfile() {
                 <Button
                   onClick={handleTogglePause}
                   disabled={isPauseUpdating}
-                  size="sm"
                   variant={isPaused ? "default" : "outline"}
-                  className={isPaused ? "bg-emerald-500 hover:bg-emerald-600 rounded-2xl font-bold" : "rounded-2xl font-bold"}
+                  className={isPaused
+                    ? "bg-emerald-500 hover:bg-emerald-600 rounded-2xl font-bold h-10 px-4"
+                    : "rounded-2xl font-bold h-10 px-4 border-amber-500/50 text-amber-600 hover:bg-amber-500/10 hover:border-amber-500"}
                 >
                   {isPauseUpdating ? '...' : isPaused ? (
-                    <><Play className="h-4 w-4 mr-2" />Relancer</>
+                    <><Play className="h-4 w-4 mr-2" />Reprendre</>
                   ) : (
                     <><Pause className="h-4 w-4 mr-2" />Pause</>
                   )}
                 </Button>
-                <Button onClick={() => setIsEditing(true)} variant="outline" className="rounded-2xl font-bold">
+                <Button onClick={() => setIsEditing(true)} variant="outline" className="rounded-2xl font-bold h-10 px-4">
                   <Edit2 className="h-4 w-4 mr-2" />Modifier
                 </Button>
               </div>
@@ -724,6 +736,13 @@ export default function PizzaioloProfile() {
                         </Badge>
                       </div>
                     )}
+
+                    <div>
+                      <p className="text-sm font-bold text-muted-foreground mb-1">Régime fiscal</p>
+                      <p className="text-sm font-medium">
+                        {tvaEnabled ? '🧾 Assujetti TVA (10%)' : '📋 Micro-entrepreneur'}
+                      </p>
+                    </div>
                   </div>
 
                   {/* Badges */}
@@ -743,13 +762,90 @@ export default function PizzaioloProfile() {
                 </div>
               </Card>
 
+              {/* Visuels */}
+              {(logoUrl || photoUrl) && (
+                <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
+                  <h3 className="text-lg font-black mb-4 flex items-center gap-2">
+                    <ImageIcon className="h-5 w-5" />
+                    Visuels
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    {photoUrl && (
+                      <div>
+                        <p className="text-xs font-bold text-muted-foreground mb-2">Photo principale</p>
+                        <img
+                          src={photoUrl}
+                          alt={truckName}
+                          className="w-full h-32 object-cover rounded-2xl border border-white/20"
+                        />
+                      </div>
+                    )}
+                    {logoUrl && (
+                      <div>
+                        <p className="text-xs font-bold text-muted-foreground mb-2">Logo</p>
+                        <img
+                          src={logoUrl}
+                          alt={`Logo ${truckName}`}
+                          className="w-full h-32 object-contain rounded-2xl border border-white/20 bg-white/5 p-3"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              )}
+
+              {/* Localisation */}
+              {location?.address && location?.lat && location?.lng && (
+                <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-black flex items-center gap-2">
+                      <MapPin className="h-5 w-5" />
+                      Localisation
+                    </h3>
+                    <Button
+                      onClick={() => setIsEditing(true)}
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl text-xs font-bold"
+                    >
+                      <Edit2 className="h-3.5 w-3.5 mr-1" />
+                      Modifier
+                    </Button>
+                  </div>
+                  <div className="rounded-2xl overflow-hidden border border-white/20">
+                    <iframe
+                      width="100%"
+                      height="200"
+                      frameBorder="0"
+                      style={{ border: 0 }}
+                      src={`https://www.google.com/maps?q=${location.lat},${location.lng}&z=15&output=embed`}
+                      allowFullScreen
+                    ></iframe>
+                  </div>
+                  <p className="text-xs text-muted-foreground font-medium mt-3">
+                    {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
+                  </p>
+                </Card>
+              )}
+
               {/* Horaires d'ouverture */}
               {openingHours && (
                 <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
-                  <h3 className="text-lg font-black mb-4 flex items-center gap-2">
-                    <Clock className="h-5 w-5" />
-                    Horaires d'ouverture
-                  </h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-black flex items-center gap-2">
+                      <Clock className="h-5 w-5" />
+                      Horaires d'ouverture
+                    </h3>
+                    <Button
+                      onClick={() => setIsEditing(true)}
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl text-xs font-bold"
+                    >
+                      <Edit2 className="h-3.5 w-3.5 mr-1" />
+                      Modifier
+                    </Button>
+                  </div>
                   <div className="space-y-2">
                     {[
                       { key: 'monday', label: 'Lundi' },
@@ -787,73 +883,15 @@ export default function PizzaioloProfile() {
                 </Card>
               )}
 
-              {/* Livraison compacte */}
-              <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
-                <h3 className="text-lg font-black mb-4">🚴 Plateformes de livraison</h3>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => toggleDelivery('deliveroo')}
-                    className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl transition-all text-sm font-bold ${
-                      deliveryOptions.deliveroo
-                        ? 'bg-teal-500 text-white'
-                        : 'bg-white/5 border border-white/10 hover:border-teal-500/30'
-                    }`}
-                  >
-                    {deliveryOptions.deliveroo ? '✓' : '✕'} Deliveroo
-                  </button>
-                  <button
-                    onClick={() => toggleDelivery('uber')}
-                    className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl transition-all text-sm font-bold ${
-                      deliveryOptions.uber
-                        ? 'bg-gray-700 text-white'
-                        : 'bg-white/5 border border-white/10 hover:border-gray-500/30'
-                    }`}
-                  >
-                    {deliveryOptions.uber ? '✓' : '✕'} Uber Eats
-                  </button>
-                </div>
-              </Card>
-
-              {/* Photos compactes */}
-              {(logoUrl || photoUrl) && (
-                <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
-                  <h3 className="text-lg font-black mb-4 flex items-center gap-2">
-                    <ImageIcon className="h-5 w-5" />
-                    Visuels
-                  </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    {photoUrl && (
-                      <div>
-                        <p className="text-xs font-bold text-muted-foreground mb-2">Photo principale</p>
-                        <img
-                          src={photoUrl}
-                          alt={truckName}
-                          className="w-full h-32 object-cover rounded-2xl border border-white/20"
-                        />
-                      </div>
-                    )}
-                    {logoUrl && (
-                      <div>
-                        <p className="text-xs font-bold text-muted-foreground mb-2">Logo</p>
-                        <img
-                          src={logoUrl}
-                          alt={`Logo ${truckName}`}
-                          className="w-full h-32 object-contain rounded-2xl border border-white/20 bg-white/5 p-3"
-                        />
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              )}
             </div>
 
-            {/* Colonne droite - Carte et QR Code (1/3) */}
+            {/* Colonne droite - QR Code (1/3) */}
             <div className="space-y-6">
-              {/* QR Code compact */}
+              {/* QR Code */}
               {(truckSlug || truckId) && (
                 <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
                   <h3 className="text-lg font-black mb-4 text-center">📱 QR Code</h3>
-                  
+
                   <div className="flex justify-center mb-4" ref={qrCodeRef}>
                     <div className="relative p-3 bg-white rounded-2xl">
                       <QRCode
@@ -887,31 +925,26 @@ export default function PizzaioloProfile() {
                   )}
                 </Card>
               )}
-
-              {/* Carte */}
-              {location?.address && location?.lat && location?.lng && (
-                <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
-                  <h3 className="text-lg font-black mb-4 flex items-center gap-2">
-                    <MapPin className="h-5 w-5" />
-                    Localisation
-                  </h3>
-                  <div className="rounded-2xl overflow-hidden border border-white/20">
-                    <iframe
-                      width="100%"
-                      height="200"
-                      frameBorder="0"
-                      style={{ border: 0 }}
-                      src={`https://www.google.com/maps?q=${location.lat},${location.lng}&z=15&output=embed`}
-                      allowFullScreen
-                    ></iframe>
-                  </div>
-                  <p className="text-xs text-muted-foreground font-medium mt-3">
-                    {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
-                  </p>
-                </Card>
-              )}
             </div>
           </div>
+
+          {/* Plateformes de livraison - DÉSACTIVÉ TEMPORAIREMENT (tout en bas) */}
+          <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
+            <h3 className="text-lg font-black mb-4">🚴 Plateformes de livraison</h3>
+            <div className="flex gap-3">
+              <div className="relative flex-1 flex items-center justify-center gap-2 p-3 rounded-xl bg-white/5 border border-white/10 text-sm font-bold text-muted-foreground opacity-50 cursor-not-allowed">
+                <span>Deliveroo</span>
+                <span className="absolute -top-2 -right-2 px-2 py-0.5 rounded-full bg-amber-100 border border-amber-200 text-[9px] font-bold text-amber-700">BIENTÔT</span>
+              </div>
+              <div className="relative flex-1 flex items-center justify-center gap-2 p-3 rounded-xl bg-white/5 border border-white/10 text-sm font-bold text-muted-foreground opacity-50 cursor-not-allowed">
+                <span>Uber Eats</span>
+                <span className="absolute -top-2 -right-2 px-2 py-0.5 rounded-full bg-amber-100 border border-amber-200 text-[9px] font-bold text-amber-700">BIENTÔT</span>
+              </div>
+            </div>
+            <p className="mt-3 text-xs text-amber-600 font-medium text-center">
+              L'intégration avec les plateformes de livraison arrive bientôt&nbsp;!
+            </p>
+          </Card>
 
           {/* Actions compte */}
           <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
@@ -1041,6 +1074,81 @@ export default function PizzaioloProfile() {
             </div>
           </div>
 
+          {/* Badges & Spécialités - juste après infos de base comme en mode visu */}
+          <div className="glass-card p-6 rounded-3xl border border-white/10">
+            <h3 className="text-xl font-black tracking-tight mb-6 flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-purple-500/10">
+                <span className="text-xl">🏷️</span>
+              </div>
+              Badges & Spécialités
+            </h3>
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-bold mb-3">Caractéristiques</label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {[
+                    { key: 'bio', label: 'Bio', icon: '🌱', color: 'emerald' },
+                    { key: 'terroir', label: 'Terroir', icon: '🌾', color: 'amber' },
+                    { key: 'sansGluten', label: 'Sans gluten', icon: '🚫🌾', color: 'blue' },
+                    { key: 'halal', label: 'Halal', icon: '☪️', color: 'purple' },
+                    { key: 'kasher', label: 'Kasher', icon: '✡️', color: 'indigo' },
+                    { key: 'sucre', label: 'Sucré', icon: '🍰', color: 'pink' }
+                  ].map(({ key, label, icon, color }) => (
+                    <label key={key} className={`flex items-center gap-3 p-4 rounded-2xl cursor-pointer transition-all ${badges[key] ? `bg-${color}-500/10 border-2 border-${color}-500/30` : 'bg-white/5 border border-white/10 hover:border-white/20'}`}>
+                      <input
+                        type="checkbox"
+                        checked={badges[key]}
+                        onChange={() => toggleBadge(key)}
+                        className="rounded w-5 h-5"
+                      />
+                      <span className="text-lg">{icon}</span>
+                      <span className="text-sm font-bold">{label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Fiscalité */}
+          <div className="glass-card p-6 rounded-3xl border border-white/10">
+            <h3 className="text-xl font-black tracking-tight mb-6 flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-blue-500/10">
+                <span className="text-xl">🧾</span>
+              </div>
+              Fiscalité
+            </h3>
+            <div className="space-y-4">
+              <label className="flex items-center justify-between p-4 rounded-2xl cursor-pointer transition-all bg-white/5 border border-white/10 hover:border-white/20">
+                <div>
+                  <span className="text-sm font-bold block">Assujetti à la TVA</span>
+                  <span className="text-xs text-muted-foreground">
+                    Les micro-entrepreneurs ne sont pas assujettis. Les entreprises classiques le sont.
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={tvaEnabled}
+                  onChange={(e) => setTvaEnabled(e.target.checked)}
+                  className="rounded w-5 h-5"
+                />
+              </label>
+              {tvaEnabled ? (
+                <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                  <p className="text-xs text-blue-600 font-medium">
+                    Le ticket client affichera la décomposition HT + TVA (10%) + TTC
+                  </p>
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                  <p className="text-xs text-amber-600 font-medium">
+                    TVA non applicable, art. 293 B du CGI (micro-entrepreneur)
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Photos & Visuels */}
           <div className="glass-card p-6 rounded-3xl border border-white/10">
             <h3 className="text-xl font-black tracking-tight mb-6 flex items-center gap-3">
@@ -1164,65 +1272,39 @@ export default function PizzaioloProfile() {
             </div>
           </div>
 
-          {/* Badges & Options */}
+          {/* Plateformes de livraison - DÉSACTIVÉ TEMPORAIREMENT */}
           <div className="glass-card p-6 rounded-3xl border border-white/10">
             <h3 className="text-xl font-black tracking-tight mb-6 flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-purple-500/10">
-                <span className="text-xl">🏷️</span>
+              <div className="p-2 rounded-xl bg-amber-500/10">
+                <span className="text-xl">🚴</span>
               </div>
-              Badges & Spécialités
+              Plateformes de livraison
             </h3>
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-bold mb-3">Caractéristiques</label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {[
-                    { key: 'bio', label: 'Bio', icon: '🌱', color: 'emerald' },
-                    { key: 'terroir', label: 'Terroir', icon: '🌾', color: 'amber' },
-                    { key: 'sansGluten', label: 'Sans gluten', icon: '🚫🌾', color: 'blue' },
-                    { key: 'halal', label: 'Halal', icon: '☪️', color: 'purple' },
-                    { key: 'kasher', label: 'Kasher', icon: '✡️', color: 'indigo' },
-                    { key: 'sucre', label: 'Sucré', icon: '🍰', color: 'pink' }
-                  ].map(({ key, label, icon, color }) => (
-                    <label key={key} className={`flex items-center gap-3 p-4 rounded-2xl cursor-pointer transition-all ${badges[key] ? `bg-${color}-500/10 border-2 border-${color}-500/30` : 'bg-white/5 border border-white/10 hover:border-white/20'}`}>
-                      <input
-                        type="checkbox"
-                        checked={badges[key]}
-                        onChange={() => toggleBadge(key)}
-                        className="rounded w-5 h-5"
-                      />
-                      <span className="text-lg">{icon}</span>
-                      <span className="text-sm font-bold">{label}</span>
-                    </label>
-                  ))}
-                </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="relative flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/10 opacity-50 cursor-not-allowed">
+                <input
+                  type="checkbox"
+                  checked={false}
+                  disabled
+                  className="rounded w-5 h-5"
+                />
+                <span className="text-sm font-bold text-muted-foreground">Deliveroo</span>
+                <span className="absolute -top-2 -right-2 px-2 py-0.5 rounded-full bg-amber-100 border border-amber-200 text-[9px] font-bold text-amber-700">BIENTÔT</span>
               </div>
-
-              <div>
-                <label className="block text-sm font-bold mb-3">🚴 Plateformes de livraison</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <label className={`flex items-center gap-3 p-4 rounded-2xl cursor-pointer transition-all ${deliveryOptions.deliveroo ? 'bg-teal-500/10 border-2 border-teal-500/30' : 'bg-white/5 border border-white/10 hover:border-white/20'}`}>
-                    <input
-                      type="checkbox"
-                      checked={deliveryOptions.deliveroo}
-                      onChange={() => toggleDelivery('deliveroo')}
-                      className="rounded w-5 h-5"
-                    />
-                    <span className="text-sm font-bold">Deliveroo</span>
-                  </label>
-
-                  <label className={`flex items-center gap-3 p-4 rounded-2xl cursor-pointer transition-all ${deliveryOptions.uber ? 'bg-gray-500/10 border-2 border-gray-500/30' : 'bg-white/5 border border-white/10 hover:border-white/20'}`}>
-                    <input
-                      type="checkbox"
-                      checked={deliveryOptions.uber}
-                      onChange={() => toggleDelivery('uber')}
-                      className="rounded w-5 h-5"
-                    />
-                    <span className="text-sm font-bold">Uber Eats</span>
-                  </label>
-                </div>
+              <div className="relative flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/10 opacity-50 cursor-not-allowed">
+                <input
+                  type="checkbox"
+                  checked={false}
+                  disabled
+                  className="rounded w-5 h-5"
+                />
+                <span className="text-sm font-bold text-muted-foreground">Uber Eats</span>
+                <span className="absolute -top-2 -right-2 px-2 py-0.5 rounded-full bg-amber-100 border border-amber-200 text-[9px] font-bold text-amber-700">BIENTÔT</span>
               </div>
             </div>
+            <p className="mt-3 text-xs text-amber-600 font-medium">
+              L'intégration avec les plateformes de livraison arrive bientôt&nbsp;!
+            </p>
           </div>
 
           {message && (

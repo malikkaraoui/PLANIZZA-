@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import AddToCartButton from './AddToCartButton';
+import AddToCartButton from '../../components/ui/AddToCartButton';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 
@@ -225,13 +225,10 @@ export default function MenuItemCard({ item = {}, onAdd, isDisabled = false }) {
 
           <div className="justify-self-end">
             <AddToCartButton
-              mode="compactHover"
-              size="sm"
+              variant="compact"
               onClick={handleAdd}
               disabled={!isAvailable}
               justAdded={justAdded}
-              label="Ajouter"
-              addedLabel="Ajouté !"
             />
           </div>
         </div>

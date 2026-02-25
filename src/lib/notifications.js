@@ -142,11 +142,19 @@ export const notify = {
   },
 
   // --- Profil ---
-  profileIncomplete: (missingFields) => {
+  profileIncomplete: (missingFields, navigate) => {
     const fields = Array.isArray(missingFields) ? missingFields.join(', ') : missingFields;
+    const toastId = 'profile-incomplete';
     toast.info(`👤 Complétez votre profil : ${fields}`, {
       ...defaultOptions,
+      toastId,
       autoClose: 6000,
+      onClick: () => {
+        toast.dismiss(toastId);
+        if (navigate) {
+          navigate('/login');
+        }
+      },
     });
   },
 

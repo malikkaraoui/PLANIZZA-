@@ -560,7 +560,7 @@ export default function TruckDetails() {
           </div>
           {cartItems.length > 0 && (
             <aside
-              className="hidden lg:block fixed right-[38px] w-[360px] z-40"
+              className="hidden xl:block fixed right-[38px] w-[360px] z-40"
               style={{
                 top: cartTopPx,
                 bottom: 40,

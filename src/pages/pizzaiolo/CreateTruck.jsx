@@ -489,11 +489,11 @@ export default function CreateTruck() {
       <BackButton className="mb-6" />
       {/* Progress bar */}
       <div className="mb-8">
-        <div className="flex items-center justify-between">
-          {Array.from({ length: totalSteps }, (_, i) => i + 1).map((s) => (
+        <div className="flex items-center justify-center gap-0">
+          {Array.from({ length: totalSteps }, (_, i) => i + 1).map((s, idx) => (
             <div key={s} className="flex items-center">
               <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${
                   s === displayStep
                     ? 'bg-emerald-600 text-white'
                     : s < displayStep
@@ -503,9 +503,9 @@ export default function CreateTruck() {
               >
                 {s}
               </div>
-              {s < totalSteps && (
+              {idx < totalSteps - 1 && (
                 <div
-                  className={`w-16 h-1 mx-2 ${
+                  className={`w-10 sm:w-16 h-0.5 ${
                     s < displayStep ? 'bg-emerald-600' : 'bg-gray-200'
                   }`}
                 />
