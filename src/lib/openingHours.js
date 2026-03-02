@@ -62,6 +62,33 @@ export function isTimeWithinOpeningHours(time, openingHours, now = new Date()) {
   return time >= today.open && time < today.close;
 }
 
+const DAY_NAMES = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+/**
+ * Retourne la localisation du jour pour un truck.
+ * Priorite : truck.locations[today] > truck.location (fallback)
+ */
+export function getTodayLocation(truck, now = new Date()) {
+  if (!truck) return null;
+
+  const currentDay = DAY_NAMES[now.getDay()];
+
+  // Nouveau format : emplacements par jour
+  if (truck.locations && typeof truck.locations === 'object') {
+    const dayLocation = truck.locations[currentDay];
+    if (dayLocation && dayLocation.lat && dayLocation.lng) {
+      return dayLocation;
+    }
+  }
+
+  // Fallback : ancien format unique
+  if (truck.location && truck.location.lat && truck.location.lng) {
+    return truck.location;
+  }
+
+  return null;
+}
+
 /**
  * Obtient le texte d'affichage pour le statut du camion
  */

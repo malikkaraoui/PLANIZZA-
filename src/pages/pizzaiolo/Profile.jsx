@@ -50,7 +50,8 @@ export default function PizzaioloProfile() {
   // États du formulaire camion
   const [truckName, setTruckName] = useState('');
   const [truckDescription, setTruckDescription] = useState('');
-  const [location, setLocation] = useState(null);
+  const [locations, setLocations] = useState({});
+  const [expandedLocationDay, setExpandedLocationDay] = useState(null);
   const [logoUrl, setLogoUrl] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
   const [ovenType, setOvenType] = useState('Bois');
@@ -312,7 +313,16 @@ export default function PizzaioloProfile() {
             setTruckName(truck.name || '');
             setTruckDescription(truck.description || '');
             setIsPaused(truck.isPaused || false);
-            setLocation(truck.location || null);
+            // Migration douce : si locations existe, l'utiliser ; sinon copier location sur tous les jours actifs
+            if (truck.locations && typeof truck.locations === 'object') {
+              setLocations(truck.locations);
+            } else if (truck.location && truck.location.lat && truck.location.lng) {
+              const migratedLocations = {};
+              for (const day of ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']) {
+                migratedLocations[day] = { ...truck.location };
+              }
+              setLocations(migratedLocations);
+            }
             setLogoUrl(truck.logoUrl || '');
             setPhotoUrl(truck.photoUrl || '');
             setOvenType(truck.ovenType || 'Bois');
@@ -403,8 +413,27 @@ export default function PizzaioloProfile() {
         description: truckDescription.trim(),
         logoUrl: logoUrl.trim(),
         photoUrl: photoUrl.trim(),
-        location: location || { lat: 0, lng: 0, address: '' },
-        city: location?.address?.split(',').pop()?.trim() || 'France',
+        locations: locations || {},
+        // Retro-compat : location = emplacement du jour actuel
+        location: (() => {
+          const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+          const today = dayNames[new Date().getDay()];
+          const todayLoc = locations?.[today];
+          if (todayLoc?.lat && todayLoc?.lng) return todayLoc;
+          // Fallback : premier emplacement defini
+          for (const d of dayNames) {
+            const loc = locations?.[d];
+            if (loc?.lat && loc?.lng) return loc;
+          }
+          return { lat: 0, lng: 0, address: '' };
+        })(),
+        city: (() => {
+          const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+          const today = dayNames[new Date().getDay()];
+          const todayLoc = locations?.[today];
+          const addr = todayLoc?.address;
+          return addr?.split(',').pop()?.trim() || 'France';
+        })(),
         ovenType,
         badges,
         deliveryOptions,
@@ -453,7 +482,7 @@ export default function PizzaioloProfile() {
         const truck = truckSnap.val();
         setTruckName(truck.name || '');
         setTruckDescription(truck.description || '');
-        setLocation(truck.location || null);
+        setLocations(truck.locations || {});
         setLogoUrl(truck.logoUrl || '');
         setPhotoUrl(truck.photoUrl || '');
         setOvenType(truck.ovenType || 'Bois');
@@ -794,47 +823,13 @@ export default function PizzaioloProfile() {
                 </Card>
               )}
 
-              {/* Localisation */}
-              {location?.address && location?.lat && location?.lng && (
-                <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-black flex items-center gap-2">
-                      <MapPin className="h-5 w-5" />
-                      Localisation
-                    </h3>
-                    <Button
-                      onClick={() => setIsEditing(true)}
-                      variant="outline"
-                      size="sm"
-                      className="rounded-xl text-xs font-bold"
-                    >
-                      <Edit2 className="h-3.5 w-3.5 mr-1" />
-                      Modifier
-                    </Button>
-                  </div>
-                  <div className="rounded-2xl overflow-hidden border border-white/20">
-                    <iframe
-                      width="100%"
-                      height="200"
-                      frameBorder="0"
-                      style={{ border: 0 }}
-                      src={`https://www.google.com/maps?q=${location.lat},${location.lng}&z=15&output=embed`}
-                      allowFullScreen
-                    ></iframe>
-                  </div>
-                  <p className="text-xs text-muted-foreground font-medium mt-3">
-                    {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
-                  </p>
-                </Card>
-              )}
-
-              {/* Horaires d'ouverture */}
+              {/* Planning hebdomadaire (horaires + emplacements) */}
               {openingHours && (
                 <Card className="glass-premium glass-glossy border-white/20 p-6 rounded-3xl">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-black flex items-center gap-2">
                       <Clock className="h-5 w-5" />
-                      Horaires d'ouverture
+                      Planning hebdomadaire
                     </h3>
                     <Button
                       onClick={() => setIsEditing(true)}
@@ -857,29 +852,62 @@ export default function PizzaioloProfile() {
                       { key: 'sunday', label: 'Dimanche' }
                     ].map(({ key, label }) => {
                       const hours = openingHours[key];
+                      const dayLoc = locations?.[key];
+                      const isToday = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][new Date().getDay()] === key;
                       return (
                         <div
                           key={key}
-                          className={`flex items-center justify-between p-3 rounded-xl transition-all ${
+                          className={`p-3 rounded-xl transition-all ${
                             hours?.enabled
-                              ? 'bg-emerald-500/10 border border-emerald-500/20'
+                              ? isToday ? 'bg-primary/10 border-2 border-primary/30' : 'bg-emerald-500/10 border border-emerald-500/20'
                               : 'bg-gray-100/50 dark:bg-white/5 border border-gray-200 dark:border-white/10'
                           }`}
                         >
-                          <span className={`text-sm font-bold ${hours?.enabled ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-400'}`}>
-                            {label}
-                          </span>
-                          {hours?.enabled ? (
-                            <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-                              {hours.open} → {hours.close}
+                          <div className="flex items-center justify-between">
+                            <span className={`text-sm font-bold ${hours?.enabled ? isToday ? 'text-primary' : 'text-emerald-700 dark:text-emerald-400' : 'text-gray-400'}`}>
+                              {label} {isToday && '(aujourd\'hui)'}
                             </span>
-                          ) : (
-                            <span className="text-sm font-medium text-gray-400 italic">Fermé</span>
+                            {hours?.enabled ? (
+                              <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                                {hours.open} → {hours.close}
+                              </span>
+                            ) : (
+                              <span className="text-sm font-medium text-gray-400 italic">Ferme</span>
+                            )}
+                          </div>
+                          {dayLoc?.address && (
+                            <div className="mt-1 flex items-center gap-1.5">
+                              <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
+                              <span className="text-xs text-muted-foreground truncate">{dayLoc.address}</span>
+                            </div>
                           )}
                         </div>
                       );
                     })}
                   </div>
+
+                  {/* Carte de l'emplacement du jour */}
+                  {(() => {
+                    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                    const today = dayNames[new Date().getDay()];
+                    const todayLoc = locations?.[today];
+                    if (!todayLoc?.lat || !todayLoc?.lng) return null;
+                    return (
+                      <div className="mt-4">
+                        <p className="text-xs font-bold text-muted-foreground mb-2">Emplacement du jour</p>
+                        <div className="rounded-2xl overflow-hidden border border-white/20">
+                          <iframe
+                            width="100%"
+                            height="200"
+                            frameBorder="0"
+                            style={{ border: 0 }}
+                            src={`https://www.google.com/maps?q=${todayLoc.lat},${todayLoc.lng}&z=15&output=embed`}
+                            allowFullScreen
+                          ></iframe>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </Card>
               )}
 
@@ -1165,8 +1193,8 @@ export default function PizzaioloProfile() {
                   onChange={setPhotoUrl}
                   label=""
                   folder="trucks"
-                  maxWidth={1200}
-                  maxHeight={800}
+                  maxSizeMB={1}
+                  maxWidthOrHeight={1200}
                 />
                 <p className="text-xs text-muted-foreground mt-2 font-medium">
                   🍕 Photo principale visible sur votre fiche
@@ -1180,8 +1208,8 @@ export default function PizzaioloProfile() {
                   onChange={setLogoUrl}
                   label=""
                   folder="logos"
-                  maxWidth={500}
-                  maxHeight={500}
+                  maxSizeMB={0.5}
+                  maxWidthOrHeight={500}
                 />
                 <p className="text-xs text-muted-foreground mt-2 font-medium">
                   🎨 Apparaît dans les résultats de recherche
@@ -1190,31 +1218,15 @@ export default function PizzaioloProfile() {
             </div>
           </div>
 
-          {/* Localisation avec preview */}
+          {/* Planning hebdomadaire : horaires + emplacements par jour */}
           <div className="glass-card p-6 rounded-3xl border border-white/10">
-            <h3 className="text-xl font-black tracking-tight mb-6 flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-blue-500/10">
-                <span className="text-xl">📍</span>
-              </div>
-              Emplacement
-            </h3>
-            <div className="space-y-4">
-              <LocationPicker
-                value={location}
-                onChange={setLocation}
-                defaultOpen={true}
-              />
-            </div>
-          </div>
-
-          {/* Horaires d'ouverture modernisés */}
-          <div className="glass-card p-6 rounded-3xl border border-white/10">
-            <h3 className="text-xl font-black tracking-tight mb-6 flex items-center gap-3">
+            <h3 className="text-xl font-black tracking-tight mb-2 flex items-center gap-3">
               <div className="p-2 rounded-xl bg-emerald-500/10">
-                <span className="text-xl">🕐</span>
+                <span className="text-xl">📅</span>
               </div>
-              Horaires d'ouverture
+              Planning hebdomadaire
             </h3>
+            <p className="text-xs text-muted-foreground mb-6">Definissez vos horaires et votre emplacement pour chaque jour</p>
             <div className="space-y-3">
               {[
                 { key: 'monday', label: 'Lun', fullLabel: 'Lundi' },
@@ -1224,51 +1236,117 @@ export default function PizzaioloProfile() {
                 { key: 'friday', label: 'Ven', fullLabel: 'Vendredi' },
                 { key: 'saturday', label: 'Sam', fullLabel: 'Samedi' },
                 { key: 'sunday', label: 'Dim', fullLabel: 'Dimanche' }
-              ].map(({ key, label, fullLabel }) => (
-                <div key={key} className={`flex items-center gap-4 p-4 rounded-2xl transition-all ${openingHours[key].enabled ? 'bg-emerald-500/5 border border-emerald-500/20' : 'bg-white/5 border border-white/10'}`}>
-                  <label className="flex items-center gap-3 cursor-pointer min-w-30">
-                    <input
-                      type="checkbox"
-                      checked={openingHours[key].enabled}
-                      onChange={(e) => setOpeningHours(prev => ({
-                        ...prev,
-                        [key]: { ...prev[key], enabled: e.target.checked }
-                      }))}
-                      className="rounded w-5 h-5"
-                    />
-                    <div>
-                      <span className="text-sm font-black block">{label}</span>
-                      <span className="text-xs text-muted-foreground font-medium">{fullLabel}</span>
+              ].map(({ key, label, fullLabel }) => {
+                const dayLoc = locations?.[key];
+                const isExpanded = expandedLocationDay === key;
+                // Trouver les jours avec un emplacement pour la fonction "Copier depuis"
+                const daysWithLocation = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+                  .filter(d => d !== key && locations?.[d]?.lat && locations?.[d]?.lng);
+
+                return (
+                  <div key={key} className={`rounded-2xl transition-all ${openingHours[key].enabled ? 'bg-emerald-500/5 border border-emerald-500/20' : 'bg-white/5 border border-white/10'}`}>
+                    {/* Ligne horaire */}
+                    <div className="flex items-center gap-4 p-4">
+                      <label className="flex items-center gap-3 cursor-pointer min-w-30">
+                        <input
+                          type="checkbox"
+                          checked={openingHours[key].enabled}
+                          onChange={(e) => setOpeningHours(prev => ({
+                            ...prev,
+                            [key]: { ...prev[key], enabled: e.target.checked }
+                          }))}
+                          className="rounded w-5 h-5"
+                        />
+                        <div>
+                          <span className="text-sm font-black block">{label}</span>
+                          <span className="text-xs text-muted-foreground font-medium">{fullLabel}</span>
+                        </div>
+                      </label>
+
+                      {openingHours[key].enabled ? (
+                        <div className="flex items-center gap-3 flex-1">
+                          <input
+                            type="time"
+                            value={openingHours[key].open}
+                            onChange={(e) => setOpeningHours(prev => ({
+                              ...prev,
+                              [key]: { ...prev[key], open: e.target.value }
+                            }))}
+                            className="rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm font-bold focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                          />
+                          <span className="text-muted-foreground font-bold">→</span>
+                          <input
+                            type="time"
+                            value={openingHours[key].close}
+                            onChange={(e) => setOpeningHours(prev => ({
+                              ...prev,
+                              [key]: { ...prev[key], close: e.target.value }
+                            }))}
+                            className="rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm font-bold focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-sm text-muted-foreground font-medium italic">Ferme</span>
+                      )}
                     </div>
-                  </label>
-                  
-                  {openingHours[key].enabled ? (
-                    <div className="flex items-center gap-3 flex-1">
-                      <input
-                        type="time"
-                        value={openingHours[key].open}
-                        onChange={(e) => setOpeningHours(prev => ({
-                          ...prev,
-                          [key]: { ...prev[key], open: e.target.value }
-                        }))}
-                        className="rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm font-bold focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all"
-                      />
-                      <span className="text-muted-foreground font-bold">→</span>
-                      <input
-                        type="time"
-                        value={openingHours[key].close}
-                        onChange={(e) => setOpeningHours(prev => ({
-                          ...prev,
-                          [key]: { ...prev[key], close: e.target.value }
-                        }))}
-                        className="rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm font-bold focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all"
-                      />
+
+                    {/* Emplacement du jour */}
+                    <div className="px-4 pb-3">
+                      {dayLoc?.address ? (
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                          <span className="text-xs text-muted-foreground truncate flex-1">{dayLoc.address}</span>
+                          <button
+                            type="button"
+                            onClick={() => setExpandedLocationDay(isExpanded ? null : key)}
+                            className="text-xs text-blue-500 hover:text-blue-600 font-bold shrink-0"
+                          >
+                            {isExpanded ? 'Fermer' : 'Modifier'}
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setExpandedLocationDay(isExpanded ? null : key)}
+                          className="flex items-center gap-2 text-xs text-blue-500 hover:text-blue-600 font-bold"
+                        >
+                          <MapPin className="h-3.5 w-3.5" />
+                          {isExpanded ? 'Fermer' : 'Definir l\'emplacement'}
+                        </button>
+                      )}
+
+                      {/* LocationPicker depliable */}
+                      {isExpanded && (
+                        <div className="mt-3 space-y-3">
+                          {daysWithLocation.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              <span className="text-xs text-muted-foreground font-medium">Copier depuis :</span>
+                              {daysWithLocation.map(d => {
+                                const dayLabels = { monday: 'Lun', tuesday: 'Mar', wednesday: 'Mer', thursday: 'Jeu', friday: 'Ven', saturday: 'Sam', sunday: 'Dim' };
+                                return (
+                                  <button
+                                    key={d}
+                                    type="button"
+                                    onClick={() => setLocations(prev => ({ ...prev, [key]: { ...prev[d] } }))}
+                                    className="px-2 py-0.5 rounded-lg bg-blue-500/10 text-blue-600 text-xs font-bold hover:bg-blue-500/20 transition-all"
+                                  >
+                                    {dayLabels[d]}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                          <LocationPicker
+                            value={dayLoc || null}
+                            onChange={(newLoc) => setLocations(prev => ({ ...prev, [key]: newLoc }))}
+                            defaultOpen={false}
+                          />
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <span className="text-sm text-muted-foreground font-medium italic">Fermé</span>
-                  )}
-                </div>
-              ))}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
