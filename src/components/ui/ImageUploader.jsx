@@ -1,65 +1,10 @@
 import { useState, useRef } from 'react';
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import imageCompression from 'browser-image-compression';
 import { storage } from '../../lib/firebase';
 import { Button } from './Button';
 
-/**
- * Redimensionne une image en conservant son ratio
- * @param {File} file - Fichier image à redimensionner
- * @param {number} maxWidth - Largeur maximale
- * @param {number} maxHeight - Hauteur maximale
- * @returns {Promise<Blob>} - Blob de l'image redimensionnée
- */
-const resizeImage = (file, maxWidth, maxHeight) => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    
-    reader.onload = (e) => {
-      const img = new Image();
-      
-      img.onload = () => {
-        // Calculer les nouvelles dimensions en conservant le ratio
-        let width = img.width;
-        let height = img.height;
-        
-        if (width > maxWidth || height > maxHeight) {
-          const ratio = Math.min(maxWidth / width, maxHeight / height);
-          width = Math.round(width * ratio);
-          height = Math.round(height * ratio);
-        }
-        
-        // Créer un canvas pour redimensionner
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-        
-        // Convertir en blob
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              resolve(blob);
-            } else {
-              reject(new Error('Erreur lors de la conversion de l\'image'));
-            }
-          },
-          file.type,
-          0.9 // Qualité 90%
-        );
-      };
-      
-      img.onerror = () => reject(new Error('Erreur lors du chargement de l\'image'));
-      img.src = e.target.result;
-    };
-    
-    reader.onerror = () => reject(new Error('Erreur lors de la lecture du fichier'));
-    reader.readAsDataURL(file);
-  });
-};
-
-export default function ImageUploader({ value, onChange, label, folder = 'uploads', maxWidth = 1200, maxHeight = 1200 }) {
+export default function ImageUploader({ value, onChange, label, folder = 'uploads', maxSizeMB = 1, maxWidthOrHeight = 1200 }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [preview, setPreview] = useState(value || '');
@@ -107,21 +52,26 @@ export default function ImageUploader({ value, onChange, label, folder = 'upload
         }
       }
 
-      // ✅ REDIMENSIONNER l'image en conservant le ratio
-      console.log(`[PLANIZZA] 📐 Redimensionnement de l'image (max: ${maxWidth}x${maxHeight})...`);
-      const resizedBlob = await resizeImage(file, maxWidth, maxHeight);
-      const resizedFile = new File([resizedBlob], file.name, { type: file.type });
+      // Compression et conversion en WebP via browser-image-compression
+      console.log(`[PLANIZZA] Compression de l'image (max: ${maxSizeMB}MB, ${maxWidthOrHeight}px)...`);
+      const compressed = await imageCompression(file, {
+        maxSizeMB,
+        maxWidthOrHeight,
+        useWebWorker: true,
+        fileType: 'image/webp',
+      });
 
-      // Créer un nom unique pour le fichier
+      // Créer un nom unique pour le fichier (toujours .webp)
       const timestamp = Date.now();
       const randomId = Math.random().toString(36).substring(2, 9);
-      const fileName = `${timestamp}_${randomId}_${file.name}`;
+      const baseName = file.name.replace(/\.[^.]+$/, '');
+      const fileName = `${timestamp}_${randomId}_${baseName}.webp`;
       const path = `${folder}/${fileName}`;
 
       // Upload vers Firebase Storage
       console.log('[PLANIZZA] ⬆️ Upload vers:', path);
       const imageRef = storageRef(storage, path);
-      await uploadBytes(imageRef, resizedFile);
+      await uploadBytes(imageRef, compressed);
 
       // Récupérer l'URL publique
       const downloadUrl = await getDownloadURL(imageRef);

@@ -10,7 +10,7 @@ export function PizzaioloMenuCommonFields({
   itemDesc,
   setItemDesc,
   isCustomMode,
-  
+
   selectedPhotoUrl,
   setSelectedPhotoUrl,
 
@@ -31,6 +31,8 @@ export function PizzaioloMenuCommonFields({
   drinkSizes,
   setDrinkSizes,
   selectedDrinkSize,
+
+  truckId,
 }) {
   // Pour les boissons avec tailles, attendre la sélection de taille
   if (['soda', 'eau', 'biere'].includes(itemType) && !selectedDrinkSize) return null;
@@ -86,12 +88,18 @@ export function PizzaioloMenuCommonFields({
         </div>
       )}
 
-      {(selectedCategory === 'pizza' || selectedCategory === 'calzone') && (
-        <PizzaPhotoCarousel
-          selectedPhotoUrl={selectedPhotoUrl}
-          onSelectPhoto={setSelectedPhotoUrl}
-        />
-      )}
+      <PizzaPhotoCarousel
+        selectedPhotoUrl={selectedPhotoUrl}
+        onSelectPhoto={setSelectedPhotoUrl}
+        truckId={truckId}
+        label={
+          selectedCategory === 'pizza' ? 'Photo de la pizza' :
+          selectedCategory === 'calzone' ? 'Photo de la calzone' :
+          selectedCategory === 'dessert' ? 'Photo du dessert' :
+          selectedCategory === 'boisson' ? 'Photo de la boisson' :
+          'Photo du produit'
+        }
+      />
 
       {selectedCategory === 'pizza' && (
         <div className="space-y-4">

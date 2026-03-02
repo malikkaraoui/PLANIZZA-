@@ -13,7 +13,7 @@ import { useCart } from '../features/cart/hooks/useCart.jsx';
 import { ROUTES } from '../app/routes';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
-import { isCurrentlyOpen } from '../lib/openingHours';
+import { isCurrentlyOpen, getTodayLocation } from '../lib/openingHours';
 import StickyCartBar from '../features/cart/StickyCartBar';
 import BackButton from '../components/ui/BackButton';
 
@@ -381,54 +381,56 @@ export default function TruckDetails() {
                 </div>
               </div>
 
-              {/* Emplacement */}
-              {truck.location && (truck.location.address || (truck.location.lat && truck.location.lng)) && (
-                <div className="px-6 sm:px-8 py-6 border-t border-white/10 bg-white/5">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="h-7 w-1.5 bg-primary/20 rounded-full" />
-                    <h2 className="text-sm font-black tracking-widest uppercase">Emplacement</h2>
-                  </div>
+              {/* Emplacement du jour */}
+              {(() => {
+                const todayLoc = getTodayLocation(truck);
+                if (!todayLoc || (!todayLoc.address && !todayLoc.lat)) return null;
+                return (
+                  <div className="px-6 sm:px-8 py-6 border-t border-white/10 bg-white/5">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="h-7 w-1.5 bg-primary/20 rounded-full" />
+                      <h2 className="text-sm font-black tracking-widest uppercase">Emplacement du jour</h2>
+                    </div>
 
-                  <div className="space-y-4">
-                    {/* Info adresse - Cliquable */}
-                    <button
-                      onClick={() => setShowMap(!showMap)}
-                      className="w-full flex items-start gap-4 p-5 rounded-3xl glass-premium border-white/20 hover:border-primary/30 transition-all shadow-lg hover:shadow-xl group"
-                    >
-                      <div className="p-3 rounded-2xl glass-premium border-white/30 text-primary shadow-lg group-hover:scale-110 transition-transform">
-                        <MapPin className="h-5 w-5" />
-                      </div>
-                      <div className="flex-1 text-left space-y-1">
-                        <p className="font-black text-sm tracking-tight group-hover:text-primary transition-colors">
-                          {formatShortAddress(truck.location.address)}
-                        </p>
-                        {truck.location.lat && truck.location.lng && (
-                          <p className="text-xs text-muted-foreground/60 font-medium">
-                            {showMap ? '👆 Cliquez pour réduire la carte' : '👉 Cliquez pour voir sur la carte'}
+                    <div className="space-y-4">
+                      <button
+                        onClick={() => setShowMap(!showMap)}
+                        className="w-full flex items-start gap-4 p-5 rounded-3xl glass-premium border-white/20 hover:border-primary/30 transition-all shadow-lg hover:shadow-xl group"
+                      >
+                        <div className="p-3 rounded-2xl glass-premium border-white/30 text-primary shadow-lg group-hover:scale-110 transition-transform">
+                          <MapPin className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1 text-left space-y-1">
+                          <p className="font-black text-sm tracking-tight group-hover:text-primary transition-colors">
+                            {formatShortAddress(todayLoc.address)}
                           </p>
-                        )}
-                      </div>
-                    </button>
+                          {todayLoc.lat && todayLoc.lng && (
+                            <p className="text-xs text-muted-foreground/60 font-medium">
+                              {showMap ? 'Cliquez pour reduire la carte' : 'Cliquez pour voir sur la carte'}
+                            </p>
+                          )}
+                        </div>
+                      </button>
 
-                    {/* Carte intégrée - Animée */}
-                    {truck.location.lat && truck.location.lng && (
-                      <div className={`grid transition-all duration-500 ease-in-out ${showMap ? 'grid-rows-[1fr] opacity-100 mt-6' : 'grid-rows-[0fr] opacity-0'}`}>
-                        <div className="overflow-hidden">
-                          <div className="relative rounded-3xl overflow-hidden shadow-2xl border-2 border-white/30">
-                            <iframe
-                              src={`https://www.google.com/maps?q=${truck.location.lat},${truck.location.lng}&hl=fr&z=16&output=embed`}
-                              className="w-full h-100 border-0"
-                              loading="lazy"
-                              referrerPolicy="no-referrer-when-downgrade"
-                              title="Emplacement du camion"
-                            />
+                      {todayLoc.lat && todayLoc.lng && (
+                        <div className={`grid transition-all duration-500 ease-in-out ${showMap ? 'grid-rows-[1fr] opacity-100 mt-6' : 'grid-rows-[0fr] opacity-0'}`}>
+                          <div className="overflow-hidden">
+                            <div className="relative rounded-3xl overflow-hidden shadow-2xl border-2 border-white/30">
+                              <iframe
+                                src={`https://www.google.com/maps?q=${todayLoc.lat},${todayLoc.lng}&hl=fr&z=16&output=embed`}
+                                className="w-full h-100 border-0"
+                                loading="lazy"
+                                referrerPolicy="no-referrer-when-downgrade"
+                                title="Emplacement du camion"
+                              />
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Gallery (dans le même encart, sous les infos) */}
               {Array.isArray(truck.photos) && truck.photos.length > 0 && (

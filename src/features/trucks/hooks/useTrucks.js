@@ -4,6 +4,7 @@ import { generateSlug } from '../../../lib/utils';
 import { devError } from '../../../lib/devLog';
 import { rtdbPaths } from '../../../lib/rtdbPaths';
 import { isFirebaseConfigured } from '../../../lib/firebase';
+import { getTodayLocation } from '../../../lib/openingHours';
 
 const BADGES = ['Bio', 'Terroir', 'Sans gluten', 'Halal', 'Kasher', 'Sucré'];
 
@@ -289,7 +290,8 @@ export function useTrucks(options = {}) {
   const sortBy = filters.sortBy || 'distance';
 
   const withMeta = baseTrucks.map((t) => {
-    const km = position ? kmBetween(position, t.location) : null;
+    const todayLoc = getTodayLocation(t) || t.location;
+    const km = position && todayLoc ? kmBetween(position, todayLoc) : null;
     const distanceKm = km == null ? t.distanceKm : round1(km);
 
     const highlights = [];

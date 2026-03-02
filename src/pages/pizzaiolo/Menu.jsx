@@ -349,6 +349,7 @@ export default function PizzaioloMenu() {
               drinkSizes={drinkSizes}
               setDrinkSizes={setDrinkSizes}
               selectedDrinkSize={selectedDrinkSize}
+              truckId={truckId}
             />
 
             <Button type="submit" disabled={saving} className="w-full">
