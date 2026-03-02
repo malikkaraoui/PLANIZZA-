@@ -12,7 +12,7 @@ import { db, storage } from '../../lib/firebase';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { generateUniqueTruckSlug } from '../../features/trucks/utils/truckSlug';
-import LocationPicker from '../../components/ui/LocationPicker';
+import DayLocationInput from '../../components/ui/DayLocationInput';
 import ImageUploader from '../../components/ui/ImageUploader';
 import { useTruckPause } from '../../features/trucks/hooks/useTruckPause';
 import { useActiveOrdersCount } from '../../features/orders/hooks/useActiveOrdersCount';
@@ -51,7 +51,6 @@ export default function PizzaioloProfile() {
   const [truckName, setTruckName] = useState('');
   const [truckDescription, setTruckDescription] = useState('');
   const [locations, setLocations] = useState({});
-  const [expandedLocationDay, setExpandedLocationDay] = useState(null);
   const [logoUrl, setLogoUrl] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
   const [ovenType, setOvenType] = useState('Bois');
@@ -665,7 +664,11 @@ export default function PizzaioloProfile() {
                 )}
                 <div>
                   <h2 className="text-2xl font-black tracking-tight">{truckName || 'Mon Camion'}</h2>
-                  <p className="text-sm text-muted-foreground font-medium">{location?.address || 'Emplacement non défini'}</p>
+                  <p className="text-sm text-muted-foreground font-medium">{(() => {
+                    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                    const today = dayNames[new Date().getDay()];
+                    return locations?.[today]?.address || 'Emplacement non defini';
+                  })()}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -1238,7 +1241,6 @@ export default function PizzaioloProfile() {
                 { key: 'sunday', label: 'Dim', fullLabel: 'Dimanche' }
               ].map(({ key, label, fullLabel }) => {
                 const dayLoc = locations?.[key];
-                const isExpanded = expandedLocationDay === key;
                 // Trouver les jours avec un emplacement pour la fonction "Copier depuis"
                 const daysWithLocation = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
                   .filter(d => d !== key && locations?.[d]?.lat && locations?.[d]?.lng);
@@ -1291,58 +1293,29 @@ export default function PizzaioloProfile() {
                     </div>
 
                     {/* Emplacement du jour */}
-                    <div className="px-4 pb-3">
-                      {dayLoc?.address ? (
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-3.5 w-3.5 text-blue-500 shrink-0" />
-                          <span className="text-xs text-muted-foreground truncate flex-1">{dayLoc.address}</span>
-                          <button
-                            type="button"
-                            onClick={() => setExpandedLocationDay(isExpanded ? null : key)}
-                            className="text-xs text-blue-500 hover:text-blue-600 font-bold shrink-0"
-                          >
-                            {isExpanded ? 'Fermer' : 'Modifier'}
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setExpandedLocationDay(isExpanded ? null : key)}
-                          className="flex items-center gap-2 text-xs text-blue-500 hover:text-blue-600 font-bold"
-                        >
-                          <MapPin className="h-3.5 w-3.5" />
-                          {isExpanded ? 'Fermer' : 'Definir l\'emplacement'}
-                        </button>
-                      )}
-
-                      {/* LocationPicker depliable */}
-                      {isExpanded && (
-                        <div className="mt-3 space-y-3">
-                          {daysWithLocation.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                              <span className="text-xs text-muted-foreground font-medium">Copier depuis :</span>
-                              {daysWithLocation.map(d => {
-                                const dayLabels = { monday: 'Lun', tuesday: 'Mar', wednesday: 'Mer', thursday: 'Jeu', friday: 'Ven', saturday: 'Sam', sunday: 'Dim' };
-                                return (
-                                  <button
-                                    key={d}
-                                    type="button"
-                                    onClick={() => setLocations(prev => ({ ...prev, [key]: { ...prev[d] } }))}
-                                    className="px-2 py-0.5 rounded-lg bg-blue-500/10 text-blue-600 text-xs font-bold hover:bg-blue-500/20 transition-all"
-                                  >
-                                    {dayLabels[d]}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
-                          <LocationPicker
-                            value={dayLoc || null}
-                            onChange={(newLoc) => setLocations(prev => ({ ...prev, [key]: newLoc }))}
-                            defaultOpen={false}
-                          />
+                    <div className="px-4 pb-3 space-y-2">
+                      {daysWithLocation.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="text-[10px] text-muted-foreground font-medium">Copier :</span>
+                          {daysWithLocation.map(d => {
+                            const dayLabels = { monday: 'Lun', tuesday: 'Mar', wednesday: 'Mer', thursday: 'Jeu', friday: 'Ven', saturday: 'Sam', sunday: 'Dim' };
+                            return (
+                              <button
+                                key={d}
+                                type="button"
+                                onClick={() => setLocations(prev => ({ ...prev, [key]: { ...prev[d] } }))}
+                                className="px-2 py-0.5 rounded-lg bg-blue-500/10 text-blue-600 text-[10px] font-bold hover:bg-blue-500/20 transition-all"
+                              >
+                                {dayLabels[d]}
+                              </button>
+                            );
+                          })}
                         </div>
                       )}
+                      <DayLocationInput
+                        value={dayLoc || null}
+                        onChange={(newLoc) => setLocations(prev => ({ ...prev, [key]: newLoc }))}
+                      />
                     </div>
                   </div>
                 );

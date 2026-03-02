@@ -1,34 +1,65 @@
 import { Suspense, lazy } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 
-const Home = lazy(() => import('../pages/Home'));
-const Trucks = lazy(() => import('../pages/Trucks'));
-const TruckDetails = lazy(() => import('../pages/TruckDetails'));
-const Cart = lazy(() => import('../pages/Cart'));
-const Checkout = lazy(() => import('../pages/Checkout'));
-const CheckoutSuccess = lazy(() => import('../pages/CheckoutSuccess'));
-const OrderTracking = lazy(() => import('../pages/OrderTracking'));
-const Account = lazy(() => import('../pages/Account'));
-const Dashboard = lazy(() => import('../pages/Dashboard'));
-const Orders = lazy(() => import('../pages/Orders'));
-const Auth = lazy(() => import('../pages/Auth'));
-const AuthAction = lazy(() => import('../pages/AuthAction'));
+const LAZY_RETRY_KEY = 'planizza:lazy-retry';
+
+const lazyWithRetry = (factory) => lazy(() => {
+  return factory().catch((error) => {
+    const message = String(error?.message || '');
+    const isChunkError =
+      message.includes('Failed to fetch dynamically imported module') ||
+      message.includes('Importing a module script failed') ||
+      message.includes('ChunkLoadError') ||
+      message.includes('Loading chunk');
+
+    if (isChunkError && typeof window !== 'undefined') {
+      const now = Date.now();
+      const last = Number(sessionStorage.getItem(LAZY_RETRY_KEY) || 0);
+      const shouldReload = !Number.isFinite(last) || now - last > 60_000;
+
+      if (shouldReload) {
+        try {
+          sessionStorage.setItem(LAZY_RETRY_KEY, String(now));
+        } catch {
+          // ignore
+        }
+        window.location.reload();
+        return new Promise(() => {});
+      }
+    }
+
+    throw error;
+  });
+});
+
+const Home = lazyWithRetry(() => import('../pages/Home'));
+const Trucks = lazyWithRetry(() => import('../pages/Trucks'));
+const TruckDetails = lazyWithRetry(() => import('../pages/TruckDetails'));
+const Cart = lazyWithRetry(() => import('../pages/Cart'));
+const Checkout = lazyWithRetry(() => import('../pages/Checkout'));
+const CheckoutSuccess = lazyWithRetry(() => import('../pages/CheckoutSuccess'));
+const OrderTracking = lazyWithRetry(() => import('../pages/OrderTracking'));
+const Account = lazyWithRetry(() => import('../pages/Account'));
+const Dashboard = lazyWithRetry(() => import('../pages/Dashboard'));
+const Orders = lazyWithRetry(() => import('../pages/Orders'));
+const Auth = lazyWithRetry(() => import('../pages/Auth'));
+const AuthAction = lazyWithRetry(() => import('../pages/AuthAction'));
 // RegisterPizzaiolo supprimé - fusionné dans CreateTruck
 
-const PizzaioloDashboard = lazy(() => import('../pages/pizzaiolo/Dashboard'));
-const PizzaioloProfile = lazy(() => import('../pages/pizzaiolo/Profile'));
-const PizzaioloMenu = lazy(() => import('../pages/pizzaiolo/Menu'));
-const PizzaioloOrders = lazy(() => import('../pages/pizzaiolo/OrdersTimeDriven'));
-const PizzaioloOrdersV2 = lazy(() => import('../pages/pizzaiolo/OrdersV2'));
-const PizzaioloStats = lazy(() => import('../pages/pizzaiolo/Stats'));
-const PizzaioloLive = lazy(() => import('../pages/pizzaiolo/Live'));
-const PizzaioloReviews = lazy(() => import('../pages/pizzaiolo/Reviews'));
-const PizzaioloStart = lazy(() => import('../pages/pizzaiolo/Start'));
-const CreateTruck = lazy(() => import('../pages/pizzaiolo/CreateTruck'));
-const StripeOnboarding = lazy(() => import('../pages/pizzaiolo/StripeOnboarding'));
-const E2ETransitionContract = lazy(() => import('../pages/E2ETransitionContract'));
-const NotFound = lazy(() => import('../pages/NotFound'));
-const Contact = lazy(() => import('../pages/Contact'));
+const PizzaioloDashboard = lazyWithRetry(() => import('../pages/pizzaiolo/Dashboard'));
+const PizzaioloProfile = lazyWithRetry(() => import('../pages/pizzaiolo/Profile'));
+const PizzaioloMenu = lazyWithRetry(() => import('../pages/pizzaiolo/Menu'));
+const PizzaioloOrders = lazyWithRetry(() => import('../pages/pizzaiolo/OrdersTimeDriven'));
+const PizzaioloOrdersV2 = lazyWithRetry(() => import('../pages/pizzaiolo/OrdersV2'));
+const PizzaioloStats = lazyWithRetry(() => import('../pages/pizzaiolo/Stats'));
+const PizzaioloLive = lazyWithRetry(() => import('../pages/pizzaiolo/Live'));
+const PizzaioloReviews = lazyWithRetry(() => import('../pages/pizzaiolo/Reviews'));
+const PizzaioloStart = lazyWithRetry(() => import('../pages/pizzaiolo/Start'));
+const CreateTruck = lazyWithRetry(() => import('../pages/pizzaiolo/CreateTruck'));
+const StripeOnboarding = lazyWithRetry(() => import('../pages/pizzaiolo/StripeOnboarding'));
+const E2ETransitionContract = lazyWithRetry(() => import('../pages/E2ETransitionContract'));
+const NotFound = lazyWithRetry(() => import('../pages/NotFound'));
+const Contact = lazyWithRetry(() => import('../pages/Contact'));
 
 import RootLayout from '../components/layout/RootLayout';
 import ProtectedRoute from './ProtectedRoute';
