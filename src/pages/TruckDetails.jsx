@@ -535,7 +535,7 @@ export default function TruckDetails() {
           </div>
           {cartItems.length > 0 && (
             <aside
-              className="hidden xl:block fixed right-9.5 w-90 z-60 transition-[top,bottom] duration-200"
+              className="hidden xl:block fixed right-9.5 w-90 z-60 transition-[bottom] duration-200"
               style={{ top: cartTop, bottom: cartBottom }}
             >
               <div className="relative h-full">
