@@ -200,6 +200,10 @@ export default function AddressAutocomplete({ address, onAddressChange }) {
             onChange={handleInputChange}
             placeholder="Ex: 10 rue de la Paix, Paris"
             className="pr-10"
+            autoComplete="off"
+            autoCorrect="off"
+            name="addr-search-query"
+            data-form-type="other"
           />
           <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
         </div>
@@ -255,6 +259,9 @@ export default function AddressAutocomplete({ address, onAddressChange }) {
             onChange={(e) => onAddressChange({ ...address, streetNumber: e.target.value })}
             placeholder="N°"
             className="col-span-1"
+            autoComplete="off"
+            name="addr-street-num"
+            data-form-type="other"
           />
           <div ref={streetWrapperRef} className="col-span-2 relative">
             <Input
@@ -262,6 +269,10 @@ export default function AddressAutocomplete({ address, onAddressChange }) {
               value={address.street}
               onChange={handleStreetChange}
               placeholder="Nom de rue"
+              autoComplete="off"
+              autoCorrect="off"
+              name="addr-street-name"
+              data-form-type="other"
             />
             
             {/* Liste de suggestions pour le nom de rue */}
@@ -304,6 +315,9 @@ export default function AddressAutocomplete({ address, onAddressChange }) {
             placeholder="Code postal"
             className="col-span-1"
             maxLength={5}
+            autoComplete="off"
+            name="addr-zip"
+            data-form-type="other"
           />
           <Input
             type="text"
@@ -311,6 +325,9 @@ export default function AddressAutocomplete({ address, onAddressChange }) {
             onChange={(e) => onAddressChange({ ...address, city: e.target.value })}
             placeholder="Ville"
             className="col-span-2"
+            autoComplete="off"
+            name="addr-city"
+            data-form-type="other"
           />
         </div>
 
