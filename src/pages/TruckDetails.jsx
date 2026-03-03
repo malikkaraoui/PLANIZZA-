@@ -541,7 +541,7 @@ export default function TruckDetails() {
             >
               <div className="relative h-full">
                 <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full animate-bounce shadow-lg border border-white/30 z-10" />
-                <div className="animate-in slide-in-from-right-4 fade-in duration-500 ease-out h-full overflow-hidden">
+                <div className="animate-in slide-in-from-right-4 fade-in duration-500 ease-out h-full overflow-hidden rounded-4xl">
                   <CartSidebar
                     onCheckout={handleCheckout}
                     disabled={!canOrder}
