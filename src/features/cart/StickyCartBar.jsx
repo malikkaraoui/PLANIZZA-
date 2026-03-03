@@ -17,7 +17,7 @@ export default function StickyCartBar() {
     const totalItems = items.reduce((acc, item) => acc + (item.qty || 1), 0);
 
     return (
-        <div className="fixed bottom-4 left-4 right-4 z-50 lg:hidden animate-in slide-in-from-bottom-4 duration-500">
+        <div className="fixed bottom-4 left-4 right-4 z-50 xl:hidden animate-in slide-in-from-bottom-4 duration-500">
             <div className="relative">
                 {/* Indicateur d'attention */}
                 <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full animate-pulse border-2 border-white" />

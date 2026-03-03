@@ -193,13 +193,15 @@ export default function PizzaPhotoCarousel({ selectedPhotoUrl, onSelectPhoto, tr
               )}
               <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/60 to-transparent p-2 flex items-center justify-between">
                 <div className="text-[10px] font-medium text-white">Ma photo</div>
-                <button
-                  type="button"
+                <span
+                  role="button"
+                  tabIndex={0}
                   onClick={(e) => { e.stopPropagation(); handleUploadClick(); }}
-                  className="text-white/80 hover:text-white"
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); handleUploadClick(); } }}
+                  className="text-white/80 hover:text-white cursor-pointer"
                 >
                   <Upload className="h-3 w-3" />
-                </button>
+                </span>
               </div>
             </button>
           ) : (

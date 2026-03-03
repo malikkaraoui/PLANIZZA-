@@ -31,6 +31,19 @@ service firebase.storage {
     }
 
     // ============================================
+    // PHOTOS MENU (pizzas, calzones, boissons, desserts)
+    // Lecture: publique | Écriture: utilisateurs authentifiés
+    // ============================================
+
+    match /menu-photos/{truckId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && request.resource.size < 2 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth != null;
+    }
+
+    // ============================================
     // FICHIERS UTILISATEURS (isolés par userId)
     // ✅ Chaque utilisateur ne peut accéder qu'à SES fichiers
     // ============================================

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { MapPin, Pizza, X, Star, MessageCircle, ChevronDown } from 'lucide-react';
 import TruckHeader from '../features/trucks/TruckHeader';
@@ -123,75 +123,6 @@ export default function TruckDetails() {
   const [zoomedImage, setZoomedImage] = useState(null);
   const [showMap, setShowMap] = useState(false);
   const [openItemKey, setOpenItemKey] = useState(null);
-  const truckCardRef = useRef(null);
-  const [cartTopPx, setCartTopPx] = useState(112);
-
-  useEffect(() => {
-    const baseTop = 112; // aligné sous la topbar
-    const updateTop = () => {
-      const el = truckCardRef.current;
-      if (!el) {
-        setCartTopPx(baseTop);
-        return;
-      }
-
-      const rect = el.getBoundingClientRect();
-      const nextTop = Math.max(baseTop, Math.round(rect.top));
-      setCartTopPx(nextTop);
-    };
-
-    // Initial: on attend que le DOM soit stable
-    const initialUpdate = setTimeout(() => {
-      updateTop();
-    }, 0);
-
-    // Puis un second recalcul après 100ms pour être sûr (images chargées, etc.)
-    const delayedUpdate = setTimeout(() => {
-      updateTop();
-    }, 100);
-
-    window.addEventListener('scroll', updateTop, { passive: true });
-    window.addEventListener('resize', updateTop);
-
-    let ro;
-    try {
-      ro = new ResizeObserver(updateTop);
-      if (truckCardRef.current) {
-        ro.observe(truckCardRef.current);
-      }
-    } catch {
-      // noop
-    }
-
-    return () => {
-      clearTimeout(initialUpdate);
-      clearTimeout(delayedUpdate);
-      window.removeEventListener('scroll', updateTop);
-      window.removeEventListener('resize', updateTop);
-      ro?.disconnect?.();
-    };
-  }, []);
-
-  // Recalculer la position du panier quand les items changent (retour depuis /panier)
-  useEffect(() => {
-    if (cartItems.length === 0) return;
-    
-    const baseTop = 112;
-    const updateTop = () => {
-      const el = truckCardRef.current;
-      if (!el) {
-        setCartTopPx(baseTop);
-        return;
-      }
-      const rect = el.getBoundingClientRect();
-      const nextTop = Math.max(baseTop, Math.round(rect.top));
-      setCartTopPx(nextTop);
-    };
-
-    // Petit délai pour laisser le DOM se stabiliser
-    const timer = setTimeout(updateTop, 50);
-    return () => clearTimeout(timer);
-  }, [cartItems.length]);
 
   const formatShortAddress = (addr) => {
     if (!addr) return 'Adresse non renseignée';
@@ -270,8 +201,51 @@ export default function TruckDetails() {
     navigate(ROUTES.cart, { state: { truckId: truck.id } });
   };
 
+  // Ajuste le positionnement du panier pour s'aligner avec le contenu
+  const MIN_TOP = 112; // top-28 = 7rem = 112px (navbar clearance)
+  const DEFAULT_BOTTOM = 40;
+  const FOOTER_GAP = 16;
+  const [cartTop, setCartTop] = useState(MIN_TOP);
+  const [cartBottom, setCartBottom] = useState(DEFAULT_BOTTOM);
+  const truckCardRef = useRef(null);
+  const rafRef = useRef(0);
+
+  const updateCartPosition = useCallback(() => {
+    // Top : aligner avec la card truck
+    if (truckCardRef.current) {
+      const cardTop = truckCardRef.current.getBoundingClientRect().top;
+      setCartTop(Math.max(MIN_TOP, cardTop));
+    }
+    // Bottom : ne pas chevaucher le footer
+    const footer = document.querySelector('footer');
+    if (!footer) return;
+    const footerTop = footer.getBoundingClientRect().top;
+    const vh = window.innerHeight;
+    if (footerTop < vh) {
+      setCartBottom(footer.offsetHeight + FOOTER_GAP);
+    } else {
+      setCartBottom(DEFAULT_BOTTOM);
+    }
+  }, []);
+
+  useEffect(() => {
+    const onScroll = () => {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(updateCartPosition);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    // Recalcul apres le layout pour gerer le chargement initial
+    requestAnimationFrame(updateCartPosition);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+      cancelAnimationFrame(rafRef.current);
+    };
+  }, [updateCartPosition, isLoading]);
+
   return (
-    <div className="relative isolate mx-auto max-w-[92rem] px-4 py-12 sm:px-6 lg:px-8 space-y-12">
+    <div className="relative mx-auto max-w-[92rem] px-4 py-12 sm:px-6 lg:px-8 space-y-12">
       {/* Background decorations - Ultra Dynamic */}
       <div className="absolute top-0 right-0 -z-10 w-150 h-150 bg-primary/10 rounded-full blur-[120px] animate-pulse" />
       <div className="absolute bottom-1/4 left-0 -z-10 w-100 h-100 bg-blue-500/10 rounded-full blur-[100px] animate-pulse duration-700" />
@@ -279,8 +253,8 @@ export default function TruckDetails() {
       <div
         className={`relative z-20 w-full mb-10 ${
           cartItems.length > 0
-            ? 'lg:pr-[310px]'
-            : 'lg:max-w-4xl lg:mx-auto'
+            ? 'xl:pr-[365px]'
+            : 'xl:max-w-4xl xl:mx-auto'
         }`}
       >
         <BackButton />
@@ -338,8 +312,8 @@ export default function TruckDetails() {
       ) : (
         <div className={`flex flex-col gap-8 transition-all duration-500 ${
           cartItems.length > 0
-            ? 'lg:flex-row lg:pr-[310px]'
-            : 'lg:max-w-4xl lg:mx-auto'
+            ? 'xl:flex-row xl:pr-[365px]'
+            : 'xl:max-w-4xl xl:mx-auto'
           }`}>
           <div className="flex-1 space-y-12">
             {/* Truck Info Section */}
@@ -562,17 +536,12 @@ export default function TruckDetails() {
           </div>
           {cartItems.length > 0 && (
             <aside
-              className="hidden xl:block fixed right-[38px] w-[360px] z-40"
-              style={{
-                top: cartTopPx,
-                bottom: 40,
-                '--cart-top': `${cartTopPx}px`,
-                '--cart-bottom-gap': '40px',
-              }}
+              className="hidden xl:block fixed right-9.5 w-90 z-60 transition-[bottom] duration-200"
+              style={{ top: cartTop, bottom: cartBottom }}
             >
-              <div className="relative">
+              <div className="relative h-full">
                 <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full animate-bounce shadow-lg border border-white/30 z-10" />
-                <div className="animate-in slide-in-from-right-4 fade-in duration-500 ease-out">
+                <div className="animate-in slide-in-from-right-4 fade-in duration-500 ease-out h-full overflow-hidden rounded-4xl">
                   <CartSidebar
                     onCheckout={handleCheckout}
                     disabled={!canOrder}

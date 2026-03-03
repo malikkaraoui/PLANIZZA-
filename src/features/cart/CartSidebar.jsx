@@ -100,8 +100,8 @@ export default function CartSidebar({
   const ctaText = compact ? 'text-xs' : 'text-sm';
   const scrollGutterRight = compact ? 'pr-3' : 'pr-4';
 
-  // Hauteur max = viewport - top dynamique - blanc bas
-  const maxCardHeight = 'calc(100vh - var(--cart-top, 112px) - var(--cart-bottom-gap, 40px))';
+  // Hauteur max = remplie jusqu'au parent (aside contraint par top-28 / bottom-10)
+  const maxCardHeight = '100%';
 
   return (
     <Card
@@ -211,10 +211,9 @@ export default function CartSidebar({
         )}
 
         {items.length > 0 && isScrollable && !atBottom && (
-          <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-14 z-10 border-b-[24px] border-transparent">
-            <div className="absolute inset-0 bg-linear-to-t from-background/80 via-background/35 to-transparent backdrop-blur-[2px]" />
-            {/* Petit hint ultra discret, toujours présent tant qu'il reste du contenu dessous */}
-            <div className="absolute inset-x-0 bottom-1.5 flex justify-center">
+          <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 z-10">
+            <div className="h-10 bg-linear-to-t from-background/80 via-background/35 to-transparent backdrop-blur-[2px]" />
+            <div className="bg-background/80 backdrop-blur-[2px] flex justify-center pb-2 pt-1">
               <div className="inline-flex items-center gap-2 rounded-full glass-premium border-white/10 px-3 py-1.5 shadow-lg">
                 <span className="text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground/60">
                   Plus d'articles
