@@ -100,8 +100,8 @@ export default function CartSidebar({
   const ctaText = compact ? 'text-xs' : 'text-sm';
   const scrollGutterRight = compact ? 'pr-3' : 'pr-4';
 
-  // Hauteur max = viewport - top dynamique - blanc bas
-  const maxCardHeight = 'calc(100vh - var(--cart-top, 112px) - var(--cart-bottom-gap, 40px))';
+  // Hauteur max = remplie jusqu'au parent (aside contraint par top-28 / bottom-10)
+  const maxCardHeight = '100%';
 
   return (
     <Card
