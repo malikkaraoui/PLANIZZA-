@@ -109,6 +109,10 @@ export default function DayLocationInput({ value, onChange }) {
               searchAddress(e.target.value);
             }}
             placeholder="Rechercher une adresse..."
+            autoComplete="off"
+            autoCorrect="off"
+            name="day-location-search"
+            data-form-type="other"
             className="w-full rounded-xl border border-white/20 bg-white/5 px-3 py-2 pr-8 text-sm focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
           />
           {loading && (
