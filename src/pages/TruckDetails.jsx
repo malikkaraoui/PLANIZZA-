@@ -210,7 +210,7 @@ export default function TruckDetails() {
       <div
         className={`relative z-20 w-full mb-10 ${
           cartItems.length > 0
-            ? 'xl:pr-[310px]'
+            ? 'xl:pr-[420px]'
             : 'xl:max-w-4xl xl:mx-auto'
         }`}
       >
@@ -269,7 +269,7 @@ export default function TruckDetails() {
       ) : (
         <div className={`flex flex-col gap-8 transition-all duration-500 ${
           cartItems.length > 0
-            ? 'xl:flex-row xl:pr-[310px]'
+            ? 'xl:flex-row xl:pr-[420px]'
             : 'xl:max-w-4xl xl:mx-auto'
           }`}>
           <div className="flex-1 space-y-12">
