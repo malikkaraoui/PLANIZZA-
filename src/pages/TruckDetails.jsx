@@ -235,13 +235,14 @@ export default function TruckDetails() {
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll);
-    updateCartPosition();
+    // Recalcul apres le layout pour gerer le chargement initial
+    requestAnimationFrame(updateCartPosition);
     return () => {
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
       cancelAnimationFrame(rafRef.current);
     };
-  }, [updateCartPosition]);
+  }, [updateCartPosition, isLoading]);
 
   return (
     <div className="relative mx-auto max-w-[92rem] px-4 py-12 sm:px-6 lg:px-8 space-y-12">
